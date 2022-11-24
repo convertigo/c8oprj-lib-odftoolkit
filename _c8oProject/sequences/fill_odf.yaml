@@ -1,0 +1,86 @@
+comment: |
+  Fills an ODT template file.
+  Place your template files in .//templates/odf folder.
+↓fill_template [steps.SimpleStep-1669224611519]: 
+  expression: |
+    'var odf_api = JavaImporter(
+    	Packages.org.odftoolkit.simple.TextDocument,
+    	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
+    	Packages.org.odftoolkit.simple.draw.Image,
+    	Packages.java.io.File
+    );
+    
+    var project_path = (''''+context.getProjectDirectory()).replace(new RegExp(/\\/g), ''/'');
+    var template_path = project_path + "/templates/odf/"+input_filename+".doc";
+    var output_path = project_path + "/outputs/"+output_filename+".doc";
+    
+    with(odf_api){
+    	
+    	function replace_text(fdoc, pattern, new_text){
+    		var txt_nav = null;
+    		txt_nav = new TextNavigation(pattern, fdoc);
+    		while (txt_nav.hasNext()) {
+    			item = txt_nav.nextSelection();
+    			log.warn(item.getText());
+    			log.warn(item.getIndex());
+    			item.replaceWith(new_text);
+    		}
+    	}
+    	
+    	var document = TextDocument.loadDocument(template_path);
+    	replace_text(document, "__c8o_date", date);
+    	replace_text(document, "__c8o_objet", objet);
+    	replace_text(document, "__c8o_texte", texte);
+    	replace_text(document, "__c8o_signature", new File(signature).toURI());
+    	//replace_text(document, "__c8o_signature", Image.newImage(document.getParagraphByIndex(1, false),new File(signature).toURI()));
+    	document.save(output_path);
+    }'
+↓Element [steps.XMLElementStep-1669218417383]: 
+  nodeName: attachment
+  ↓jAttribute [steps.AttributeStep-1669218417386]: 
+    expression: '"attachment"'
+    nodeName: type
+  ↓jAttribute1 [steps.AttributeStep-1669218417389]: 
+    expression: filename + ".doc"
+    nodeName: name
+  ↓jAttribute11 [steps.AttributeStep-1669218417392]: 
+    expression: output_path
+    nodeName: local-url
+  ↓jAttribute2 [steps.AttributeStep-1669218417395]: 
+    expression: '"application/octet-stream"'
+    nodeName: content-type
+↓date [variables.RequestableVariable-1669197724582]: 
+  comment: Date
+  required: true
+↓objet [variables.RequestableVariable-1669197724585]: 
+  comment: Subject
+  required: true
+↓texte [variables.RequestableVariable-1669197724588]: 
+  comment: Main Body Text
+  required: true
+↓signature [variables.RequestableVariable-1669197724591]: 
+  comment: Signature. Image file
+  required: true
+↓output_filename [variables.RequestableVariable-1669197724594]: 
+  comment: Output file name
+  required: true
+↓input_filename [variables.RequestableVariable-1669281535928]: 
+  comment: Input file name
+  required: true
+↓Test_Case [core.TestCase]: 
+  ↓date [variables.TestCaseVariable-1669215110393]: 
+    value: 23/11/2022
+  ↓objet [variables.TestCaseVariable-1669215110396]: 
+    value: Qualification du Step Form_PDF pour le projet Pôle Emploi.
+  ↓texte [variables.TestCaseVariable-1669215110399]: 
+    value: |
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce placerat accumsan ex ac cursus. Praesent in leo dictum, sollicitudin sapien ac, semper mi. Maecenas viverra finibus nunc, id consequat dui sodales eu. In convallis pellentesque suscipit. Fusce hendrerit, tellus vel imperdiet vestibulum, tortor dolor congue nibh, ut dictum diam libero at nisl. Vestibulum placerat ex nec nunc dignissim, sit amet fermentum nisl maximus. Fusce feugiat, ex in iaculis suscipit, libero mauris auctor metus, ut scelerisque tellus nisl a lectus. Morbi fermentum augue quis interdum sodales. Quisque fermentum, magna at varius consectetur, quam turpis venenatis ligula, vitae eleifend sem libero in nisi. Aliquam varius interdum sem, ac faucibus lectus feugiat nec. Ut consectetur molestie aliquam. Morbi lacinia eget leo nec varius.
+      
+      Aliquam erat volutpat. Vestibulum tellus eros, placerat sit amet purus ac, finibus porta purus. Nullam dapibus tempor cursus. Fusce malesuada augue vel nunc rhoncus, nec porta orci hendrerit. Ut vel quam ut dolor tempus ullamcorper. Ut vitae egestas augue, sit amet laoreet lectus. Nam venenatis, urna in imperdiet suscipit, sem purus mollis magna, vel elementum ex ante quis nisl. Integer fermentum nec ligula vel suscipit. Donec scelerisque erat vehicula, interdum ipsum ut, vestibulum mauris. Proin hendrerit quis neque eget interdum. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Fusce vehicula arcu sit amet malesuada pharetra. Donec dui arcu, mollis sit amet consectetur sed, cursus ac massa. Quisque egestas neque sit amet diam posuere, sed dignissim libero sodales. Quisque eros magna, maximus eget urna eget, cursus condimentum dui.
+  ↓signature [variables.TestCaseVariable-1669215110402]: 
+    value: C:/Convertigo/Studio 8.1.0/workspace/lib_fill_odt_pdf/templates/sarah_signature_sample.png
+  ↓output_filename [variables.TestCaseVariable-1669215110405]: 
+    value: test
+  ↓input_filename [variables.TestCaseVariable-1669281553803]: 
+    required: true
+    value: template

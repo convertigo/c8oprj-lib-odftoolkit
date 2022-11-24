@@ -1,5 +1,7 @@
 ↑convertigo: 8.0.0.m006
 ↓lib_fill_odt_pdf [core.Project]: 
-  comment: Mashup Sequencer project
+  comment: ODFToolkit library
+  version: 1.0
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
-  ↓NewSequence [sequences.GenericSequence]: 🗏 sequences/NewSequence.yaml
+  ↓fill_odf [sequences.GenericSequence]: 🗏 sequences/fill_odf.yaml
+  ↓fill_pdf [sequences.GenericSequence]: 🗏 sequences/fill_pdf.yaml
