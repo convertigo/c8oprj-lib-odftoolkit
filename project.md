@@ -22,10 +22,10 @@ does nothing
 <details><summary><span style="color:DarkGoldenRod"><i>Sequences</i></span></summary><blockquote><p>
 
 
-<details><summary><b>fill_odf</b> : Fills an ODT template file</summary><blockquote><p>
+<details><summary><b>fill_odt</b> : Fills an ODT template file</summary><blockquote><p>
 
 
-## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") fill_odf
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") fill_odt
 
 Fills an ODT template file.
 Place your template files in .//templates/odf folder.

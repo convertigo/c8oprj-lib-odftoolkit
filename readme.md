@@ -10,7 +10,7 @@ For more technical informations : [documentation](./project.md)
 
 - [Installation](#installation)
 - [Sequences](#sequences)
-    - [fill_odf](#fill_odf)
+    - [fill_odt](#fill_odt)
     - [fill_pdf](#fill_pdf)
 
 
@@ -23,13 +23,13 @@ For more technical informations : [documentation](./project.md)
      <tr><td>To contribute</td><td>
 
      ```
-     lib_fill_odt_pdf=C:/Convertigo/Studio 8.1.0/workspace/lib_fill_odt_pdf/.git:branch=master
+     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit.git:branch=master
      ```
      </td></tr>
      <tr><td>To simply use</td><td>
 
      ```
-     lib_fill_odt_pdf=C:/Convertigo/Studio 8.1.0/workspace/lib_fill_odt_pdf//archive/master.zip
+     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit/archive/master.zip
      ```
      </td></tr>
     </table>
@@ -38,7 +38,7 @@ For more technical informations : [documentation](./project.md)
 
 ## Sequences
 
-### fill_odf
+### fill_odt
 
 Fills an ODT template file.
 Place your template files in .//templates/odf folder.

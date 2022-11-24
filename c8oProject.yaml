@@ -3,5 +3,5 @@
   comment: ODFToolkit library
   version: 1.0
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
-  ↓fill_odf [sequences.GenericSequence]: 🗏 sequences/fill_odf.yaml
+  ↓fill_odt [sequences.GenericSequence]: 🗏 sequences/fill_odt.yaml
   ↓fill_pdf [sequences.GenericSequence]: 🗏 sequences/fill_pdf.yaml
