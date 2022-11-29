@@ -54,7 +54,7 @@ Date
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
 </td>
 <td>
-Input DOC template file name to fill (without extension, '.doc' is assumed). 
+Input ODT template file name to fill (without extension, '.doc' is automatically added but format is ODT and can be opened as a Ms Word file or OpenOffice). 
 Put your templates in <project_folder>/templates/odf
 </td>
 </tr>
@@ -71,8 +71,8 @@ Subject
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
 </td>
 <td>
-Output DOC file name (without extension). 
-'.doc' is automatically added to filename.
+Output ODT file name (without extension). 
+'.doc' is automatically added to filename to be opened by Ms Word or OpenOffice.
 </td>
 </tr>
 <tr>

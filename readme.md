@@ -53,15 +53,15 @@ Place your template files in .//templates/odf folder.
 <td>date</td><td>Date</td>
 </tr>
 <tr>
-<td>input_filename</td><td>Input DOC template file name to fill (without extension, '.doc' is assumed). 
+<td>input_filename</td><td>Input ODT template file name to fill (without extension, '.doc' is automatically added but format is ODT and can be opened as a Ms Word file or OpenOffice). 
 Put your templates in <project_folder>/templates/odf</td>
 </tr>
 <tr>
 <td>objet</td><td>Subject</td>
 </tr>
 <tr>
-<td>output_filename</td><td>Output DOC file name (without extension). 
-'.doc' is automatically added to filename.</td>
+<td>output_filename</td><td>Output ODT file name (without extension). 
+'.doc' is automatically added to filename to be opened by Ms Word or OpenOffice.</td>
 </tr>
 <tr>
 <td>signature</td><td>Signature. 
