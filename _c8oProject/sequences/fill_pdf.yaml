@@ -1,5 +1,5 @@
 comment: |
-  Fills a PDF template file.
+  Fills a PDF template file. 
   Place your template file in .//templates/pdf folder.
 ↓Source [steps.XMLComplexStep-1669197057007]: 
   nodeName: source
@@ -67,13 +67,20 @@ comment: |
   comment: Main Body Text
   required: true
 ↓signature [variables.RequestableVariable-1669197057034]: 
-  comment: Signature. Image file or B64 string
+  comment: |
+    Signature. 
+    _ Image file. Can be an aboslute path file or relative to project (.//) or workspace (./). 
+    _ B64 string.
   required: true
 ↓output_filename [variables.RequestableVariable-1669197378320]: 
-  comment: Output file name
+  comment: |
+    'Output PDF file name (without extension). 
+    ''.pdf'' is automatically added to filename.'
   required: true
 ↓input_filename [variables.RequestableVariable-1669280362645]: 
-  comment: Input file name
+  comment: |
+    Input PDF template file name to fill (without extension, '.pdf' is assumed). 
+    Put your templates in <project_folder>/templates/pdf
   required: true
 ↓Test_Case [core.TestCase]: 
   ↓date [variables.TestCaseVariable-1669197057038]: 

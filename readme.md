@@ -53,16 +53,19 @@ Place your template files in .//templates/odf folder.
 <td>date</td><td>Date</td>
 </tr>
 <tr>
-<td>input_filename</td><td>Input file name</td>
+<td>input_filename</td><td>Input DOC template file name to fill (without extension, '.doc' is assumed). 
+Put your templates in <project_folder>/templates/odf</td>
 </tr>
 <tr>
 <td>objet</td><td>Subject</td>
 </tr>
 <tr>
-<td>output_filename</td><td>Output file name</td>
+<td>output_filename</td><td>Output DOC file name (without extension). 
+'.doc' is automatically added to filename.</td>
 </tr>
 <tr>
-<td>signature</td><td>Signature. Image file</td>
+<td>signature</td><td>Signature. 
+Absolute Image file path.</td>
 </tr>
 <tr>
 <td>texte</td><td>Main Body Text</td>
@@ -71,7 +74,7 @@ Place your template files in .//templates/odf folder.
 
 ### fill_pdf
 
-Fills a PDF template file.
+Fills a PDF template file. 
 Place your template file in .//templates/pdf folder.
 
 **variables**
@@ -84,16 +87,20 @@ Place your template file in .//templates/pdf folder.
 <td>date</td><td>Date</td>
 </tr>
 <tr>
-<td>input_filename</td><td>Input file name</td>
+<td>input_filename</td><td>Input PDF template file name to fill (without extension, '.pdf' is assumed). 
+Put your templates in <project_folder>/templates/pdf</td>
 </tr>
 <tr>
 <td>objet</td><td>Subject</td>
 </tr>
 <tr>
-<td>output_filename</td><td>Output file name</td>
+<td>output_filename</td><td>Output PDF file name (without extension). 
+'.pdf' is automatically added to filename.</td>
 </tr>
 <tr>
-<td>signature</td><td>Signature. Image file or B64 string</td>
+<td>signature</td><td>Signature. 
+_ Image file. Can be an aboslute path file or relative to project (.//) or workspace (./). 
+_ B64 string.</td>
 </tr>
 <tr>
 <td>texte</td><td>Main Body Text</td>

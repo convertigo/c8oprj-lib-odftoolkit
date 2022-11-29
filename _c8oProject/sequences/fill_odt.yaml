@@ -59,13 +59,19 @@ comment: |
   comment: Main Body Text
   required: true
 ↓signature [variables.RequestableVariable-1669197724591]: 
-  comment: Signature. Image file
+  comment: |
+    Signature. 
+    Absolute Image file path.
   required: true
 ↓output_filename [variables.RequestableVariable-1669197724594]: 
-  comment: Output file name
+  comment: |
+    'Output DOC file name (without extension). 
+    ''.doc'' is automatically added to filename.'
   required: true
 ↓input_filename [variables.RequestableVariable-1669281535928]: 
-  comment: Input file name
+  comment: |
+    Input DOC template file name to fill (without extension, '.doc' is assumed). 
+    Put your templates in <project_folder>/templates/odf
   required: true
 ↓Test_Case [core.TestCase]: 
   ↓date [variables.TestCaseVariable-1669215110393]: 

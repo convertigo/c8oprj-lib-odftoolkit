@@ -54,7 +54,8 @@ Date
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
 </td>
 <td>
-Input file name
+Input DOC template file name to fill (without extension, '.doc' is assumed). 
+Put your templates in <project_folder>/templates/odf
 </td>
 </tr>
 <tr>
@@ -70,7 +71,8 @@ Subject
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
 </td>
 <td>
-Output file name
+Output DOC file name (without extension). 
+'.doc' is automatically added to filename.
 </td>
 </tr>
 <tr>
@@ -78,7 +80,8 @@ Output file name
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;signature
 </td>
 <td>
-Signature. Image file
+Signature. 
+Absolute Image file path.
 </td>
 </tr>
 <tr>
@@ -98,7 +101,7 @@ Main Body Text
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") fill_pdf
 
-Fills a PDF template file.
+Fills a PDF template file. 
 Place your template file in .//templates/pdf folder.
 
 <span style="color:DarkGoldenRod">Variables</span>
@@ -125,7 +128,8 @@ Date
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
 </td>
 <td>
-Input file name
+Input PDF template file name to fill (without extension, '.pdf' is assumed). 
+Put your templates in <project_folder>/templates/pdf
 </td>
 </tr>
 <tr>
@@ -141,7 +145,8 @@ Subject
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
 </td>
 <td>
-Output file name
+Output PDF file name (without extension). 
+'.pdf' is automatically added to filename.
 </td>
 </tr>
 <tr>
@@ -149,7 +154,9 @@ Output file name
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;signature
 </td>
 <td>
-Signature. Image file or B64 string
+Signature. 
+_ Image file. Can be an aboslute path file or relative to project (.//) or workspace (./). 
+_ B64 string.
 </td>
 </tr>
 <tr>
