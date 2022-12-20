@@ -1,0 +1,53 @@
+comment: Clean the generated files from the 'outputs' directory. Can be used in a Convertigo scheduled job to automate the process.
+↓init [steps.SimpleStep-1671528840321]: 
+  expression: now = (new Date()).getTime();
+↓List_directory [steps.ListDirStep-1671528590874]: 
+  sourceDirectory: '".//outputs"'
+↓Iterator [steps.IteratorStep-1671528710771]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1671528590874
+        - java.lang.String: 
+          - ↑value: ./file
+  ↓jSimpleSource [steps.SimpleSourceStep-1671529002093]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1671528710771
+          - java.lang.String: 
+            - ↑value: ./@lastModified
+    variableName: lastModified
+  ↓jIf [steps.IfStep-1671528935021]: 
+    condition: all == "true" || (now - lastModified > max_time)
+    ↓Copy [steps.XMLCopyStep-1671529345357]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1671528710771
+            - java.lang.String: 
+              - ↑value: .
+    ↓Delete_file [steps.DeleteStep-1671529688325]: 
+      sourcePath: '".//outputs/"+item.getTextContent()'
+↓max_time [variables.RequestableVariable-1671529075167]: 
+  comment: Define the maximum time in millisecond before deleting the file. Default is 86400000ms (24h). Only works if 'all' is 'false'
+  value: 86400000
+↓all [variables.RequestableVariable-1671529101011]: 
+  comment: Set value to 'true' to directly delete all files whatever last modified date they have. Default is 'false', it only deletes files older than 'max_time'
+  value: false
+↓Test_Case [core.TestCase]: 
+  ↓max_time [variables.TestCaseVariable-1671529491892]: 
+    value: 86400000
+  ↓all [variables.TestCaseVariable-1671529491894]: 
+    value: true
+↓Test_Case_1 [core.TestCase]: 
+  ↓max_time [variables.TestCaseVariable-1671529511205]: 
+    value: 86400
+  ↓all [variables.TestCaseVariable-1671529511207]: 
+    value: false

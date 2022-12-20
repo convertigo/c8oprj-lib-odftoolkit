@@ -3,13 +3,14 @@
 
 # lib_fill_odt_pdf
 
-ODFToolkit library
+ODFToolkit and PDF library
 
 
 For more technical informations : [documentation](./project.md)
 
 - [Installation](#installation)
 - [Sequences](#sequences)
+    - [clean_outputs](#clean_outputs)
     - [fill_odt](#fill_odt)
     - [fill_pdf](#fill_pdf)
 
@@ -37,6 +38,24 @@ For more technical informations : [documentation](./project.md)
 
 
 ## Sequences
+
+### clean_outputs
+
+Clean the generated files from the 'outputs' directory. Can be used in a Convertigo scheduled job to automate the process.
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>all</td><td>Set value to 'true' to directly delete all files whatever last modified date they have. Default is 'false', it only deletes files older than 'max_time'</td>
+</tr>
+<tr>
+<td>max_time</td><td>Define the maximum time in millisecond before deleting the file. Default is 86400000ms (24h). Only works if 'all' is 'false'</td>
+</tr>
+</table>
 
 ### fill_odt
 
