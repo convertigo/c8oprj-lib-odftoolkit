@@ -51,18 +51,18 @@ comment: |
     nodeName: content-type
 ↓date [variables.RequestableVariable-1669197724582]: 
   comment: Date
-  required: true
+  value: 
 ↓objet [variables.RequestableVariable-1669197724585]: 
   comment: Subject
-  required: true
+  value: 
 ↓texte [variables.RequestableVariable-1669197724588]: 
   comment: Main Body Text
-  required: true
+  value: 
 ↓signature [variables.RequestableVariable-1669197724591]: 
   comment: |
     Signature. 
     Absolute Image file path.
-  required: true
+  value: 
 ↓output_filename [variables.RequestableVariable-1669197724594]: 
   comment: |
     'Output ODT file name (without extension). 

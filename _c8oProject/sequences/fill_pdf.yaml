@@ -18,6 +18,7 @@ comment: |
     output: false
   ↓pe_signature [steps.ElementStep-1669197057019]: 
     expression: signature
+    isEnabled: false
     nodeName: pe_signature
     output: false
 ↓Form_PDF [steps.PdfFormStep-1669197057022]: 
@@ -59,19 +60,15 @@ comment: |
     nodeName: content-type
 ↓date [variables.RequestableVariable-1669197057025]: 
   comment: Date
-  required: true
 ↓objet [variables.RequestableVariable-1669197057028]: 
   comment: Subject
-  required: true
 ↓texte [variables.RequestableVariable-1669197057031]: 
   comment: Main Body Text
-  required: true
 ↓signature [variables.RequestableVariable-1669197057034]: 
   comment: |
     Signature. 
     _ Image file. Can be an aboslute path file or relative to project (.//) or workspace (./). 
     _ B64 string.
-  required: true
 ↓output_filename [variables.RequestableVariable-1669197378320]: 
   comment: |
     'Output PDF file name (without extension). 
