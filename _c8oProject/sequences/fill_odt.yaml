@@ -11,8 +11,8 @@ comment: |
     );
     
     var project_path = (''''+context.getProjectDirectory()).replace(new RegExp(/\\/g), ''/'');
-    var template_path = project_path + "/templates/odf/"+input_filename+".doc";
-    var output_path = project_path + "/outputs/"+output_filename+".doc";
+    var template_path = project_path + "/templates/odf/"+input_filename+".odt";
+    var output_path = project_path + "/outputs/"+output_filename+".odt";
     
     with(odf_api){
     	
@@ -41,7 +41,7 @@ comment: |
     expression: '"attachment"'
     nodeName: type
   ↓jAttribute1 [steps.AttributeStep-1669218417389]: 
-    expression: filename + ".doc"
+    expression: output_filename + ".odt"
     nodeName: name
   ↓jAttribute11 [steps.AttributeStep-1669218417392]: 
     expression: output_path
