@@ -1,6 +1,7 @@
 comment: |
   Fills an ODT template file (Universal).
   Place your template files in .//templates/odf folder.
+  It will output an attachment structure and if you call it with .bin requester it will trigger a download in the client Browser.
 ↓inputVars [steps.InputVariablesStep-1739978901433]: 
 ↓markers [steps.JsonSourceStep-1739978922911]: 
   sourceDefinition: 

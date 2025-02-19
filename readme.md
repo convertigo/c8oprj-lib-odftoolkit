@@ -136,6 +136,7 @@ _ B64 string.</td>
 
 Fills an ODT template file (Universal).
 Place your template files in .//templates/odf folder.
+It will output an attachment structure and if you call it with .bin requester it will trigger a download in the client Browser.
 
 **variables**
 
