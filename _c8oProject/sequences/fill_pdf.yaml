@@ -1,5 +1,5 @@
 comment: |
-  Fills a PDF template file. 
+  Fills a PDF template file (deprecated). 
   Place your template file in .//templates/pdf folder.
 ↓Source [steps.XMLComplexStep-1669197057007]: 
   nodeName: source

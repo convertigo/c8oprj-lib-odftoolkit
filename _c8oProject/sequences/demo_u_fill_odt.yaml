@@ -1,0 +1,224 @@
+comment: Demo sequence to fill an ODT template file.
+↓array [steps.JsonArrayStep-1739978580937]: 
+  output: false
+  ↓object [steps.JsonObjectStep-1739978586093]: 
+    output: false
+    ↓tag [steps.JsonFieldStep-1739978592167]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: tag
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: __c8o_date
+    ↓type [steps.JsonFieldStep-1739978600039]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: type
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: string
+    ↓value [steps.JsonFieldStep-1739978605302]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: value
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: February 25, 2025
+  ↓object1 [steps.JsonObjectStep-1739978643622]: 
+    output: false
+    ↓tag [steps.JsonFieldStep-1739978643625]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: tag
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: __c8o_objet
+    ↓type [steps.JsonFieldStep-1739978643628]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: type
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: string
+    ↓value [steps.JsonFieldStep-1739978643631]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: value
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: Resignation Letter
+  ↓object2 [steps.JsonObjectStep-1739978644411]: 
+    output: false
+    ↓tag [steps.JsonFieldStep-1739978644414]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: tag
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: __c8o_texte
+    ↓type [steps.JsonFieldStep-1739978644417]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: type
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: string
+    ↓value [steps.JsonFieldStep-1739978644420]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: value
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: |
+              Dear Sir, Madam, Miss,
+              
+              I am writing to inform you of my decision to resign from my position as a computer scientist at your company, effective from 04/05/2025.
+              
+              This decision was not easy to make, and I would like to express my gratitude for the opportunities and professional experience I have gained at Convertigo. I have enjoyed working with a talented and passionate team, and I am thankful for the stimulating projects I have been able to contribute to.
+              
+              I am committed to respecting my notice period of 3 months and ensuring a smooth transition to facilitate the continuity of my responsibilities. I remain available to train my successor and provide all necessary information to ensure a successful handover.
+              
+              Thank you for your understanding and attention to this request. Please accept, Dear Sir/Madam/Miss, my best regards.
+              
+              Sincerely,
+              
+              Sarah Palin
+  ↓object3 [steps.JsonObjectStep-1739978757637]: 
+    output: false
+    ↓tag [steps.JsonFieldStep-1739978757640]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: tag
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: __c8o_signature
+    ↓type [steps.JsonFieldStep-1739978757643]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: type
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: image
+    ↓value [steps.JsonFieldStep-1739978757646]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: value
+      output: false
+      value: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png
+↓Call_Sequence [steps.SequenceStep-1739978716377]: 
+  sourceSequence: lib_fill_odt_pdf.u_fill_odt
+  ↓output_filename [variables.StepVariable-1739978716379]: 
+    comment: |
+      'Output ODT file name (without extension). 
+      ''.doc'' is automatically added to filename to be opened by Ms Word or OpenOffice.'
+    required: true
+    value: test
+  ↓input_filename [variables.StepVariable-1739978716381]: 
+    comment: |
+      Input ODT template file name to fill (without extension, '.doc' is automatically added but format is ODT and can be opened as a Ms Word file or OpenOffice). 
+      Put your templates in <project_folder>/templates/odf
+    required: true
+    value: template
+  ↓markers [variables.StepVariable-1739978716383]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1739978580937
+          - java.lang.String: 
+            - ↑value: .
+↓_ [steps.XMLCopyStep-1739982470129]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1739978716377
+        - java.lang.String: 
+          - ↑value: ./document/attachment

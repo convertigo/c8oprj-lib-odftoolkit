@@ -11,8 +11,10 @@ For more technical informations : [documentation](./project.md)
 - [Installation](#installation)
 - [Sequences](#sequences)
     - [clean_outputs](#clean_outputs)
+    - [demo_u_fill_odt](#demo_u_fill_odt)
     - [fill_odt](#fill_odt)
     - [fill_pdf](#fill_pdf)
+    - [u_fill_odt](#u_fill_odt)
 
 
 ## Installation
@@ -57,6 +59,10 @@ Clean the generated files from the 'outputs' directory. Can be used in a Convert
 </tr>
 </table>
 
+### demo_u_fill_odt
+
+Demo sequence to fill an ODT template file.
+
 ### fill_odt
 
 Fills an ODT template file.
@@ -93,7 +99,7 @@ Absolute Image file path.</td>
 
 ### fill_pdf
 
-Fills a PDF template file. 
+Fills a PDF template file (deprecated). 
 Place your template file in .//templates/pdf folder.
 
 **variables**
@@ -123,6 +129,38 @@ _ B64 string.</td>
 </tr>
 <tr>
 <td>texte</td><td>Main Body Text</td>
+</tr>
+</table>
+
+### u_fill_odt
+
+Fills an ODT template file (Universal).
+Place your template files in .//templates/odf folder.
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>input_filename</td><td>Input ODT template file name to fill (without extension, '.odt' is automatically added and it can be opened as a Ms Word file or LibreOffice). 
+Put your templates in <project_folder>/templates/odf</td>
+</tr>
+<tr>
+<td>markers</td><td>Structured array as follow : 
+
+[
+	{
+		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
+		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
+		"value": "&lt;replacement string or image absolute path&gt;"
+	}
+]></td>
+</tr>
+<tr>
+<td>output_filename</td><td>Output ODT file name (without extension). 
+'.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.</td>
 </tr>
 </table>
 

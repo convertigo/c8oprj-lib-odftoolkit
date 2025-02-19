@@ -1,0 +1,138 @@
+comment: |
+  Fills an ODT template file (Universal).
+  Place your template files in .//templates/odf folder.
+↓inputVars [steps.InputVariablesStep-1739978901433]: 
+↓markers [steps.JsonSourceStep-1739978922911]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1739978901433
+        - java.lang.String: 
+          - ↑value: ./markers/array
+  variableName: o_markers
+↓fill_template [steps.SimpleStep-1739960996675]: 
+  expression: |
+    'var odf_api = JavaImporter(
+    	Packages.org.odftoolkit.simple.TextDocument,
+    	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
+    	Packages.org.odftoolkit.simple.draw.Image,
+    	Packages.java.io.File
+    );
+    
+    var project_path = (''''+context.getProjectDirectory()).replace(new RegExp(/\\/g), ''/'');
+    var template_path = project_path + "/templates/odf/"+input_filename+".odt";
+    var output_path = project_path + "/outputs/"+output_filename+".odt";
+    
+    with(odf_api){
+    	
+    	function replace_text(fdoc, tags){
+    		for (var i=0; i<tags.length; i++){
+    			log.debug("tag: " + tags[i].tag);
+    			log.debug("tag type: " + tags[i].type);
+    			log.debug("tag value: " + tags[i].value);
+    			var txt_nav = null;
+    			txt_nav = new TextNavigation(tags[i].tag, fdoc);
+    			while (txt_nav.hasNext()) {
+    				item = txt_nav.nextSelection();
+    				log.debug("item Text: " + item.getText());
+    				log.debug("item Index: " + item.getIndex());
+    				switch (tags[i].type){
+    				case "image":
+    					tags[i].value = new File(tags[i].value).toURI();
+    					break;
+    				case "paragraph":
+    				case "string":
+    				default:
+    			}
+    				item.replaceWith(tags[i].value);
+    			}
+    		}
+    	}
+    	
+    	var document = TextDocument.loadDocument(template_path);
+    	
+    	try {
+    		if(o_markers != null){
+    			replace_text(document, o_markers);
+    		}
+    	} catch (e) {
+    		log.warn("ERROR: " + e);
+    	}
+    	document.save(output_path);
+    }'
+↓Element [steps.XMLElementStep-1739960996678]: 
+  nodeName: attachment
+  ↓jAttribute [steps.AttributeStep-1739960996681]: 
+    expression: '"attachment"'
+    nodeName: type
+  ↓jAttribute1 [steps.AttributeStep-1739960996684]: 
+    expression: output_filename + ".odt"
+    nodeName: name
+  ↓jAttribute11 [steps.AttributeStep-1739960996687]: 
+    expression: output_path
+    nodeName: local-url
+  ↓jAttribute2 [steps.AttributeStep-1739960996690]: 
+    expression: '"application/octet-stream"'
+    nodeName: content-type
+↓output_filename [variables.RequestableVariable-1739960996705]: 
+  comment: |
+    'Output ODT file name (without extension). 
+    ''.odt'' is automatically added to filename to be opened by Ms Word or LibreOffice.'
+  required: true
+↓input_filename [variables.RequestableVariable-1739960996708]: 
+  comment: |
+    Input ODT template file name to fill (without extension, '.odt' is automatically added and it can be opened as a Ms Word file or LibreOffice). 
+    Put your templates in <project_folder>/templates/odf
+  required: true
+↓markers [variables.RequestableVariable-1739961089380]: 
+  comment: |
+    'Structured array as follow : 
+    
+    [
+    	{
+    		"tag": "&lt;tag name in template file to replace with ''value'' key&gt;",
+    		"type": "&lt;tag type. ''image'' or ''string'' supported&gt;",
+    		"value": "&lt;replacement string or image absolute path&gt;"
+    	}
+    ]>'
+↓Test_Case_marker [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1739973840643]: 
+    required: true
+    value: test
+  ↓input_filename [variables.TestCaseVariable-1739973840646]: 
+    required: true
+    value: template
+  ↓markers [variables.TestCaseVariable-1739973840649]: 
+    value: |
+      '[
+      	{
+      		"tag": "__c8o_date",
+      		"type": "string",
+      		"value": "25 février 2025"
+      	},
+      	{
+      		"tag": "__c8o_objet",
+      		"type": "string",
+      		"value": "Lettre de démission"
+      	},
+      	{
+      		"tag": "__c8o_texte",
+      		"type": "string",
+      		"value": "Madame,\nMonsieur,\nMademoiselle,"
+      	},
+      	{
+      		"tag": "__c8o_signature",
+      		"type": "image",
+      		"value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png"
+      	}	
+      ]'
+↓Test_Case_nomarker [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1739962737506]: 
+    required: true
+    value: test
+  ↓input_filename [variables.TestCaseVariable-1739962737509]: 
+    required: true
+    value: template
+  ↓markers [variables.TestCaseVariable-1739962737512]: 
