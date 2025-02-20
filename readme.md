@@ -12,9 +12,11 @@ For more technical informations : [documentation](./project.md)
 - [Sequences](#sequences)
     - [clean_outputs](#clean_outputs)
     - [demo_u_fill_odt](#demo_u_fill_odt)
+    - [demo_u_fill_pdf](#demo_u_fill_pdf)
     - [fill_odt](#fill_odt)
     - [fill_pdf](#fill_pdf)
     - [u_fill_odt](#u_fill_odt)
+    - [u_fill_pdf](#u_fill_pdf)
 
 
 ## Installation
@@ -63,9 +65,13 @@ Clean the generated files from the 'outputs' directory. Can be used in a Convert
 
 Demo sequence to fill an ODT template file.
 
+### demo_u_fill_pdf
+
+Demo sequence to fill an ODT template file.
+
 ### fill_odt
 
-Fills an ODT template file.
+Fills an ODT template file (Deprecated).
 Place your template files in .//templates/odf folder.
 
 **variables**
@@ -162,6 +168,39 @@ Put your templates in <project_folder>/templates/odf</td>
 <tr>
 <td>output_filename</td><td>Output ODT file name (without extension). 
 '.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.</td>
+</tr>
+</table>
+
+### u_fill_pdf
+
+Fills a PDF template file (Universal). 
+Place your template file in .//templates/pdf folder.
+It will output an attachment structure and if you call it with .bin requester it will trigger a download in the client Browser.
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>input_filename</td><td>Input PDF template file name to fill (without extension, '.pdf' is assumed). 
+Put your templates in <project_folder>/templates/pdf</td>
+</tr>
+<tr>
+<td>markers</td><td>Structured array as follow : 
+
+[
+	{
+		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
+		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
+		"value": "&lt;replacement string or image absolute path&gt;"
+	}
+]></td>
+</tr>
+<tr>
+<td>output_filename</td><td>Output PDF file name (without extension). 
+'.pdf' is automatically added to filename.</td>
 </tr>
 </table>
 

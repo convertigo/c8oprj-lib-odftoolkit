@@ -1,5 +1,5 @@
 comment: |
-  Fills an ODT template file.
+  Fills an ODT template file (Deprecated).
   Place your template files in .//templates/odf folder.
 ↓fill_template [steps.SimpleStep-1669224611519]: 
   expression: |

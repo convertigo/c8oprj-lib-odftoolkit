@@ -105,7 +105,7 @@ comment: |
   ↓input_filename [variables.TestCaseVariable-1669280950866]: 
     description: Input file name
     required: true
-    value: template
+    value: template_old
 ↓Test_Case1 [core.TestCase]: 
   ↓date [variables.TestCaseVariable-1669197536068]: 
     description: Date
@@ -132,4 +132,4 @@ comment: |
   ↓input_filename [variables.TestCaseVariable-1669280955109]: 
     description: Input File name
     required: true
-    value: template
+    value: template_old

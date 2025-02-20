@@ -68,12 +68,20 @@ Define the maximum time in millisecond before deleting the file. Default is 8640
 Demo sequence to fill an ODT template file.
 </p></blockquote></details>
 
-<details><summary><b>fill_odt</b> : Fills an ODT template file</summary><blockquote><p>
+<details><summary><b>demo_u_fill_pdf</b> : Demo sequence to fill an ODT template file</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") demo_u_fill_pdf
+
+Demo sequence to fill an ODT template file.
+</p></blockquote></details>
+
+<details><summary><b>fill_odt</b> : Fills an ODT template file (Deprecated)</summary><blockquote><p>
 
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") fill_odt
 
-Fills an ODT template file.
+Fills an ODT template file (Deprecated).
 Place your template files in .//templates/odf folder.
 
 <span style="color:DarkGoldenRod">Variables</span>
@@ -269,6 +277,64 @@ Structured array as follow :
 <td>
 Output ODT file name (without extension). 
 '.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>u_fill_pdf</b> : Fills a PDF template file (Universal)</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") u_fill_pdf
+
+Fills a PDF template file (Universal). 
+Place your template file in .//templates/pdf folder.
+It will output an attachment structure and if you call it with .bin requester it will trigger a download in the client Browser.
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
+</td>
+<td>
+Input PDF template file name to fill (without extension, '.pdf' is assumed). 
+Put your templates in <project_folder>/templates/pdf
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;markers
+</td>
+<td>
+Structured array as follow : 
+
+[
+	{
+		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
+		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
+		"value": "&lt;replacement string or image absolute path&gt;"
+	}
+]>
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
+</td>
+<td>
+Output PDF file name (without extension). 
+'.pdf' is automatically added to filename.
 </td>
 </tr>
 </table>

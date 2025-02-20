@@ -3,7 +3,7 @@ comment: |
   Place your template files in .//templates/odf folder.
   It will output an attachment structure and if you call it with .bin requester it will trigger a download in the client Browser.
 ↓inputVars [steps.InputVariablesStep-1739978901433]: 
-↓markers [steps.JsonSourceStep-1739978922911]: 
+↓IfExistThenElse [steps.IfExistThenElseStep-1740072516876]: 
   sourceDefinition: 
     - xmlizable: 
       - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
@@ -12,7 +12,28 @@ comment: |
           - ↑value: 1739978901433
         - java.lang.String: 
           - ↑value: ./markers/array
-  variableName: o_markers
+  ↓jThen [steps.ThenStep-1740072516879]: 
+    ↓markers [steps.JsonSourceStep-1739978922911]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1739978901433
+            - java.lang.String: 
+              - ↑value: ./markers/array
+      variableName: o_markers
+  ↓jElse [steps.ElseStep-1740072516885]: 
+    ↓markers [steps.JsonSourceStep-1740072550821]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1739978901433
+            - java.lang.String: 
+              - ↑value: ./markers/text()
+      variableName: o_markers
 ↓fill_template [steps.SimpleStep-1739960996675]: 
   expression: |
     'var odf_api = JavaImporter(
@@ -106,34 +127,4 @@ comment: |
     required: true
     value: template
   ↓markers [variables.TestCaseVariable-1739973840649]: 
-    value: |
-      '[
-      	{
-      		"tag": "__c8o_date",
-      		"type": "string",
-      		"value": "25 février 2025"
-      	},
-      	{
-      		"tag": "__c8o_objet",
-      		"type": "string",
-      		"value": "Lettre de démission"
-      	},
-      	{
-      		"tag": "__c8o_texte",
-      		"type": "string",
-      		"value": "Madame,\nMonsieur,\nMademoiselle,"
-      	},
-      	{
-      		"tag": "__c8o_signature",
-      		"type": "image",
-      		"value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png"
-      	}	
-      ]'
-↓Test_Case_nomarker [core.TestCase]: 
-  ↓output_filename [variables.TestCaseVariable-1739962737506]: 
-    required: true
-    value: test
-  ↓input_filename [variables.TestCaseVariable-1739962737509]: 
-    required: true
-    value: template
-  ↓markers [variables.TestCaseVariable-1739962737512]: 
+    value: '[ { "tag": "__c8o_date", "type": "string", "value": "February 25, 2025" }, { "tag": "__c8o_objet", "type": "string", "value": "Resignation Letter" }, { "tag": "__c8o_texte", "type": "string", "value": "Dear Sir,\nDear Madam,\nDear Miss" }, { "tag": "__c8o_signature", "type": "image", "value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png" } ]'
