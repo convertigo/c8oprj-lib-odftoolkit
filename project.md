@@ -340,4 +340,37 @@ Output PDF file name (without extension).
 </table>
 
 </p></blockquote></details>
+
+<details><summary><b>u_read_pdf</b> : Reads a PDF file (Universal)</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") u_read_pdf
+
+Reads a PDF file (Universal). 
+Place your template file in .//read folder.
+It will output the following structure : { "array": [ { "name": "<technical PDF Form name>", "value": "<PDF Form value>", "type": "PDF Form type" }, ...]
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
+</td>
+<td>
+Input PDF file name to read (without extension, '.pdf' is assumed). 
+Put your templates in <project_folder>/read
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
 </p></blockquote></details>

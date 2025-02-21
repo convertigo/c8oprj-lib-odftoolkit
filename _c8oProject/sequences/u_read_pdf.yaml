@@ -1,0 +1,176 @@
+comment: |
+  'Reads a PDF file (Universal). 
+  Place your template file in .//read folder.
+  It will output the following structure : { "array": [ { "name": "<technical PDF Form name>", "value": "<PDF Form value>", "type": "PDF Form type" }, ...]'
+↓inputVars [steps.InputVariablesStep-1740076932981]: 
+↓Form_PDF [steps.PdfFormStep-1740076933008]: 
+  action: getFields
+  fieldsList: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: SOURCE
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1740057614974
+          - java.lang.String: 
+            - ↑value: .
+  filePath: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: '".//read/"+input_filename+".pdf"'
+  targetFile: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: null
+↓IfExistThenElse [steps.IfExistThenElseStep-1740130696933]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1740076933008
+        - java.lang.String: 
+          - ↑value: ./field
+  ↓jThen [steps.ThenStep-1740130698699]: 
+    ↓array [steps.JsonArrayStep-1740130357535]: 
+      ↓Iterator [steps.IteratorStep-1740130311310]: 
+        sourceDefinition: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+            - com.twinsoft.convertigo.beans.common.XMLVector: 
+              - java.lang.String: 
+                - ↑value: 1740076933008
+              - java.lang.String: 
+                - ↑value: ./field
+        ↓object [steps.JsonObjectStep-1740130377658]: 
+          ↓name [steps.JsonFieldStep-1740130399578]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: name
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: SOURCE
+                  - com.twinsoft.convertigo.beans.common.XMLVector: 
+                    - java.lang.String: 
+                      - ↑value: 1740130311310
+                    - java.lang.String: 
+                      - ↑value: ./name/text()
+          ↓value [steps.JsonFieldStep-1740130493635]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: value
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: SOURCE
+                  - com.twinsoft.convertigo.beans.common.XMLVector: 
+                    - java.lang.String: 
+                      - ↑value: 1740130311310
+                    - java.lang.String: 
+                      - ↑value: ./val/text()
+          ↓type [steps.JsonFieldStep-1740130495142]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: type
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: SOURCE
+                  - com.twinsoft.convertigo.beans.common.XMLVector: 
+                    - java.lang.String: 
+                      - ↑value: 1740130311310
+                    - java.lang.String: 
+                      - ↑value: ./type/text()
+  ↓jElse [steps.ElseStep-1740130698701]: 
+    ↓IfExistThenElse [steps.IfExistThenElseStep-1740130746100]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1740076932981
+            - java.lang.String: 
+              - ↑value: ./../error
+      ↓jThen [steps.ThenStep-1740130748578]: 
+        ↓Copy [steps.XMLCopyStep-1740131135387]: 
+          sourceDefinition: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+              - com.twinsoft.convertigo.beans.common.XMLVector: 
+                - java.lang.String: 
+                  - ↑value: 1740076932981
+                - java.lang.String: 
+                  - ↑value: ./../error
+      ↓jElse [steps.ElseStep-1740130748580]: 
+        ↓Error_structure [steps.XMLErrorStep-1740130773053]: 
+          code: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: '-1'
+          details: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: Can not get fields from file or file does not exist
+          message: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: An error occured
+↓input_filename [variables.RequestableVariable-1740076933029]: 
+  comment: |
+    Input PDF file name to read (without extension, '.pdf' is assumed). 
+    Put your templates in <project_folder>/read
+  required: true
+↓Test_Case [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1740076933039]: 
+    description: Input file name
+    required: true
+    value: test
+↓Test_Case1 [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1740131000830]: 
+    description: Input file name
+    required: true
+    value: test_ko
+↓Test_Case2 [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1740132786354]: 
+    description: Input file name
+    required: true
+    value: Sample-Fillable-PDF
+↓Test_Case3 [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1740132855188]: 
+    description: Input file name
+    required: true
+    value: test
+↓Test_Case4 [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1740133272676]: 
+    description: Input file name
+    required: true
+    value: Form_sample_filled
+↓Test_Case5 [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1740137390003]: 
+    description: Input file name
+    required: true
+    value: cerfa_10072-04

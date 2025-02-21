@@ -17,6 +17,7 @@ For more technical informations : [documentation](./project.md)
     - [fill_pdf](#fill_pdf)
     - [u_fill_odt](#u_fill_odt)
     - [u_fill_pdf](#u_fill_pdf)
+    - [u_read_pdf](#u_read_pdf)
 
 
 ## Installation
@@ -201,6 +202,24 @@ Put your templates in <project_folder>/templates/pdf</td>
 <tr>
 <td>output_filename</td><td>Output PDF file name (without extension). 
 '.pdf' is automatically added to filename.</td>
+</tr>
+</table>
+
+### u_read_pdf
+
+Reads a PDF file (Universal). 
+Place your template file in .//read folder.
+It will output the following structure : { "array": [ { "name": "<technical PDF Form name>", "value": "<PDF Form value>", "type": "PDF Form type" }, ...]
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>input_filename</td><td>Input PDF file name to read (without extension, '.pdf' is assumed). 
+Put your templates in <project_folder>/read</td>
 </tr>
 </table>
 
