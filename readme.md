@@ -15,8 +15,10 @@ For more technical informations : [documentation](./project.md)
     - [demo_u_fill_pdf](#demo_u_fill_pdf)
     - [fill_odt](#fill_odt)
     - [fill_pdf](#fill_pdf)
+    - [u_create_odt](#u_create_odt)
     - [u_fill_odt](#u_fill_odt)
     - [u_fill_pdf](#u_fill_pdf)
+    - [u_read_odt](#u_read_odt)
     - [u_read_pdf](#u_read_pdf)
 
 
@@ -46,7 +48,7 @@ For more technical informations : [documentation](./project.md)
 
 ### clean_outputs
 
-Clean the generated files from the 'outputs' directory. Can be used in a Convertigo scheduled job to automate the process.
+Clean the generated files from the 'outputs' or 'read' directories. Can be used in a Convertigo scheduled job to automate the process. Variables : 'max_time' => delete only files older than x ms. 'all' => Delete all files in folder even in a max_time is defined. 'target' => if value is 'fill' searches for files in 'outputs' folder else in 'read' folder.
 
 **variables**
 
@@ -59,6 +61,9 @@ Clean the generated files from the 'outputs' directory. Can be used in a Convert
 </tr>
 <tr>
 <td>max_time</td><td>Define the maximum time in millisecond before deleting the file. Default is 86400000ms (24h). Only works if 'all' is 'false'</td>
+</tr>
+<tr>
+<td>target</td><td></td>
 </tr>
 </table>
 
@@ -139,6 +144,33 @@ _ B64 string.</td>
 </tr>
 </table>
 
+### u_create_odt
+
+Create a new Text document with a table.
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>markers</td><td>Structured array as follow : 
+
+[
+	{
+		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
+		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
+		"value": "&lt;replacement string or image absolute path&gt;"
+	}
+]></td>
+</tr>
+<tr>
+<td>output_filename</td><td>Output ODT file name (without extension). 
+'.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.</td>
+</tr>
+</table>
+
 ### u_fill_odt
 
 Fills an ODT template file (Universal).
@@ -202,6 +234,33 @@ Put your templates in <project_folder>/templates/pdf</td>
 <tr>
 <td>output_filename</td><td>Output PDF file name (without extension). 
 '.pdf' is automatically added to filename.</td>
+</tr>
+</table>
+
+### u_read_odt
+
+Dev sequence to read a table from a Text Document.
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>markers</td><td>Structured array as follow : 
+
+[
+	{
+		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
+		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
+		"value": "&lt;replacement string or image absolute path&gt;"
+	}
+]></td>
+</tr>
+<tr>
+<td>output_filename</td><td>Output ODT file name (without extension). 
+'.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.</td>
 </tr>
 </table>
 

@@ -1,0 +1,117 @@
+comment: Create a new Text document with a table.
+↓inputVars [steps.InputVariablesStep-1740238462392]: 
+↓IfExistThenElse [steps.IfExistThenElseStep-1740238462395]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1740238462392
+        - java.lang.String: 
+          - ↑value: ./markers/array
+  ↓jThen [steps.ThenStep-1740238462398]: 
+    ↓markers [steps.JsonSourceStep-1740238462401]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1740238462392
+            - java.lang.String: 
+              - ↑value: ./markers/array
+      variableName: o_markers
+  ↓jElse [steps.ElseStep-1740238462404]: 
+    ↓markers [steps.JsonSourceStep-1740238462407]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1740238462392
+            - java.lang.String: 
+              - ↑value: ./markers/text()
+      variableName: o_markers
+↓create_odt [steps.SimpleStep-1740155874256]: 
+  expression: |
+    'var odf_api = JavaImporter(
+    	Packages.org.odftoolkit.simple.TextDocument,
+    	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
+    	Packages.org.odftoolkit.simple.draw.Image,
+    	Packages.org.odftoolkit.simple.table.Table,
+    	Packages.org.odftoolkit.simple.table.Cell,	
+    	Packages.org.odftoolkit.simple.style.Font,
+    	Packages.org.odftoolkit.simple.style.StyleTypeDefinitions,
+    	Packages.org.odftoolkit.odfdom.type.Color,
+    	Packages.java.io.File
+    );
+    
+    var project_path = (''''+context.getProjectDirectory()).replace(new RegExp(/\\/g), ''/'');
+    var output_path = project_path + "/outputs/"+output_filename+".odt";
+    
+    with(odf_api){
+    	
+    	//o_markers = [{"tag": "table1", "type": "table", "value": [["rouge", "pomme", "chat", "Paris"], ["bleu", "banane", "chien", "Londres"], ["vert", "orange", "lion", "New York"], ["jaune", "raisin", "tigre", "Tokyo"], ["violet", "mangue", "éléphant", "Sydney"], ["orange", "kiwi", "loup", "Rome"], ["rose", "fraise", "renard", "Berlin"], ["marron", "poire", "ours", "Moscou"], ["noir", "cerise", "zèbre", "Madrid"], ["blanc", "ananas", "girafe", "Vancouver"]]}];
+    	
+    	for (var i=0; i<o_markers.length; i++){
+    		if(o_markers[i].type.indexOf("table") == 0){
+    			var rows = o_markers[i].value.length;
+    			var cols = o_markers[i].value[0].length;
+    			var values = o_markers[i].value;
+    			var hasRowHeader = o_markers[i].type == "tableh";
+    			log.debug("Rows: " + rows);
+    			log.debug("Cols: " + cols);
+    			log.debug("Has row header? " + hasRowHeader);
+    			if(rows>0 && cols>0){
+    				document = TextDocument.newTextDocument();
+    				table1 = Table.newTable(document, rows, cols);
+    				//table1 = Table.newTable(document, rows, cols, 0, 1);
+    				table1.setTableName("table1");
+    				var font = new Font("Arial", StyleTypeDefinitions.FontStyle.BOLD, 16, Color.BLUE);
+    				for(var r=0; r<rows; r++){
+    					//rt = "";
+    					for(var c=0; c<cols; c++){
+    						//log.debug("value: "+values[r][c]);
+    						//rt += values[r][c] + ",";
+    						var cell = table1.getCellByPosition(c, r);
+    						if(r == 0 && hasRowHeader){
+    							cell.setFont(font);
+    							cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType.CENTER);
+    							cell.setCellBackgroundColor(Color.valueOf("#c1c5c7"));
+    						}
+    						cell.setStringValue(values[r][c]);
+    					}
+    					//log.debug("row: "+ rt);
+    				}
+    				document.save(output_path);
+    			}
+    		}
+    	}
+    }'
+↓output_filename [variables.RequestableVariable-1740155948340]: 
+  comment: |
+    'Output ODT file name (without extension). 
+    ''.odt'' is automatically added to filename to be opened by Ms Word or LibreOffice.'
+  required: true
+↓markers [variables.RequestableVariable-1740155948343]: 
+  comment: |
+    'Structured array as follow : 
+    
+    [
+    	{
+    		"tag": "&lt;tag name in template file to replace with ''value'' key&gt;",
+    		"type": "&lt;tag type. ''image'' or ''string'' supported&gt;",
+    		"value": "&lt;replacement string or image absolute path&gt;"
+    	}
+    ]>'
+↓Test_Case [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1740157230950]: 
+    required: true
+    value: table
+  ↓markers [variables.TestCaseVariable-1740157230952]: 
+    value: '[{"tag": "table1", "type": "table", "value": [["rouge", "pomme", "chat", "Paris"], ["bleu", "banane", "chien", "Londres"], ["vert", "orange", "lion", "New York"], ["jaune", "raisin", "tigre", "Tokyo"], ["violet", "mangue", "éléphant", "Sydney"], ["orange", "kiwi", "loup", "Rome"], ["rose", "fraise", "renard", "Berlin"], ["marron", "poire", "ours", "Moscou"], ["noir", "cerise", "zèbre", "Madrid"], ["blanc", "ananas", "girafe", "Vancouver"]]}]'
+↓Test_Case1 [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1740323130010]: 
+    required: true
+    value: table
+  ↓markers [variables.TestCaseVariable-1740323130013]: 
+    value: '[{"tag": "table1", "type": "tableh", "value": [["COULEURS", "FRUITS", "ANIMAUX", "VILLES"], ["rouge", "pomme", "chat", "Paris"], ["bleu", "banane", "chien", "Londres"], ["vert", "orange", "lion", "New York"], ["jaune", "raisin", "tigre", "Tokyo"], ["violet", "mangue", "éléphant", "Sydney"], ["orange", "kiwi", "loup", "Rome"], ["rose", "fraise", "renard", "Berlin"], ["marron", "poire", "ours", "Moscou"], ["noir", "cerise", "zèbre", "Madrid"], ["blanc", "ananas", "girafe", "Vancouver"]]}]'

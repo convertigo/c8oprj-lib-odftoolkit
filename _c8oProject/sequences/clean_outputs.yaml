@@ -1,8 +1,10 @@
-comment: Clean the generated files from the 'outputs' directory. Can be used in a Convertigo scheduled job to automate the process.
+comment: 'Clean the generated files from the ''outputs'' or ''read'' directories. Can be used in a Convertigo scheduled job to automate the process. Variables : ''max_time'' => delete only files older than x ms. ''all'' => Delete all files in folder even in a max_time is defined. ''target'' => if value is ''fill'' searches for files in ''outputs'' folder else in ''read'' folder.'
 ↓init [steps.SimpleStep-1671528840321]: 
-  expression: now = (new Date()).getTime();
+  expression: |
+    'now = (new Date()).getTime();
+    folder = target == ''fill'' ? ''outputs'' : ''read'';'
 ↓List_directory [steps.ListDirStep-1671528590874]: 
-  sourceDirectory: '".//outputs"'
+  sourceDirectory: '".//" + folder'
 ↓Iterator [steps.IteratorStep-1671528710771]: 
   sourceDefinition: 
     - xmlizable: 
@@ -34,13 +36,15 @@ comment: Clean the generated files from the 'outputs' directory. Can be used in 
             - java.lang.String: 
               - ↑value: .
     ↓Delete_file [steps.DeleteStep-1671529688325]: 
-      sourcePath: '".//outputs/"+item.getTextContent()'
+      sourcePath: '".//"+folder+"/"+item.getTextContent()'
 ↓max_time [variables.RequestableVariable-1671529075167]: 
   comment: Define the maximum time in millisecond before deleting the file. Default is 86400000ms (24h). Only works if 'all' is 'false'
   value: 86400000
 ↓all [variables.RequestableVariable-1671529101011]: 
   comment: Set value to 'true' to directly delete all files whatever last modified date they have. Default is 'false', it only deletes files older than 'max_time'
   value: false
+↓target [variables.RequestableVariable-1740155136088]: 
+  value: fill
 ↓Test_Case [core.TestCase]: 
   ↓max_time [variables.TestCaseVariable-1671529491892]: 
     value: 86400000
@@ -51,3 +55,8 @@ comment: Clean the generated files from the 'outputs' directory. Can be used in 
     value: 86400
   ↓all [variables.TestCaseVariable-1671529511207]: 
     value: false
+↓Test_Case_2 [core.TestCase]: 
+  ↓all [variables.TestCaseVariable-1740155675212]: 
+    value: true
+  ↓target [variables.TestCaseVariable-1740155689365]: 
+    value: not fill

@@ -22,12 +22,12 @@ does nothing
 <details><summary><span style="color:DarkGoldenRod"><i>Sequences</i></span></summary><blockquote><p>
 
 
-<details><summary><b>clean_outputs</b> : Clean the generated files from the 'outputs' directory</summary><blockquote><p>
+<details><summary><b>clean_outputs</b> : Clean the generated files from the 'outputs' or 'read' directories</summary><blockquote><p>
 
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") clean_outputs
 
-Clean the generated files from the 'outputs' directory. Can be used in a Convertigo scheduled job to automate the process.
+Clean the generated files from the 'outputs' or 'read' directories. Can be used in a Convertigo scheduled job to automate the process. Variables : 'max_time' => delete only files older than x ms. 'all' => Delete all files in folder even in a max_time is defined. 'target' => if value is 'fill' searches for files in 'outputs' folder else in 'read' folder.
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -54,6 +54,14 @@ Set value to 'true' to directly delete all files whatever last modified date the
 </td>
 <td>
 Define the maximum time in millisecond before deleting the file. Default is 86400000ms (24h). Only works if 'all' is 'false'
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;target
+</td>
+<td>
+
 </td>
 </tr>
 </table>
@@ -225,6 +233,53 @@ Main Body Text
 
 </p></blockquote></details>
 
+<details><summary><b>u_create_odt</b> : Create a new Text document with a table</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") u_create_odt
+
+Create a new Text document with a table.
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;markers
+</td>
+<td>
+Structured array as follow : 
+
+[
+	{
+		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
+		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
+		"value": "&lt;replacement string or image absolute path&gt;"
+	}
+]>
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
+</td>
+<td>
+Output ODT file name (without extension). 
+'.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
 <details><summary><b>u_fill_odt</b> : Fills an ODT template file (Universal)</summary><blockquote><p>
 
 
@@ -335,6 +390,53 @@ Structured array as follow :
 <td>
 Output PDF file name (without extension). 
 '.pdf' is automatically added to filename.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>u_read_odt</b> : Dev sequence to read a table from a Text Document</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") u_read_odt
+
+Dev sequence to read a table from a Text Document.
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;markers
+</td>
+<td>
+Structured array as follow : 
+
+[
+	{
+		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
+		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
+		"value": "&lt;replacement string or image absolute path&gt;"
+	}
+]>
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
+</td>
+<td>
+Output ODT file name (without extension). 
+'.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.
 </td>
 </tr>
 </table>
