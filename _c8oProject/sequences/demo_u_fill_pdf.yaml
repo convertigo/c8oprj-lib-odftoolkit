@@ -197,13 +197,13 @@ comment: Demo sequence to fill an ODT template file.
       'Output ODT file name (without extension). 
       ''.doc'' is automatically added to filename to be opened by Ms Word or OpenOffice.'
     required: true
-    value: test
+    value: .//outputs/test.pdf
   ↓input_filename [variables.StepVariable-1740072133794]: 
     comment: |
       Input ODT template file name to fill (without extension, '.doc' is automatically added but format is ODT and can be opened as a Ms Word file or OpenOffice). 
       Put your templates in <project_folder>/templates/odf
     required: true
-    value: template
+    value: .//templates/pdf/template.pdf
   ↓markers [variables.StepVariable-1740072133797]: 
     sourceDefinition: 
       - xmlizable: 

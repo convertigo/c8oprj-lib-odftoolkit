@@ -53,6 +53,28 @@ comment: |
           - SmartType: 
             - ↑mode: JS
             - →→: item.value
+↓get_file_name [steps.SimpleStep-1740499418895]: 
+  expression: |
+    'function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(3);;
+    		}
+    	}
+    	return file_path;
+    }
+    
+    var file_name = get_file_name(output_filename);'
 ↓Form_PDF [steps.PdfFormStep-1740057614989]: 
   fieldsList: 
     - xmlizable: 
@@ -69,20 +91,20 @@ comment: |
       - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
       - SmartType: 
         - ↑mode: JS
-        - →→: '".//templates/pdf/"+input_filename+".pdf"'
+        - →→: input_filename
   targetFile: 
     - xmlizable: 
       - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
       - SmartType: 
         - ↑mode: JS
-        - →→: '".//outputs/"+output_filename+".pdf"'
+        - →→: output_filename
 ↓Element [steps.XMLElementStep-1740057614992]: 
   nodeName: attachment
   ↓jAttribute [steps.AttributeStep-1740057614995]: 
     expression: '"attachment"'
     nodeName: type
   ↓jAttribute1 [steps.AttributeStep-1740057614998]: 
-    expression: output_filename + ".pdf"
+    expression: file_name
     nodeName: name
   ↓jAttribute11 [steps.AttributeStep-1740057615001]: 
     expression: (''+context.getProjectDirectory()).replace(new RegExp(/\\/g), '/') + "/outputs/"+output_filename+".pdf"
@@ -92,13 +114,17 @@ comment: |
     nodeName: content-type
 ↓output_filename [variables.RequestableVariable-1740057615019]: 
   comment: |
-    'Output PDF file name (without extension). 
-    ''.pdf'' is automatically added to filename.'
+    'PDF output file path. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
   required: true
 ↓input_filename [variables.RequestableVariable-1740057615022]: 
   comment: |
-    Input PDF template file name to fill (without extension, '.pdf' is assumed). 
-    Put your templates in <project_folder>/templates/pdf
+    'PDF input file path. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
   required: true
 ↓markers [variables.RequestableVariable-1740057718160]: 
   comment: |
@@ -114,10 +140,10 @@ comment: |
 ↓Test_Case [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1740057615038]: 
     description: Output file name
-    value: out_XXX_YYY
+    value: .//outputs/out_XXX_YYY.pdf
   ↓input_filename [variables.TestCaseVariable-1740057615041]: 
     description: Input file name
     required: true
-    value: template
+    value: .//templates/pdf/template.pdf
   ↓markers [variables.TestCaseVariable-1740058917829]: 
     value: '[ { "tag": "__c8o_date", "type": "string", "value": "February 25, 2025" }, { "tag": "__c8o_objet", "type": "string", "value": "Resignation Letter" }, { "tag": "__c8o_texte", "type": "string", "value": "Dear Sir,\nDear Madam,\nDear Miss" }, { "tag": "__c8o_signature", "type": "image", "value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png" } ]'

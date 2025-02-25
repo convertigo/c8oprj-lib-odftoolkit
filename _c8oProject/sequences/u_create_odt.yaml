@@ -45,8 +45,25 @@ comment: Create a new Text document with a table.
     	Packages.java.io.File
     );
     
-    var project_path = (''''+context.getProjectDirectory()).replace(new RegExp(/\\/g), ''/'');
-    var output_path = project_path + "/outputs/"+output_filename+".odt";
+    function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(3);;
+    		}
+    	}
+    	return file_path;
+    }
+    var output_path = get_full_path(output_filename);
     
     with(odf_api){
     	
@@ -106,12 +123,12 @@ comment: Create a new Text document with a table.
 ↓Test_Case [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1740157230950]: 
     required: true
-    value: table
+    value: .//outputs/table.odt
   ↓markers [variables.TestCaseVariable-1740157230952]: 
     value: '[{"tag": "table1", "type": "table", "value": [["rouge", "pomme", "chat", "Paris"], ["bleu", "banane", "chien", "Londres"], ["vert", "orange", "lion", "New York"], ["jaune", "raisin", "tigre", "Tokyo"], ["violet", "mangue", "éléphant", "Sydney"], ["orange", "kiwi", "loup", "Rome"], ["rose", "fraise", "renard", "Berlin"], ["marron", "poire", "ours", "Moscou"], ["noir", "cerise", "zèbre", "Madrid"], ["blanc", "ananas", "girafe", "Vancouver"]]}]'
 ↓Test_Case1 [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1740323130010]: 
     required: true
-    value: table
+    value: .//outputs/table.odt
   ↓markers [variables.TestCaseVariable-1740323130013]: 
     value: '[{"tag": "table1", "type": "tableh", "value": [["COULEURS", "FRUITS", "ANIMAUX", "VILLES"], ["rouge", "pomme", "chat", "Paris"], ["bleu", "banane", "chien", "Londres"], ["vert", "orange", "lion", "New York"], ["jaune", "raisin", "tigre", "Tokyo"], ["violet", "mangue", "éléphant", "Sydney"], ["orange", "kiwi", "loup", "Rome"], ["rose", "fraise", "renard", "Berlin"], ["marron", "poire", "ours", "Moscou"], ["noir", "cerise", "zèbre", "Madrid"], ["blanc", "ananas", "girafe", "Vancouver"]]}]'

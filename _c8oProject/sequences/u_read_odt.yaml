@@ -45,13 +45,29 @@ comment: Dev sequence to read a table from a Text Document.
     	Packages.java.io.File
     );
     
-    var project_path = (''''+context.getProjectDirectory()).replace(new RegExp(/\\/g), ''/'');
-    var output_path = project_path + "/outputs/"+output_filename+".odt";
+    function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(3);;
+    		}
+    	}
+    	return file_path;
+    }
+    
+    var output_path = get_full_path(output_filename);
     
     with(odf_api){
-    	
-    	//o_markers = [{"tag": "table1", "type": "table", "value": [["rouge", "pomme", "chat", "Paris"], ["bleu", "banane", "chien", "Londres"], ["vert", "orange", "lion", "New York"], ["jaune", "raisin", "tigre", "Tokyo"], ["violet", "mangue", "éléphant", "Sydney"], ["orange", "kiwi", "loup", "Rome"], ["rose", "fraise", "renard", "Berlin"], ["marron", "poire", "ours", "Moscou"], ["noir", "cerise", "zèbre", "Madrid"], ["blanc", "ananas", "girafe", "Vancouver"]]}];
-    	
+    		
     	var document = TextDocument.loadDocument(output_path);
     	var table1 = document.getTableByName("table1");
     	log.warn(''table: '' + table1);

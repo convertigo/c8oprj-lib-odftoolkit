@@ -184,8 +184,10 @@ It will output an attachment structure and if you call it with .bin requester it
 <th>name</th><th>comment</th>
 </tr>
 <tr>
-<td>input_filename</td><td>Input ODT template file name to fill (without extension, '.odt' is automatically added and it can be opened as a Ms Word file or LibreOffice). 
-Put your templates in <project_folder>/templates/odf</td>
+<td>input_filename</td><td>ODT input template file name to fill. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
 </tr>
 <tr>
 <td>markers</td><td>Structured array as follow : 
@@ -199,8 +201,10 @@ Put your templates in <project_folder>/templates/odf</td>
 ]></td>
 </tr>
 <tr>
-<td>output_filename</td><td>Output ODT file name (without extension). 
-'.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.</td>
+<td>output_filename</td><td>ODT output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
 </tr>
 </table>
 
@@ -217,8 +221,10 @@ It will output an attachment structure and if you call it with .bin requester it
 <th>name</th><th>comment</th>
 </tr>
 <tr>
-<td>input_filename</td><td>Input PDF template file name to fill (without extension, '.pdf' is assumed). 
-Put your templates in <project_folder>/templates/pdf</td>
+<td>input_filename</td><td>PDF input file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
 </tr>
 <tr>
 <td>markers</td><td>Structured array as follow : 
@@ -232,8 +238,10 @@ Put your templates in <project_folder>/templates/pdf</td>
 ]></td>
 </tr>
 <tr>
-<td>output_filename</td><td>Output PDF file name (without extension). 
-'.pdf' is automatically added to filename.</td>
+<td>output_filename</td><td>PDF output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
 </tr>
 </table>
 
@@ -277,8 +285,10 @@ It will output the following structure : { "array": [ { "name": "<technical PDF 
 <th>name</th><th>comment</th>
 </tr>
 <tr>
-<td>input_filename</td><td>Input PDF file name to read (without extension, '.pdf' is assumed). 
-Put your templates in <project_folder>/read</td>
+<td>input_filename</td><td>PDF input file name to read the technical fields name and value.
+Can be an absolute path or a relative Convertigo path.
+".//" is relative to the project's path.
+"./" is relative to the workspace path.</td>
 </tr>
 </table>
 

@@ -20,7 +20,7 @@ comment: |
       - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
       - SmartType: 
         - ↑mode: JS
-        - →→: '".//read/"+input_filename+".pdf"'
+        - →→: input_filename
   targetFile: 
     - xmlizable: 
       - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
@@ -54,7 +54,7 @@ comment: |
                 - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
                 - SmartType: 
                   - ↑mode: PLAIN
-                  - →→: name
+                  - →→: tag
             value: 
               - xmlizable: 
                 - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
@@ -65,23 +65,6 @@ comment: |
                       - ↑value: 1740130311310
                     - java.lang.String: 
                       - ↑value: ./name/text()
-          ↓value [steps.JsonFieldStep-1740130493635]: 
-            key: 
-              - xmlizable: 
-                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
-                - SmartType: 
-                  - ↑mode: PLAIN
-                  - →→: value
-            value: 
-              - xmlizable: 
-                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
-                - SmartType: 
-                  - ↑mode: SOURCE
-                  - com.twinsoft.convertigo.beans.common.XMLVector: 
-                    - java.lang.String: 
-                      - ↑value: 1740130311310
-                    - java.lang.String: 
-                      - ↑value: ./val/text()
           ↓type [steps.JsonFieldStep-1740130495142]: 
             key: 
               - xmlizable: 
@@ -99,6 +82,23 @@ comment: |
                       - ↑value: 1740130311310
                     - java.lang.String: 
                       - ↑value: ./type/text()
+          ↓value [steps.JsonFieldStep-1740130493635]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: value
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: SOURCE
+                  - com.twinsoft.convertigo.beans.common.XMLVector: 
+                    - java.lang.String: 
+                      - ↑value: 1740130311310
+                    - java.lang.String: 
+                      - ↑value: ./val/text()
   ↓jElse [steps.ElseStep-1740130698701]: 
     ↓IfExistThenElse [steps.IfExistThenElseStep-1740130746100]: 
       sourceDefinition: 
@@ -141,14 +141,12 @@ comment: |
                 - →→: An error occured
 ↓input_filename [variables.RequestableVariable-1740076933029]: 
   comment: |
-    Input PDF file name to read (without extension, '.pdf' is assumed). 
-    Put your templates in <project_folder>/read
+    'PDF input file name to read the technical fields name and value.
+    Can be an absolute path or a relative Convertigo path.
+    ".//" is relative to the project''s path.
+    "./" is relative to the workspace path.'
   required: true
-↓Test_Case [core.TestCase]: 
-  ↓input_filename [variables.TestCaseVariable-1740076933039]: 
-    description: Input file name
-    required: true
-    value: test
+  value: 
 ↓Test_Case1 [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1740131000830]: 
     description: Input file name
@@ -158,19 +156,19 @@ comment: |
   ↓input_filename [variables.TestCaseVariable-1740132786354]: 
     description: Input file name
     required: true
-    value: Sample-Fillable-PDF
+    value: .//read/Sample-Fillable-PDF.pdf
 ↓Test_Case3 [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1740132855188]: 
     description: Input file name
     required: true
-    value: test
+    value: .//read/test.pdf
 ↓Test_Case4 [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1740133272676]: 
     description: Input file name
     required: true
-    value: Form_sample_filled
+    value: .//read/Form_sample_filled.pdf
 ↓Test_Case5 [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1740137390003]: 
     description: Input file name
     required: true
-    value: cerfa_10072-04
+    value: .//read/cerfa_10072-04.pdf

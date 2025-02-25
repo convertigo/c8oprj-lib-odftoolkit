@@ -305,8 +305,10 @@ comment
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
 </td>
 <td>
-Input ODT template file name to fill (without extension, '.odt' is automatically added and it can be opened as a Ms Word file or LibreOffice). 
-Put your templates in <project_folder>/templates/odf
+ODT input template file name to fill. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.
 </td>
 </tr>
 <tr>
@@ -330,8 +332,10 @@ Structured array as follow :
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
 </td>
 <td>
-Output ODT file name (without extension). 
-'.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.
+ODT output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.
 </td>
 </tr>
 </table>
@@ -363,8 +367,10 @@ comment
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
 </td>
 <td>
-Input PDF template file name to fill (without extension, '.pdf' is assumed). 
-Put your templates in <project_folder>/templates/pdf
+PDF input file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.
 </td>
 </tr>
 <tr>
@@ -388,8 +394,10 @@ Structured array as follow :
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
 </td>
 <td>
-Output PDF file name (without extension). 
-'.pdf' is automatically added to filename.
+PDF output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.
 </td>
 </tr>
 </table>
@@ -468,8 +476,10 @@ comment
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
 </td>
 <td>
-Input PDF file name to read (without extension, '.pdf' is assumed). 
-Put your templates in <project_folder>/read
+PDF input file name to read the technical fields name and value.
+Can be an absolute path or a relative Convertigo path.
+".//" is relative to the project's path.
+"./" is relative to the workspace path.
 </td>
 </tr>
 </table>
