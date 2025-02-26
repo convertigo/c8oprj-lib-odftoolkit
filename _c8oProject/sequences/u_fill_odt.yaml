@@ -39,7 +39,12 @@ comment: |
     'var odf_api = JavaImporter(
     	Packages.org.odftoolkit.simple.TextDocument,
     	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
-    	Packages.org.odftoolkit.simple.draw.Image,
+    	Packages.org.odftoolkit.simple.draw.Image,	
+    	Packages.org.odftoolkit.simple.table.Table,
+    	Packages.org.odftoolkit.simple.table.Cell,	
+    	Packages.org.odftoolkit.simple.style.Font,
+    	Packages.org.odftoolkit.simple.style.StyleTypeDefinitions,
+    	Packages.org.odftoolkit.odfdom.type.Color,
     	Packages.java.io.File
     );
     
@@ -65,7 +70,7 @@ comment: |
     var template_path = get_full_path(input_filename);
     var output_path = get_full_path(output_filename);
     var file_name = get_file_name(output_filename);
-    log.warn("file name: " + file_name);
+    log.debug("file name: " + file_name);
     
     with(odf_api){
     	
@@ -75,15 +80,43 @@ comment: |
     			log.debug("tag type: " + tags[i].type);
     			log.debug("tag value: " + tags[i].value);
     			var txt_nav = null;
-    			txt_nav = new TextNavigation(tags[i].tag, fdoc);
+    			txt_nav = new TextNavigation(java.util.regex.Pattern.quote(tags[i].tag), fdoc);
     			while (txt_nav.hasNext()) {
     				item = txt_nav.nextSelection();
     				log.debug("item Text: " + item.getText());
     				log.debug("item Index: " + item.getIndex());
     				switch (tags[i].type){
     				case "image":
-    					tags[i].value = new File(tags[i].value).toURI();
+    					tags[i].value = new File(get_full_path(tags[i].value)).toURI();
     					break;
+    				case "table":
+    				case "tableh":
+    					var rows = tags[i].value.length;
+    					var cols = tags[i].value[0].length;
+    					var values = tags[i].value;
+    					var hasRowHeader = tags[i].type == "tableh";
+    					log.debug("Rows: " + rows);
+    					log.debug("Cols: " + cols);
+    					log.debug("Has row header? " + hasRowHeader);
+    					if(rows>0 && cols>0){
+    						table1 = Table.newTable(fdoc, rows, cols);
+    						table1.setTableName("table1");
+    						var font = new Font("Arial", StyleTypeDefinitions.FontStyle.BOLD, 10, Color.BLACK);
+    						for(var r=0; r<rows; r++){
+    							for(var c=0; c<cols; c++){
+    								var cell = table1.getCellByPosition(c, r);
+    								if(r == 0 && hasRowHeader){
+    									cell.setFont(font);
+    									cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["CENTER"]);
+    									cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["MIDDLE"]);
+    									cell.setCellBackgroundColor(Color.valueOf("#e5e5e5"));
+    								}
+    								cell.setStringValue(values[r][c]);
+    							}
+    						}
+    						tags[i].value = fdoc.getTableByName("table1");
+    						table1.remove();
+    					}
     				case "paragraph":
     				case "string":
     				default:
@@ -98,11 +131,11 @@ comment: |
     	try {
     		if(o_markers != null){
     			replace_text(document, o_markers);
+    			document.save(output_path);
     		}
     	} catch (e) {
     		log.warn("ERROR: " + e);
     	}
-    	document.save(output_path);
     }'
 ↓Element [steps.XMLElementStep-1739960996678]: 
   nodeName: attachment
@@ -143,7 +176,7 @@ comment: |
     		"value": "&lt;replacement string or image absolute path&gt;"
     	}
     ]>'
-↓Test_Case_marker [core.TestCase]: 
+↓Test_Case_marker_img [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1739973840643]: 
     required: true
     value: .//outputs/test.odt
@@ -152,3 +185,12 @@ comment: |
     value: .//templates/odf/template.odt
   ↓markers [variables.TestCaseVariable-1739973840649]: 
     value: '[ { "tag": "__c8o_date", "type": "string", "value": "February 25, 2025" }, { "tag": "__c8o_objet", "type": "string", "value": "Resignation Letter" }, { "tag": "__c8o_texte", "type": "string", "value": "Dear Sir,\nDear Madam,\nDear Miss" }, { "tag": "__c8o_signature", "type": "image", "value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png" } ]'
+↓Test_Case_marker_table [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1740505823647]: 
+    required: true
+    value: .//outputs/test_ens.odt
+  ↓input_filename [variables.TestCaseVariable-1740505823650]: 
+    required: true
+    value: .//templates/odf/template_certificat_ens.odt
+  ↓markers [variables.TestCaseVariable-1740505823653]: 
+    value: '[ { "tag": "{date_reception_ens}", "type": "string", "value": "25 Février 2025" }, { "tag": "{ref_usager}", "type": "string", "value": "#123-456" }, { "tag": "{nom_commune}", "type": "string", "value": "Boissy-Sous-Saint-Yon" }, { "tag": "{tableau_ens}", "type": "tableh", "value": [["Section", "Numéro de parcelle", "Est situé en zone de préemption ENS", "N''est pas situé en zone de préemption ENS", "Est partiellement situé en zone de préemption ENS", "Parcelle inconnue"], ["Section01", "Parcelle01", "oui", "oui", "oui", "oui"], ["Section02", "Parcelle01", "non", "non", "non", "non"], ["Section03", "Parcelle03", "non", "non", "non", "non"], ["Section04", "Parcelle04", "non", "non", "non", "non"]] }, { "tag": "{signature_ens}", "type": "image", "value": ".//templates/sarah_signature_sample.png" } ]'
