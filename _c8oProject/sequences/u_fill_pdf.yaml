@@ -53,7 +53,7 @@ comment: |
           - SmartType: 
             - ↑mode: JS
             - →→: item.value
-↓get_file_name [steps.SimpleStep-1740499418895]: 
+↓get_file_pathname [steps.SimpleStep-1740499418895]: 
   expression: |
     'function get_file_name(file_path){
     	if(file_path != ""){
@@ -74,7 +74,8 @@ comment: |
     	return file_path;
     }
     
-    var file_name = get_file_name(output_filename);'
+    var file_name = get_file_name(get_file_name(output_filename));
+    var output_path = get_full_path(output_filename);'
 ↓Form_PDF [steps.PdfFormStep-1740057614989]: 
   fieldsList: 
     - xmlizable: 
@@ -107,7 +108,7 @@ comment: |
     expression: file_name
     nodeName: name
   ↓jAttribute11 [steps.AttributeStep-1740057615001]: 
-    expression: (''+context.getProjectDirectory()).replace(new RegExp(/\\/g), '/') + "/outputs/"+output_filename+".pdf"
+    expression: output_path
     nodeName: local-url
   ↓jAttribute2 [steps.AttributeStep-1740057615004]: 
     expression: '"application/octet-stream"'
