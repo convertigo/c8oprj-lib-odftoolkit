@@ -1,4 +1,5 @@
 comment: Dev sequence to read a table from a Text Document.
+responseTimeout: 120
 ↓inputVars [steps.InputVariablesStep-1740317603613]: 
 ↓IfExistThenElse [steps.IfExistThenElseStep-1740317603616]: 
   sourceDefinition: 

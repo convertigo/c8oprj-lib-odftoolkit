@@ -233,6 +233,22 @@ Main Body Text
 
 </p></blockquote></details>
 
+<details><summary><b>getInstalledFonts</b> : Get installed Fonts</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") getInstalledFonts
+
+Get installed Fonts
+</p></blockquote></details>
+
+<details><summary><b>init_config</b> : Auto start sequence to install some required fonts for Docker Linux Platform</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") init_config
+
+Auto start sequence to install some required fonts for Docker Linux Platform.
+</p></blockquote></details>
+
 <details><summary><b>u_create_odt</b> : Create a new Text document with a table</summary><blockquote><p>
 
 

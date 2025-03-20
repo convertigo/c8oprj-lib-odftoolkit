@@ -2,6 +2,7 @@ comment: |
   'Reads a PDF file (Universal). 
   Place your template file in .//read folder.
   It will output the following structure : { "array": [ { "name": "<technical PDF Form name>", "value": "<PDF Form value>", "type": "PDF Form type" }, ...]'
+responseTimeout: 120
 ↓inputVars [steps.InputVariablesStep-1740076932981]: 
 ↓Form_PDF [steps.PdfFormStep-1740076933008]: 
   action: getFields

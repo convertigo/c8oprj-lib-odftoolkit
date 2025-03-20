@@ -2,6 +2,7 @@ comment: |
   Fills a PDF template file (Universal). 
   Place your template file in .//templates/pdf folder.
   It will output an attachment structure and if you call it with .bin requester it will trigger a download in the client Browser.
+responseTimeout: 120
 ↓inputVars [steps.InputVariablesStep-1740058697334]: 
 ↓IfExistThenElse [steps.IfExistThenElseStep-1740070875054]: 
   sourceDefinition: 

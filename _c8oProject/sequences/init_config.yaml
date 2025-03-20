@@ -1,0 +1,13 @@
+autoStart: true
+comment: Auto start sequence to install some required fonts for Docker Linux Platform.
+responseTimeout: 600
+↓jIf [steps.IfStep-1742482606623]: 
+  condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null
+  ↓Process_execute [steps.ProcessExecStep-1742392486006]: 
+    commandLine: '["sudo", "apt-get", "update"]'
+    output: true
+  ↓Process_execute2 [steps.ProcessExecStep-1742393702073]: 
+    commandLine: '["sudo", "apt-get", "install", "-y", "fontconfig"]'
+    output: true
+↓config_done [steps.SimpleStep-1742483611366]: 
+  expression: context.server.set("init_config", "done");

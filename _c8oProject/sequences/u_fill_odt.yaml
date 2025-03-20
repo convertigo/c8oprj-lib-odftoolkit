@@ -2,6 +2,29 @@ comment: |
   Fills an ODT template file (Universal).
   Place your template files in .//templates/odf folder.
   It will output an attachment structure and if you call it with .bin requester it will trigger a download in the client Browser.
+responseTimeout: 120
+↓jIf [steps.IfStep-1742483763946]: 
+  condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null && context.server.get("init_config") != "done"
+  ↓Error_structure [steps.XMLErrorStep-1742483932829]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: '-4'
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Server Font configuration is not finished yet. Please retry later...
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Font initialization not done.
+  ↓Return [steps.ReturnStep-1742483919219]: 
 ↓inputVars [steps.InputVariablesStep-1739978901433]: 
 ↓IfExistThenElse [steps.IfExistThenElseStep-1740072516876]: 
   sourceDefinition: 
@@ -91,9 +114,9 @@ comment: |
     					break;
     				case "table":
     				case "tableh":
-    					var rows = tags[i].value.length;
-    					var cols = tags[i].value[0].length;
     					var values = tags[i].value;
+    					var rows = values.length;
+    					var cols = values[0].length;
     					var hasRowHeader = tags[i].type == "tableh";
     					log.debug("Rows: " + rows);
     					log.debug("Cols: " + cols);
@@ -111,7 +134,7 @@ comment: |
     									cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["MIDDLE"]);
     									cell.setCellBackgroundColor(Color.valueOf("#e5e5e5"));
     								}
-    								cell.setStringValue(values[r][c]);
+    								cell.setStringValue(""+values[r][c]);
     							}
     						}
     						tags[i].value = fdoc.getTableByName("table1");

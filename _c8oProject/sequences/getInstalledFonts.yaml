@@ -1,0 +1,34 @@
+comment: Get installed Fonts
+↓jIf [steps.IfStep-1742490335043]: 
+  condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null && context.server.get("init_config") != "done"
+  ↓Error_structure [steps.XMLErrorStep-1742490335046]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: '-4'
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Server Font configuration is not finished yet. Please retry later...
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Font initialization not done.
+  ↓Return [steps.ReturnStep-1742490335049]: 
+↓Sequence_JS [steps.SimpleStep-1742396866046]: 
+  expression: |
+    'var GraphicsEnvironment = java.awt.GraphicsEnvironment;
+    
+    var ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+    var fontNames = ge.getAvailableFontFamilyNames();
+    
+    for (var i = 0; i < fontNames.length; i++) {
+    	context.addTextNodeUnderRoot("font", fontNames[i]);
+        log.trace(fontNames[i]);
+    }'
