@@ -62,6 +62,7 @@ responseTimeout: 120
     'var odf_api = JavaImporter(
     	Packages.org.odftoolkit.simple.TextDocument,
     	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
+    	org.odftoolkit.simple.text.Span,
     	Packages.org.odftoolkit.simple.draw.Image,	
     	Packages.org.odftoolkit.simple.table.Table,
     	Packages.org.odftoolkit.simple.table.Cell,	
@@ -97,12 +98,22 @@ responseTimeout: 120
     
     with(odf_api){
     	
+    	function setTextFont(style){
+    		try {
+    			return new Font(style.fontName, StyleTypeDefinitions.FontStyle[style.fontStyle], style.fontSize, Color[style.fontColor]);
+    		} catch(e){
+    			log.warn("Error setting Font: " + e);
+    			return new Font("Arial", StyleTypeDefinitions.FontStyle.REGULAR, 10, Color.BLACK);
+    		}
+    	}
+    	
     	function replace_text(fdoc, tags){
     		for (var i=0; i<tags.length; i++){
     			log.debug("tag: " + tags[i].tag);
     			log.debug("tag type: " + tags[i].type);
     			log.debug("tag value: " + tags[i].value);
     			var txt_nav = null;
+    			var default_font = setTextFont({fontName: "Arial", fontStyle: "REGULAR", fontSize: 10, fontColor: "BLACK"});
     			txt_nav = new TextNavigation(java.util.regex.Pattern.quote(tags[i].tag), fdoc);
     			while (txt_nav.hasNext()) {
     				item = txt_nav.nextSelection();
@@ -110,7 +121,7 @@ responseTimeout: 120
     				log.debug("item Index: " + item.getIndex());
     				switch (tags[i].type){
     				case "image":
-    					tags[i].value = new File(get_full_path(tags[i].value)).toURI();
+    						item.replaceWith(new File(get_full_path(tags[i].value)).toURI());
     					break;
     				case "table":
     				case "tableh":
@@ -124,7 +135,7 @@ responseTimeout: 120
     					if(rows>0 && cols>0){
     						table1 = Table.newTable(fdoc, rows, cols);
     						table1.setTableName("table1");
-    						var font = new Font("Arial", StyleTypeDefinitions.FontStyle.BOLD, 10, Color.BLACK);
+    							var font = setTextFont({fontName: "Arial", fontStyle: "BOLD", fontSize: 10, fontColor: "BLACK"});
     						for(var r=0; r<rows; r++){
     							for(var c=0; c<cols; c++){
     								var cell = table1.getCellByPosition(c, r);
@@ -133,18 +144,30 @@ responseTimeout: 120
     									cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["CENTER"]);
     									cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["MIDDLE"]);
     									cell.setCellBackgroundColor(Color.valueOf("#e5e5e5"));
+    									}else{
+    										cell.setFont(default_font);
     								}
-    								cell.setStringValue(""+values[r][c]);
+    									cell.setStringValue(values[r][c]);
     							}
+    							item.replaceWith(fdoc.getTableByName("table1"));
+    							table1.remove();
     						}
-    						tags[i].value = fdoc.getTableByName("table1");
-    						table1.remove();
-    					}
-    				case "paragraph":
-    				case "string":
-    				default:
-    			}
-    				item.replaceWith(tags[i].value);
+    						break;
+    					case "span":
+    						var span = Span.newSpan(item);
+    						var styleHandler = span.getStyleHandler();
+    						if(tags[i].style !== undefined){
+    							styleHandler.getTextPropertiesForWrite().setFont(setTextFont(tags[i].style));
+    						}else {
+    							styleHandler.getTextPropertiesForWrite().setFont(default_font);
+    						}
+    						span.setTextContent(tags[i].value);
+    						break;
+    					case "paragraph":
+    					case "string":
+    					default:
+    						item.replaceWith(tags[i].value);
+    				}
     			}
     		}
     	}
@@ -207,6 +230,15 @@ responseTimeout: 120
     required: true
     value: .//templates/odf/template.odt
   ↓markers [variables.TestCaseVariable-1739973840649]: 
+    value: '[ { "tag": "__c8o_date", "type": "string", "value": "February 25, 2025" }, { "tag": "__c8o_objet", "type": "string", "value": "Resignation Letter" }, { "tag": "__c8o_texte", "type": "string", "value": "Dear Sir,\nDear Madam,\nDear Miss" }, { "tag": "__c8o_signature", "type": "image", "value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png" } ]'
+↓Test_Case_marker_span [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1742291459033]: 
+    required: true
+    value: .//outputs/test_span.odt
+  ↓input_filename [variables.TestCaseVariable-1742291459036]: 
+    required: true
+    value: .//templates/odf/template.odt
+  ↓markers [variables.TestCaseVariable-1742291459039]: 
     value: '[ { "tag": "__c8o_date", "type": "string", "value": "February 25, 2025" }, { "tag": "__c8o_objet", "type": "string", "value": "Resignation Letter" }, { "tag": "__c8o_texte", "type": "string", "value": "Dear Sir,\nDear Madam,\nDear Miss" }, { "tag": "__c8o_signature", "type": "image", "value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png" } ]'
 ↓Test_Case_marker_table [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1740505823647]: 
