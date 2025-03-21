@@ -74,7 +74,7 @@ comment: Demo sequence to fill an ODT template file.
           - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
           - SmartType: 
             - ↑mode: PLAIN
-            - →→: string
+            - →→: span
     ↓value [steps.JsonFieldStep-1739978643631]: 
       key: 
         - xmlizable: 
@@ -89,6 +89,70 @@ comment: Demo sequence to fill an ODT template file.
           - SmartType: 
             - ↑mode: PLAIN
             - →→: Resignation Letter
+    ↓style [steps.JsonObjectStep-1742556379900]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: style
+      output: false
+      ↓fontName [steps.JsonFieldStep-1742556391026]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: fontName
+        output: false
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: Arial
+      ↓fontStyle [steps.JsonFieldStep-1742556401988]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: fontStyle
+        output: false
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: ITALIC
+      ↓fontSize [steps.JsonFieldStep-1742556409784]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: fontSize
+        output: false
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: 12
+      ↓fontColor [steps.JsonFieldStep-1742556463181]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: fontColor
+        output: false
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: RED
   ↓object2 [steps.JsonObjectStep-1739978644411]: 
     output: false
     ↓tag [steps.JsonFieldStep-1739978644414]: 

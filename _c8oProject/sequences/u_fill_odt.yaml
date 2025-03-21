@@ -94,12 +94,14 @@ responseTimeout: 120
     var template_path = get_full_path(input_filename);
     var output_path = get_full_path(output_filename);
     var file_name = get_file_name(output_filename);
-    log.debug("file name: " + file_name);
     
     with(odf_api){
     	
     	function setTextFont(style){
     		try {
+    			if((typeof style) == "string"){
+    				style = JSON.parse(style);
+    			}
     			return new Font(style.fontName, StyleTypeDefinitions.FontStyle[style.fontStyle], style.fontSize, Color[style.fontColor]);
     		} catch(e){
     			log.warn("Error setting Font: " + e);
@@ -108,46 +110,47 @@ responseTimeout: 120
     	}
     	
     	function replace_text(fdoc, tags){
+    		var default_font = setTextFont({fontName: "Arial", fontStyle: "REGULAR", fontSize: 10, fontColor: "BLACK"});
     		for (var i=0; i<tags.length; i++){
     			log.debug("tag: " + tags[i].tag);
     			log.debug("tag type: " + tags[i].type);
     			log.debug("tag value: " + tags[i].value);
     			var txt_nav = null;
-    			var default_font = setTextFont({fontName: "Arial", fontStyle: "REGULAR", fontSize: 10, fontColor: "BLACK"});
     			txt_nav = new TextNavigation(java.util.regex.Pattern.quote(tags[i].tag), fdoc);
     			while (txt_nav.hasNext()) {
     				item = txt_nav.nextSelection();
     				log.debug("item Text: " + item.getText());
     				log.debug("item Index: " + item.getIndex());
     				switch (tags[i].type){
-    				case "image":
+    					case "image":
     						item.replaceWith(new File(get_full_path(tags[i].value)).toURI());
-    					break;
-    				case "table":
-    				case "tableh":
-    					var values = tags[i].value;
-    					var rows = values.length;
-    					var cols = values[0].length;
-    					var hasRowHeader = tags[i].type == "tableh";
-    					log.debug("Rows: " + rows);
-    					log.debug("Cols: " + cols);
-    					log.debug("Has row header? " + hasRowHeader);
-    					if(rows>0 && cols>0){
-    						table1 = Table.newTable(fdoc, rows, cols);
-    						table1.setTableName("table1");
+    						break;
+    					case "table":
+    					case "tableh":
+    						var values = tags[i].value;
+    						var rows = values.length;
+    						var cols = values[0].length;
+    						var hasRowHeader = tags[i].type == "tableh";
+    						log.debug("Rows: " + rows);
+    						log.debug("Cols: " + cols);
+    						log.debug("Has row header? " + hasRowHeader);
+    						if(rows>0 && cols>0){
+    							table1 = Table.newTable(fdoc, rows, cols);
+    							table1.setTableName("table1");
     							var font = setTextFont({fontName: "Arial", fontStyle: "BOLD", fontSize: 10, fontColor: "BLACK"});
-    						for(var r=0; r<rows; r++){
-    							for(var c=0; c<cols; c++){
-    								var cell = table1.getCellByPosition(c, r);
-    								if(r == 0 && hasRowHeader){
-    									cell.setFont(font);
-    									cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["CENTER"]);
-    									cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["MIDDLE"]);
-    									cell.setCellBackgroundColor(Color.valueOf("#e5e5e5"));
-    									}else{
-    										cell.setFont(default_font);
+    							for(var r=0; r<rows; r++){
+    								for(var c=0; c<cols; c++){
+    									var cell = table1.getCellByPosition(c, r);
+    									if(r == 0 && hasRowHeader){
+    										cell.setFont(font);
+    										cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["CENTER"]);
+    										cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["MIDDLE"]);
+    										cell.setCellBackgroundColor(Color.valueOf("#e5e5e5"));
+    										}else{
+    											cell.setFont(default_font);
+    									}
+    										cell.setStringValue(values[r][c]);
     								}
-    									cell.setStringValue(values[r][c]);
     							}
     							item.replaceWith(fdoc.getTableByName("table1"));
     							table1.remove();
@@ -158,7 +161,7 @@ responseTimeout: 120
     						var styleHandler = span.getStyleHandler();
     						if(tags[i].style !== undefined){
     							styleHandler.getTextPropertiesForWrite().setFont(setTextFont(tags[i].style));
-    						}else {
+    						} else {
     							styleHandler.getTextPropertiesForWrite().setFont(default_font);
     						}
     						span.setTextContent(tags[i].value);
@@ -232,6 +235,15 @@ responseTimeout: 120
   ↓markers [variables.TestCaseVariable-1739973840649]: 
     value: '[ { "tag": "__c8o_date", "type": "string", "value": "February 25, 2025" }, { "tag": "__c8o_objet", "type": "string", "value": "Resignation Letter" }, { "tag": "__c8o_texte", "type": "string", "value": "Dear Sir,\nDear Madam,\nDear Miss" }, { "tag": "__c8o_signature", "type": "image", "value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png" } ]'
 ↓Test_Case_marker_span [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1742552007563]: 
+    required: true
+    value: .//outputs/test_span.odt
+  ↓input_filename [variables.TestCaseVariable-1742552007566]: 
+    required: true
+    value: .//templates/odf/template.odt
+  ↓markers [variables.TestCaseVariable-1742552007569]: 
+    value: '[ { "tag": "__c8o_date", "type": "string", "value": "February 25, 2025" }, { "tag": "__c8o_objet", "type": "span", "value": "Resignation Letter", "style": "{\"fontName\": \"Arial\", \"fontStyle\": \"BOLD\", \"fontSize\": \"14\", \"fontColor\": \"RED\"}" }, { "tag": "__c8o_texte", "type": "string", "value": "Dear Sir,\nDear Madam,\nDear Miss" }, { "tag": "__c8o_signature", "type": "image", "value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png" } ]'
+↓Test_Case_marker_string [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1742291459033]: 
     required: true
     value: .//outputs/test_span.odt

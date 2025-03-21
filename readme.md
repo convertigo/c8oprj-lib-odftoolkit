@@ -15,6 +15,8 @@ For more technical informations : [documentation](./project.md)
     - [demo_u_fill_pdf](#demo_u_fill_pdf)
     - [fill_odt](#fill_odt)
     - [fill_pdf](#fill_pdf)
+    - [getInstalledFonts](#getinstalledfonts)
+    - [init_config](#init_config)
     - [u_create_odt](#u_create_odt)
     - [u_fill_odt](#u_fill_odt)
     - [u_fill_pdf](#u_fill_pdf)
@@ -143,6 +145,14 @@ _ B64 string.</td>
 <td>texte</td><td>Main Body Text</td>
 </tr>
 </table>
+
+### getInstalledFonts
+
+Get installed Fonts
+
+### init_config
+
+Auto start sequence to install some required fonts for Docker Linux Platform.
 
 ### u_create_odt
 
