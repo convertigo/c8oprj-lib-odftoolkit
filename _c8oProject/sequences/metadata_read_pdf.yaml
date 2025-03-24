@@ -1,0 +1,109 @@
+comment: Get the metadata of the PDF file.
+↓get_pdf_metadata [steps.SimpleStep-1742578908834]: 
+  expression: |
+    'var pdf_api = JavaImporter(
+    	Packages.org.apache.pdfbox.util.Version,
+    	Packages.org.apache.pdfbox.Loader,
+    	Packages.org.apache.pdfbox.pdmodel.PDDocument,
+    	Packages.org.apache.pdfbox.pdmodel.PDDocumentInformation,
+    	Packages.java.io.File
+    );
+    
+    function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(3);;
+    		}
+    	}
+    	return file_path;
+    }
+    
+    // Fonction utilitaire pour formater une date lisible
+    function formatReadableDate(calendar) {
+        if (calendar == null || calendar == "null") {
+            return null; // Pas de date
+        }
+        var formatter = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        return formatter.format(calendar.getTime());
+    }
+    
+    with(pdf_api){
+    	file = new File(get_full_path(input_filename));
+    	if(file && file.exists()){
+    		log.debug("PDFBox Version: " + Version.getVersion());
+    		document = Loader.loadPDF(file);
+    		
+    		// Charger le document, avec ou sans mot de passe
+            if (document.isEncrypted()) {
+                if (password != null && password != "") {
+                    document = Loader.loadPDF(file, password);
+                    log.debug("Protected PDF file successfully loaded.");
+                } else {
+                    log.error("The PDF file is password protected but no one was provided.");
+                }
+            }
+    		
+    		// Récupération des informations générales du document
+        	var info = document.getDocumentInformation();
+        
+    	    // Création de l''objet littéral pour stocker les métadonnées
+    	    var pdf_metadata = {
+    			file_name: get_file_name(input_filename),
+    			encrypted: document.isEncrypted(),
+    			version: document.getVersion(),
+    	        nb_pages: document.getNumberOfPages(),
+    	        title: info.getTitle(),
+    	        author: info.getAuthor(),
+    	        creator: info.getCreator(),
+    	        producer: info.getProducer(),
+    	        subject: info.getSubject(),
+    	        keywords: info.getKeywords(),
+    	        trapped: info.getTrapped(),
+    	        creation_date: formatReadableDate(info.getCreationDate()),
+    	        modification_date: formatReadableDate(info.getModificationDate())
+    	    };
+    	
+    	    // Log des métadonnées pour validation
+    	    log.debug("PDF Metadata: " + JSON.stringify(pdf_metadata, null, 2));
+    			
+    		document.close();
+    	} else {
+    		log.error("ERROR reading file ''" + input_filename + "''");
+    	}
+    }'
+↓object [steps.JsonToXmlStep-1742584044759]: 
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: pdf_metadata || {}
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: pdf_metadata
+↓input_filename [variables.RequestableVariable-1742584142827]: 
+  comment: |
+    'ODT input template file name to fill. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓password [variables.RequestableVariable-1742607527327]: 
+  value: Password, if set, for the ciphered PDF file.
+↓Test_Case [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1742584524302]: 
+    required: true
+    value: .//templates/pdf/template_metadata.pdf

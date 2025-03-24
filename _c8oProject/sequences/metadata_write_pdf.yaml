@@ -1,0 +1,198 @@
+comment: Set the metadata of the PDF file.
+↓set_pdf_metadata [steps.SimpleStep-1742585196232]: 
+  expression: |
+    'var pdf_api = JavaImporter(
+    	Packages.org.apache.pdfbox.util.Version,
+    	Packages.org.apache.pdfbox.Loader,
+    	Packages.org.apache.pdfbox.pdmodel.PDDocument,
+    	Packages.org.apache.pdfbox.pdmodel.PDDocumentInformation,
+    	Packages.java.io.File
+    );
+    
+    function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(3);;
+    		}
+    	}
+    	return file_path;
+    }
+    
+    // Fonction utilitaire pour gérer les états des métadonnées
+    function processMetadata(newValue, currentValue) {
+        if (newValue == null || newValue == "unchanged") {
+            // Ne pas modifier
+            return currentValue;
+        } else if (newValue == "") {
+            // Mettre une chaîne vide
+            return "";
+        } else if (newValue == "null") {
+            // Mettre à null
+            return null;
+        } else {
+            // Utiliser la valeur fournie
+            return newValue;
+        }
+    }
+    
+    // Fonction utilitaire pour traiter la date d''entrée
+    function processDate(input) {
+        if (input == null || input == "unchanged") {
+            // Ne pas modifier la date
+            return null;
+        } else if (input == "null") {
+            // Mettre à null
+            return "null";
+        } else if (input == "now") {
+            // Retourner la date actuelle
+            return new java.util.GregorianCalendar();
+        } else {
+            try {
+                // Convertir une date ISO 8601 fournie en GregorianCalendar
+                var formatter = new java.text.SimpleDateFormat("yyyy-MM-dd''T''HH:mm:ss");
+                var parsedDate = formatter.parse(input);
+                var calendar = new java.util.GregorianCalendar();
+                calendar.setTime(parsedDate);
+                return calendar;
+            } catch (e) {
+                log.error("Format de date incorrect : " + input);
+                return null;
+            }
+        }
+    }
+    
+    // Fonction utilitaire pour formater une date lisible
+    function formatReadableDate(calendar) {
+        if (calendar == null || calendar == "null") {
+            return null; // Pas de date
+        }
+        var formatter = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        return formatter.format(calendar.getTime());
+    }
+    
+    
+    with(pdf_api){
+    	// Chargement du fichier PDF
+    	var file = new File(get_full_path(input_filename));
+    
+    	if (file.exists()) {
+    	    log.debug("PDFBox Version: " + Version.getVersion());
+    	    
+    	    // Charger le document
+    	    var document = Loader.loadPDF(file);
+    	    
+    	    // Récupération des informations actuelles
+    	    var info = document.getDocumentInformation();
+    	    
+    	    // Création d''un objet pour regrouper les métadonnées
+    	    var pdf_metadata = {
+    	        nb_pages: document.getNumberOfPages(),
+    	        title: processMetadata(new_title, info.getTitle()),
+    	        author: processMetadata(new_author, info.getAuthor()),
+    	        subject: processMetadata(new_subject, info.getSubject()),
+    	        keywords: processMetadata(new_keywords, info.getKeywords()),
+    	        creator: processMetadata(new_creator, info.getCreator()),
+    	        producer: processMetadata(new_producer, info.getProducer()),
+    	        creation_date: formatReadableDate(processMetadata(processDate(new_creation_date), info.getCreationDate())),
+    	        modification_date: formatReadableDate(processMetadata(processDate(new_modification_date), info.getModificationDate())),
+    	    };
+    	    
+    	    // Modification des métadonnées
+    	    info.setTitle(pdf_metadata.title);
+    	    info.setAuthor(pdf_metadata.author);
+    	    info.setSubject(pdf_metadata.subject);
+    	    info.setKeywords(pdf_metadata.keywords);
+    	    info.setCreator(pdf_metadata.creator);
+    	    info.setProducer(pdf_metadata.producer);
+    	    info.setCreationDate(processMetadata(processDate(new_creation_date), info.getCreationDate()));
+    	    info.setModificationDate(processMetadata(processDate(new_modification_date), info.getModificationDate()));
+    	    
+    	    // Appliquer les modifications aux métadonnées
+    	    document.setDocumentInformation(info);
+    	
+    	    // Sauvegarder le fichier PDF modifié
+    	    var outputFile = new File(get_full_path(output_filename));
+    	    document.save(outputFile);
+    	
+    	    // Log pour validation
+    	    log.info("Metadata updated and saved to file : " + outputFile.getPath());
+    	
+    	    // Fermer le document
+    	    document.close();
+    		} else {
+    		    log.error("PDF file does not exist at specified location");
+    	}
+    
+    }'
+↓object [steps.JsonToXmlStep-1742585196235]: 
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: pdf_metadata || {}
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: pdf_metadata
+↓input_filename [variables.RequestableVariable-1742585196238]: 
+  comment: |
+    'ODT input template file name to fill. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓output_filename [variables.RequestableVariable-1742595339906]: 
+  comment: |
+    'ODT output file path. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓new_title [variables.RequestableVariable-1742599956954]: 
+  comment: Set the TITLE metadata
+↓new_author [variables.RequestableVariable-1742599968765]: 
+  comment: Set the AUTHOR metadata
+↓new_subject [variables.RequestableVariable-1742599987216]: 
+  comment: Set the SUBJECT metadata
+↓new_keywords [variables.RequestableVariable-1742600002314]: 
+  comment: Set the KEYWORDS metadata
+↓new_creator [variables.RequestableVariable-1742600015786]: 
+  comment: Set the CREATOR metadata
+↓new_producer [variables.RequestableVariable-1742600028050]: 
+  comment: Set the PRODUCER metadata
+↓new_creation_date [variables.RequestableVariable-1742600045593]: 
+  comment: Set the CREATION DATE metadata
+↓new_modification_date [variables.RequestableVariable-1742600056385]: 
+  comment: Set the MODIFICATION DATE metadata
+↓Test_Case [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1742585196242]: 
+    required: true
+    value: .//templates/pdf/template_metadata.pdf
+  ↓output_filename [variables.TestCaseVariable-1742595351765]: 
+    required: true
+    value: .//outputs/template_metadata_updated.pdf
+  ↓new_title [variables.TestCaseVariable-1742602848376]: 
+    value: 
+  ↓new_author [variables.TestCaseVariable-1742602848378]: 
+    value: Convertigo Studio
+  ↓new_subject [variables.TestCaseVariable-1742602848380]: 
+  ↓new_keywords [variables.TestCaseVariable-1742602848382]: 
+  ↓new_creator [variables.TestCaseVariable-1742602848384]: 
+  ↓new_producer [variables.TestCaseVariable-1742602848386]: 
+  ↓new_creation_date [variables.TestCaseVariable-1742602848388]: 
+    value: 1975-04-04T09:01:00
+  ↓new_modification_date [variables.TestCaseVariable-1742602848390]: 
+    value: now
