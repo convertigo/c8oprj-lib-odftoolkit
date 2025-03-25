@@ -253,7 +253,7 @@ comment: Demo sequence to fill an ODT template file.
           - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
           - SmartType: 
             - ↑mode: PLAIN
-            - →→: C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png
+            - →→: .//templates/sarah_signature_sample.png
 ↓Call_Sequence [steps.SequenceStep-1739978716377]: 
   sourceSequence: lib_fill_odt_pdf.u_fill_odt
   ↓output_filename [variables.StepVariable-1739978716379]: 

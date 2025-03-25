@@ -84,6 +84,14 @@ Demo sequence to fill an ODT template file.
 Demo sequence to fill an ODT template file.
 </p></blockquote></details>
 
+<details><summary><b>demo_u_fill_table_odt</b> : Demo sequence to fill an ODT template file</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") demo_u_fill_table_odt
+
+Demo sequence to fill an ODT template file.
+</p></blockquote></details>
+
 <details><summary><b>fill_odt</b> : Fills an ODT template file (Deprecated)</summary><blockquote><p>
 
 
@@ -337,7 +345,8 @@ Structured array as follow :
 [
 	{
 		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
-		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
+		"type": "&lt;tag type. 'image', 'string', 'span' (font styles), 'table' and 'tableh' (title row) supported&gt;",
+		"style": "&lt;Font styles for span or table cells. Look at demo_u_fill_odt for syntax&gt;"
 		"value": "&lt;replacement string or image absolute path&gt;"
 	}
 ]>

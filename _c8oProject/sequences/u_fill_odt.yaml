@@ -97,20 +97,131 @@ responseTimeout: 120
     
     with(odf_api){
     	
+    	function objectify(s) {
+    	    if (typeof s == "string") {
+    	        try {
+    	            log.debug(''Try to parse the string as JSON...'');
+    	            const obj = JSON.parse(s); // Convertir la chaîne en objet JSON
+    	            // Vérifier toutes les propriétés de l''objet
+    	            Object.keys(obj).forEach(key => {
+    	                if (typeof obj[key] == "string") {
+    	                    try {
+    	                        log.debug("Parsing nested JSON for key: " + key);
+    	                        obj[key] = JSON.parse(obj[key]); // Désérialiser la chaîne imbriquée
+    	                    } catch (e) {
+    	                        log.warn("Failed to parse nested JSON for key: "+key+". Keeping it as a string.");
+    	                    }
+    	                }
+    	            });
+    	            return obj;
+    	        } catch (e) {
+    	            log.warn("Failed to parse JSON. Returning the string as is: " + e);
+    	        }
+    	    }
+    	    return s; // Retourner tel quel si ce n''est pas une chaîne JSON valide
+    	}
+    	
     	function setTextFont(style){
     		try {
-    			if((typeof style) == "string"){
-    				style = JSON.parse(style);
-    			}
-    			return new Font(style.fontName, StyleTypeDefinitions.FontStyle[style.fontStyle], style.fontSize, Color[style.fontColor]);
+    			style = objectify(style);
+    			return new Font(style.fontName, StyleTypeDefinitions.FontStyle[style.fontStyle], style.fontSize, getColor(style.fontColor));
     		} catch(e){
-    			log.warn("Error setting Font: " + e);
+    			log.warn("Setting Default Font values because: " + e);
     			return new Font("Arial", StyleTypeDefinitions.FontStyle.REGULAR, 10, Color.BLACK);
     		}
     	}
     	
+    	function getCellFont(style, row, column, isHeader) {
+    		style = objectify(style);
+    	    if (isHeader) {
+    			var title = style && style.header ? style.header : {fontName: "Arial", fontStyle: "BOLD", fontSize: 10, fontColor: "BLACK"};
+    	        return setTextFont(title);
+    	    }
+    	    const key = row + "-" + column;
+    	    return setTextFont(style && style.cells && style.cells[key] ? style.cells[key] : style && style.defaults ? style.defaults : {});
+    	}
+    	
+    	function getColor(color){
+    		const validColors = ["AQUA", "BLACK", "BLUE", "FUCHSIA", "GRAY", "GREEN", "LIME", "MAROON", "NAVY", "OLIVE", "ORANGE", "PURPLE", "RED", "SILVER", "TEAL", "WHITE", "YELLOW"];
+    		return color.startsWith("#") ? Color.valueOf(color) : validColors.includes(color) ? Color[color] : Color.WHITE;
+    	}
+    	
+    	function setCellBGColor(cell, color) {
+    	    cell.setCellBackgroundColor(getColor(color));
+    	}
+    	
+    	function setCellAttributes(cell, row, column, isHeader, HAlign, VAlign, style) {
+    	    // Afficher les logs pour chaque variable
+    	    log.debug("cell => " + cell);
+    	    log.debug("row => " + row);
+    	    log.debug("column => " + column);
+    	    log.debug("isHeader => " + isHeader);
+    	
+    	    // Si ''style'' est un objet, afficher ses propriétés
+    	    if (typeof style === "object" && style !== null) {
+    	        log.debug("style (détails) => " + JSON.stringify(style));
+    	    } else {
+    	        log.warn("style n''est pas un objet ou est null.");
+    	    }
+    	    
+    	    if(isHeader){
+    			if(style && style.header && HAlign.includes(style.header.cellHAlign)){
+    				log.debug("[header] cellHAlign: "+ style.header.cellHAlign);
+    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.header.cellHAlign]);
+    			}else{
+    				log.debug("Setting Header to default HAlign: CENTER");
+    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["CENTER"]);
+    			}
+    			if(style && style.header && VAlign.includes(style.header.cellVAlign)){
+    				log.debug("[header] cellVAlign: "+ style.header.cellVAlign);
+    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.header.cellVAlign]);
+    			}else{
+    				log.debug("Setting Header to default VAlign: MIDDLE");
+    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["MIDDLE"]);
+    			}
+    			if(style && style.header && style.header.cellBGColor){
+    				log.debug("[header] cellBGColor: "+ style.header.cellBGColor);
+    				setCellBGColor(cell, style.header.cellBGColor);
+    			}else{
+    				log.warn("Setting Header to default BGColor: #e5e5e5");
+    				setCellBGColor(cell, "#e5e5e5");
+    			}
+    			return;
+    		}
+    		const key = row + "-" + column;
+    		log.debug("Searching Atributes for cell " + key);
+    		if(style && style.cells && style.cells[key] && HAlign.includes(style.cells[key].cellHAlign)){
+    			log.debug("[cell] cellHAlign: "+ style.cells[key].cellHAlign);
+    			cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.cells[key].cellHAlign]);
+    		} else if(style && style.defaults && HAlign.includes(style.defaults.cellHAlign)){
+    			log.debug("[defaults] cellHAlign: "+ style.defaults.cellHAlign);
+    			cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.defaults.cellHAlign]);
+    		}else{
+    			log.debug("No valid attribute found for cellHAlign. Do nothing");
+    		}
+    		
+    		if(style && style.cells && style.cells[key] && VAlign.includes(style.cells[key].cellVAlign)){
+    			log.debug("[cell] cellVAlign: "+ style.cells[key].cellVAlign);
+    			cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.cells[key].cellVAlign]);
+    		} else if(style && style.defaults && VAlign.includes(style.defaults.cellVAlign)){
+    			log.debug("[defaults] cellVAlign: "+ style.defaults.cellVAlign);
+    			cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.defaults.cellVAlign]);
+    		}else{
+    			log.debug("No valid attribute found for cellVAlign. Do nothing");
+    		}
+    		
+    		if(style && style.cells && style.cells[key] && style.cells[key].cellBGColor){
+    			log.debug("[cell] cellBGColor: "+ style.cells[key].cellBGColor);
+    			setCellBGColor(cell, style.cells[key].cellBGColor);
+    		} else if(style && style.defaults && style.defaults.cellBGColor){
+    			log.debug("[defaults] cellBGColor: "+ style.defaults.cellBGColor);
+    			setCellBGColor(cell, style.defaults.cellBGColor);
+    		}else{
+    			log.debug("No valid attribute found for BGColor. Do nothing");
+    		}
+    	}
+    	
     	function replace_text(fdoc, tags){
-    		var default_font = setTextFont({fontName: "Arial", fontStyle: "REGULAR", fontSize: 10, fontColor: "BLACK"});
     		for (var i=0; i<tags.length; i++){
     			log.debug("tag: " + tags[i].tag);
     			log.debug("tag type: " + tags[i].type);
@@ -131,25 +242,25 @@ responseTimeout: 120
     						var rows = values.length;
     						var cols = values[0].length;
     						var hasRowHeader = tags[i].type == "tableh";
+    						var isHeader;
+    						const validHAlign = [ "CENTER", "DEFAULT", "FILLED", "JUSTIFY", "LEFT", "RIGHT" ];
+    						const validVAlign = [ "TOP", "BOTTOM", "MIDDLE", "DEFAULT" ];
     						log.debug("Rows: " + rows);
     						log.debug("Cols: " + cols);
     						log.debug("Has row header? " + hasRowHeader);
     						if(rows>0 && cols>0){
     							table1 = Table.newTable(fdoc, rows, cols);
     							table1.setTableName("table1");
-    							var font = setTextFont({fontName: "Arial", fontStyle: "BOLD", fontSize: 10, fontColor: "BLACK"});
     							for(var r=0; r<rows; r++){
     								for(var c=0; c<cols; c++){
     									var cell = table1.getCellByPosition(c, r);
-    									if(r == 0 && hasRowHeader){
-    										cell.setFont(font);
-    										cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["CENTER"]);
-    										cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["MIDDLE"]);
-    										cell.setCellBackgroundColor(Color.valueOf("#e5e5e5"));
-    										}else{
-    											cell.setFont(default_font);
-    									}
-    										cell.setStringValue(values[r][c]);
+    									log.debug("row #"+r);
+    									log.debug("col #"+c);
+    									log.debug("val: "+values[r][c]);
+    									isHeader = r == 0 && hasRowHeader ? true : false;
+    									setCellAttributes(cell, r, c, isHeader, validHAlign, validVAlign, tags[i].style);
+    									cell.setFont(getCellFont(tags[i].style, r, c, isHeader));
+    									cell.setStringValue(values[r][c]);
     								}
     							}
     							item.replaceWith(fdoc.getTableByName("table1"));
@@ -159,11 +270,7 @@ responseTimeout: 120
     					case "span":
     						var span = Span.newSpan(item);
     						var styleHandler = span.getStyleHandler();
-    						if(tags[i].style !== undefined){
-    							styleHandler.getTextPropertiesForWrite().setFont(setTextFont(tags[i].style));
-    						} else {
-    							styleHandler.getTextPropertiesForWrite().setFont(default_font);
-    						}
+    						styleHandler.getTextPropertiesForWrite().setFont(setTextFont(tags[i].style));
     						span.setTextContent(tags[i].value);
     						break;
     					case "paragraph":
@@ -221,7 +328,8 @@ responseTimeout: 120
     [
     	{
     		"tag": "&lt;tag name in template file to replace with ''value'' key&gt;",
-    		"type": "&lt;tag type. ''image'' or ''string'' supported&gt;",
+    		"type": "&lt;tag type. ''image'', ''string'', ''span'' (font styles), ''table'' and ''tableh'' (title row) supported&gt;",
+    		"style": "&lt;Font styles for span or table cells. Look at demo_u_fill_odt for syntax&gt;"
     		"value": "&lt;replacement string or image absolute path&gt;"
     	}
     ]>'

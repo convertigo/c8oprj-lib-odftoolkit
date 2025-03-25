@@ -13,6 +13,7 @@ For more technical informations : [documentation](./project.md)
     - [clean_outputs](#clean_outputs)
     - [demo_u_fill_odt](#demo_u_fill_odt)
     - [demo_u_fill_pdf](#demo_u_fill_pdf)
+    - [demo_u_fill_table_odt](#demo_u_fill_table_odt)
     - [fill_odt](#fill_odt)
     - [fill_pdf](#fill_pdf)
     - [getInstalledFonts](#getinstalledfonts)
@@ -33,13 +34,13 @@ For more technical informations : [documentation](./project.md)
      <tr><td>To contribute</td><td>
 
      ```
-     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit.git:branch=master
+     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit.git:branch=1.9.6_full_styles
      ```
      </td></tr>
      <tr><td>To simply use</td><td>
 
      ```
-     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit/archive/master.zip
+     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit/archive/1.9.6_full_styles.zip
      ```
      </td></tr>
     </table>
@@ -74,6 +75,10 @@ Clean the generated files from the 'outputs' or 'read' directories. Can be used 
 Demo sequence to fill an ODT template file.
 
 ### demo_u_fill_pdf
+
+Demo sequence to fill an ODT template file.
+
+### demo_u_fill_table_odt
 
 Demo sequence to fill an ODT template file.
 
@@ -205,7 +210,8 @@ Can be an absolute path or a relative Convertigo path:
 [
 	{
 		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
-		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
+		"type": "&lt;tag type. 'image', 'string', 'span' (font styles), 'table' and 'tableh' (title row) supported&gt;",
+		"style": "&lt;Font styles for span or table cells. Look at demo_u_fill_odt for syntax&gt;"
 		"value": "&lt;replacement string or image absolute path&gt;"
 	}
 ]></td>
