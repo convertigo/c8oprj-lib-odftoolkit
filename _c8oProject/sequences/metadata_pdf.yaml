@@ -1,0 +1,555 @@
+comment: Get the metadata of the PDF file.
+↓init_pdf_document [steps.SimpleStep-1743083331942]: 
+  expression: |
+    'var pdf_api = JavaImporter(
+    	Packages.org.apache.pdfbox.util.Version,
+    	Packages.org.apache.pdfbox.Loader,
+    	Packages.org.apache.pdfbox.pdmodel.PDDocument,
+    	Packages.org.apache.pdfbox.pdmodel.PDDocumentInformation,
+    	Packages.org.apache.pdfbox.pdmodel.encryption.AccessPermission,
+    	Packages.org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy,
+    	Packages.java.io.File
+    );
+    
+    var _error = false;
+    var _error_code = "-1";
+    var _error_msg = "";
+    var _error_stack = "";
+    var document = null;
+    
+    function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(3);;
+    		}
+    	}
+    	return file_path;
+    }
+    
+    // Fonction utilitaire pour formater une date lisible
+    function formatReadableDate(calendar) {
+        if (calendar == null || calendar == "null") {
+            return null; // Pas de date
+        }
+        var formatter = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        return formatter.format(calendar.getTime());
+    }
+    
+    with(pdf_api){
+    	try {
+    		file = new File(get_full_path(input_filename));
+    		if(file && file.exists()){
+    			log.debug("PDFBox Version: " + Version.getVersion());
+                try {
+    				document = Loader.loadPDF(file);
+    				log.debug("Unprotected PDF file successfully loaded.");
+    			} catch (e) {
+    				if(e.javaException.getClass().name.equals("org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException")){
+    					log.warn("The PDF file is encrypted. Attempting to open with a password...");
+    					if (password != null && password != "") {
+    						try {
+    							document = Loader.loadPDF(file, password);
+                				log.debug("Protected PDF file successfully loaded.");
+    						} catch (e2){
+    							log.error("ERROR: Failed to decrypt PDF file with provided password: " + e2);
+    							document = null;
+    							_error = true;
+    							_error_code = "-3";
+    							_error_msg = "ERROR: Failed to decrypt PDF file with provided password.";
+    							_error_stack = "" + e2;
+    						}
+    		                
+    		            } else {
+    		                log.error("ERROR: The PDF file is password protected but no one was provided.");
+    		                document = null;
+    		                _error = true;
+    						_error_code = "-4";
+    						_error_msg = "ERROR: The PDF file is password protected but no one was provided.";
+    						_error_stack = "" + e;
+    		            }
+    				}
+    			}
+    			if(document){
+    				// Récupération des informations générales du document
+    				var info = document.getDocumentInformation();
+    				// Obtenir les permissions d''accès
+            		var accessPermission = document.getCurrentAccessPermission();
+            		var ap_isOwner = accessPermission.isOwnerPermission();
+            		var ap_canPrint = accessPermission.canPrint();
+            		var ap_canPrintFaithful = accessPermission.canPrintFaithful();
+            		var ap_canModify = accessPermission.canModify();
+            		var ap_canModifyAnnotations = accessPermission.canModifyAnnotations();
+            		var ap_canExtractContent = accessPermission.canExtractContent();
+            		var ap_canExtractForAccessibility = accessPermission.canExtractForAccessibility();
+            		var ap_canFillInForm = accessPermission.canFillInForm();
+            		var ap_canAssembleDocument = accessPermission.canAssembleDocument();
+    			}
+    		} else {
+    			log.error("ERROR: file ''" + input_filename + "'' does not exist");
+    			_error = true;
+    			_error_code = "-2";
+    			_error_msg = "ERROR: file ''" + input_filename + "'' does not exist";
+    			_error_stack = "";
+    		}
+    	} catch (e){
+    		log.error("ERROR: opening file ''" + input_filename + "'' because: " + e);
+    		_error = true;
+    		_error_code = "-1";
+    		_error_msg = "ERROR: opening file ''" + input_filename + "''";
+    		_error_stack = "" + e;
+    	}
+    }'
+↓jIf [steps.IfStep-1743082284809]: 
+  condition: _error == true
+  ↓Error_structure [steps.XMLErrorStep-1743082291770]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_code
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_stack
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_msg
+  ↓Return [steps.ReturnStep-1743082529153]: 
+↓jIfThenElse [steps.IfThenElseStep-1743083318617]: 
+  condition: (mode == 'w' || mode == 'write') && output_filename != null && output_filename != ""
+  ↓jThen [steps.ThenStep-1743083318619]: 
+    ↓set_pdf_metadata [steps.SimpleStep-1743084647125]: 
+      expression: |
+        '// Fonction utilitaire pour gérer les états des métadonnées
+        function processMetadata(newValue, currentValue) {
+            if (newValue == null || newValue == "unchanged") {
+                // Ne pas modifier
+                return currentValue;
+            } else if (newValue == "") {
+                // Mettre une chaîne vide
+                return "";
+            } else if (newValue == "null") {
+                // Mettre à null
+                return null;
+            } else if (newValue == "true") {
+                // Transformer "true" en booléen true
+                return true;
+            } else if (newValue == "false") {
+                // Transformer "false" en booléen false
+                return false;
+            } else {
+                // Utiliser la valeur fournie
+                return newValue;
+            }
+        }
+        
+        
+        // Fonction utilitaire pour traiter la date d''entrée
+        function processDate(input) {
+            if (input == null || input == "unchanged") {
+                // Ne pas modifier la date
+                return null;
+            } else if (input == "null") {
+                // Mettre à null
+                return "null";
+            } else if (input == "now") {
+                // Retourner la date actuelle
+                return new java.util.GregorianCalendar();
+            } else {
+                try {
+                    // Convertir une date ISO 8601 fournie en GregorianCalendar
+                    var formatter = new java.text.SimpleDateFormat("yyyy-MM-dd''T''HH:mm:ss");
+                    var parsedDate = formatter.parse(input);
+                    var calendar = new java.util.GregorianCalendar();
+                    calendar.setTime(parsedDate);
+                    return calendar;
+                } catch (e) {
+                    log.error("ERROR: Format de date incorrect : " + input);
+                    return null;
+                }
+            }
+        }
+        
+        with(pdf_api){
+        	if(document != null){
+        	    // Création d''un objet pour regrouper les métadonnées
+        	    var pdf_metadata = {
+        			file_name: get_file_name(input_filename),
+        			protected: document.isEncrypted(),
+        			version: document.getVersion(),
+        	        nb_pages: document.getNumberOfPages(),
+        	        title: processMetadata(new_title, info.getTitle()),
+        	        author: processMetadata(new_author, info.getAuthor()),
+        	        subject: processMetadata(new_subject, info.getSubject()),
+        	        keywords: processMetadata(new_keywords, info.getKeywords()),
+        	        creator: processMetadata(new_creator, info.getCreator()),
+        	        producer: processMetadata(new_producer, info.getProducer()),
+        	        trapped: processMetadata(new_trapped, info.getTrapped()),
+        	        creation_date: formatReadableDate(processMetadata(processDate(new_creation_date), info.getCreationDate())),
+        	        modification_date: formatReadableDate(processMetadata(processDate(new_modification_date), info.getModificationDate())),
+        	        accessPermission: {
+        				isOwner: ap_isOwner || false,
+        				canPrint: processMetadata(new_ap_canPrint, ap_canPrint),
+        				canPrintHighQuality: processMetadata(new_ap_canPrintHighQuality, ap_canPrintFaithful),
+        				canModify: processMetadata(new_ap_canModifyAnnotations, ap_canModifyAnnotations),
+        				canModifyAnnotationst: processMetadata(new_ap_canPrint, ap_canPrint),
+        				canExtractContent: processMetadata(new_ap_canExtractContent, ap_canExtractContent),
+        				canExtractForAccessibility: processMetadata(new_ap_canExtractForAccessibility, ap_canExtractForAccessibility),
+        				canFillInForm: processMetadata(new_ap_canFillInForm, ap_canFillInForm),
+        				canAssembleDocument: processMetadata(new_ap_canAssembleDocument, ap_canAssembleDocument),
+        			}
+        	    };
+        	    
+        	    // Modification des métadonnées
+        	    info.setTitle(pdf_metadata.title);
+        	    info.setAuthor(pdf_metadata.author);
+        	    info.setSubject(pdf_metadata.subject);
+        	    info.setKeywords(pdf_metadata.keywords);
+        	    info.setCreator(pdf_metadata.creator);
+        	    info.setProducer(pdf_metadata.producer);
+        	    info.setCreationDate(processMetadata(processDate(new_creation_date), info.getCreationDate()));
+        	    info.setModificationDate(processMetadata(processDate(new_modification_date), info.getModificationDate()));
+        	    
+        	    // Appliquer les modifications aux métadonnées
+        	    document.setDocumentInformation(info);
+        	
+        	    // Sauvegarder le fichier PDF modifié
+        	    if((!document.isEncrypted() && new_setProtection == "false") || (document.isEncrypted() && new_setProtection == "false" && new_setProtection != "" && new_setProtection != null)) {
+        	    //if(document.isEncrypted() || new_setProtection == "true"){
+        			document.setAllSecurityToBeRemoved(true);
+                } else {
+        			var accessPermission = new AccessPermission();
+        			var policy;
+        			if(ap_isOwner || new_ap_ForcePolicy == "true"){
+        				accessPermission.setCanPrint(pdf_metadata.accessPermission.canPrint);
+        				accessPermission.setCanPrintFaithful(pdf_metadata.accessPermission.canPrintHighQuality);
+        				accessPermission.setCanModify(pdf_metadata.accessPermission.canModify);
+        				accessPermission.setCanModifyAnnotations(pdf_metadata.accessPermission.canModifyAnnotationst);
+        				accessPermission.setCanExtractContent(pdf_metadata.accessPermission.canExtractContent);
+        				accessPermission.setCanExtractForAccessibility(pdf_metadata.accessPermission.canExtractForAccessibility);
+        				accessPermission.setCanFillInForm(pdf_metadata.accessPermission.canFillInForm);
+        				accessPermission.setCanAssembleDocument(pdf_metadata.accessPermission.canAssembleDocument);
+        				
+        				policy = new StandardProtectionPolicy(
+        		            new_owner_password != null ? new_owner_password : password, // Mot de passe propriétaire
+        		            new_user_password != null ? new_user_password : password,   // Mot de passe utilisateur
+        		            accessPermission
+        		        );
+        		        policy.setEncryptionKeyLength(128); // Longueur de clé de chiffrement
+        		        policy.setPreferAES(true); // Utilisation de l''AES
+        		        document.protect(policy);
+        			} else {
+        				log.warn("Can not change Access Permission because this is not the owner password for the protected PDF file.");
+        			}
+        		}
+                
+                try {
+        			var outputFile = new File(get_full_path(output_filename));
+        	    	document.save(outputFile);
+        	    	// Log pour validation
+        	    	log.info("Metadata updated and saved to file : " + outputFile.getPath());
+        		} catch(e) {
+        			log.error("ERROR: Can not save protected PDF file because this is not the owner password.");
+        			_error = true;
+        			_error_code = "-5";
+        			_error_msg = "ERROR: An error occured saving file to ''" + outputFile + "''";
+        			_error_stack = "" + e;
+        		} finally {
+        			// Fermer le document
+        	    	document.close();
+        		}
+        	}
+        }'
+  ↓jElse [steps.ElseStep-1743083318621]: 
+    ↓get_pdf_metadata [steps.SimpleStep-1742578908834]: 
+      expression: |
+        'if(document != null){
+            // Création de l''objet littéral pour stocker les métadonnées
+            var pdf_metadata = {
+        		file_name: get_file_name(input_filename),
+        		protected: document.isEncrypted(),
+        		version: document.getVersion(),
+                nb_pages: document.getNumberOfPages(),
+                title: info.getTitle(),
+                author: info.getAuthor(),
+                creator: info.getCreator(),
+                producer: info.getProducer(),
+                subject: info.getSubject(),
+                keywords: info.getKeywords(),
+                trapped: info.getTrapped(),
+                creation_date: formatReadableDate(info.getCreationDate()),
+                modification_date: formatReadableDate(info.getModificationDate()),
+                accessPermission: {
+        			isOwner: ap_isOwner || false,
+        			canPrint: ap_canPrint || false,
+        			canPrintHighQuality: ap_canPrintFaithful || false,
+        			canModify: ap_canModify || false,
+        			canModifyAnnotationst: ap_canModifyAnnotations || false,
+        			canExtractContent: ap_canExtractContent || false,
+        			canExtractForAccessibility: ap_canExtractForAccessibility || false,
+        			canFillInForm: ap_canFillInForm || false,
+        			canAssembleDocument: ap_canAssembleDocument || false,
+        		}
+            };
+        
+            // Log des métadonnées pour validation
+            log.debug("PDF Metadata: " + JSON.stringify(pdf_metadata, null, 2));
+        		
+        	document.close();
+        }'
+↓jIf1 [steps.IfStep-1743173777145]: 
+  condition: _error == true
+  ↓Error_structure [steps.XMLErrorStep-1743173777148]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_code
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_stack
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_msg
+  ↓Return [steps.ReturnStep-1743173777151]: 
+↓object [steps.JsonToXmlStep-1742584044759]: 
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: pdf_metadata || {}
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: pdf_metadata
+↓input_filename [variables.RequestableVariable-1742584142827]: 
+  comment: |
+    'ODT input template file name to fill. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓password [variables.RequestableVariable-1742607527327]: 
+  comment: Password of the protected PDF file.
+↓mode [variables.RequestableVariable-1743083063011]: 
+  comment: Read or Write PDF metadata. To write to PDF file, use 'w' or 'write'. output_filename must not be left blank or empty.
+↓output_filename [variables.RequestableVariable-1743084666134]: 
+  comment: |
+    'ODT output file path. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+↓new_user_password [variables.RequestableVariable-1743161410038]: 
+  comment: User password of the protected PDF file.
+↓new_owner_password [variables.RequestableVariable-1743161700708]: 
+  comment: Owner password of the protected PDF file.
+↓new_title [variables.RequestableVariable-1743084666137]: 
+  comment: Set the TITLE metadata
+↓new_author [variables.RequestableVariable-1743084666140]: 
+  comment: Set the AUTHOR metadata
+↓new_subject [variables.RequestableVariable-1743084666143]: 
+  comment: Set the SUBJECT metadata
+↓new_keywords [variables.RequestableVariable-1743084666146]: 
+  comment: Set the KEYWORDS metadata
+↓new_creator [variables.RequestableVariable-1743084666149]: 
+  comment: Set the CREATOR metadata
+↓new_producer [variables.RequestableVariable-1743084666152]: 
+  comment: Set the PRODUCER metadata
+↓new_trapped [variables.RequestableVariable-1743156574910]: 
+  comment: Set the TRAPPED metadata
+↓new_creation_date [variables.RequestableVariable-1743084666155]: 
+  comment: Set the CREATION DATE metadata
+↓new_modification_date [variables.RequestableVariable-1743084666158]: 
+  comment: Set the MODIFICATION DATE metadata
+↓new_setProtection [variables.RequestableVariable-1743087631530]: 
+  comment: If "true", it will protect the PDF file with the given 'new_user_password' and 'new_owner_password', defaulting to 'password' variable if one is missing.
+↓new_ap_canPrint [variables.RequestableVariable-1743154383384]: 
+  comment: Permission to print the document
+  description: Permission to print
+↓new_ap_canPrintHighQuality [variables.RequestableVariable-1743154383387]: 
+  comment: Permission to print the document faithfully
+  description: Permission to print faithfully
+↓new_ap_canModify [variables.RequestableVariable-1743154383390]: 
+  comment: Permission to modify the document
+  description: Permission to modify
+↓new_ap_canModifyAnnotations [variables.RequestableVariable-1743154383393]: 
+  comment: Permission to modify annotations
+  description: Permission to modify annotations
+↓new_ap_canExtractContent [variables.RequestableVariable-1743154383396]: 
+  comment: Permission to extract content from the document
+  description: Permission to extract content
+↓new_ap_canExtractForAccessibility [variables.RequestableVariable-1743154383399]: 
+  comment: Permission to extract content for accessibility purposes
+  description: Permission to extract for accessibility
+↓new_ap_canFillInForm [variables.RequestableVariable-1743154383402]: 
+  comment: Permission to fill in forms in the document
+  description: Permission to fill in forms
+↓new_ap_canAssembleDocument [variables.RequestableVariable-1743154383405]: 
+  comment: Permission to assemble the document
+  description: Permission to assemble
+↓new_ap_ForcePolicy [variables.RequestableVariable-1743174662937]: 
+  comment: Force a new protection policy according to password, new_user_password and new_owner_password.
+  description: Permission to modify
+↓Test_Case_Read_Protected [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1743069440725]: 
+    required: true
+    value: .//templates/pdf/protected_pdf.pdf
+  ↓password [variables.TestCaseVariable-1743069575973]: 
+    value: C8o_pwd75!
+↓Test_Case_Read_Protected_user [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1743168488924]: 
+    required: true
+    value: .//templates/pdf/protected_owner_pdf.pdf
+  ↓password [variables.TestCaseVariable-1743168488927]: 
+    value: C8o_pwd75!
+↓Test_Case_Read_Unprotected [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1742584524302]: 
+    required: true
+    value: .//templates/pdf/template_metadata.pdf
+  ↓password [variables.TestCaseVariable-1743069572809]: 
+↓Test_Case_Write_Protected [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1743086090369]: 
+    required: true
+    value: .//templates/pdf/protected_pdf.pdf
+  ↓password [variables.TestCaseVariable-1743086090372]: 
+    value: C8o_pwd75!
+  ↓output_filename [variables.TestCaseVariable-1743086123679]: 
+    required: true
+    value: .//outputs/template_metadata_updated.pdf
+  ↓new_title [variables.TestCaseVariable-1743086123682]: 
+    value: 
+  ↓new_author [variables.TestCaseVariable-1743086123685]: 
+    value: Convertigo Studio
+  ↓new_subject [variables.TestCaseVariable-1743086123688]: 
+  ↓new_keywords [variables.TestCaseVariable-1743086123691]: 
+  ↓new_creator [variables.TestCaseVariable-1743086123694]: 
+  ↓new_producer [variables.TestCaseVariable-1743086123697]: 
+  ↓new_creation_date [variables.TestCaseVariable-1743086123700]: 
+    value: 1975-04-04T09:01:00
+  ↓new_modification_date [variables.TestCaseVariable-1743086123703]: 
+    value: now
+  ↓mode [variables.TestCaseVariable-1743086123709]: 
+    value: w
+↓Test_Case_Write_Protected1 [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1743169410149]: 
+    required: true
+    value: .//templates/pdf/template_metadata.pdf
+  ↓password [variables.TestCaseVariable-1743169410152]: 
+    value: C8o_pwd95!
+  ↓output_filename [variables.TestCaseVariable-1743169410155]: 
+    required: true
+    value: .//outputs/template_metadata_updated.pdf
+  ↓new_title [variables.TestCaseVariable-1743169410158]: 
+    value: 
+  ↓new_author [variables.TestCaseVariable-1743169410161]: 
+    value: Convertigo Studio
+  ↓new_subject [variables.TestCaseVariable-1743169410164]: 
+  ↓new_keywords [variables.TestCaseVariable-1743169410167]: 
+  ↓new_creator [variables.TestCaseVariable-1743169410170]: 
+  ↓new_producer [variables.TestCaseVariable-1743169410173]: 
+  ↓new_creation_date [variables.TestCaseVariable-1743169410176]: 
+    value: 1975-04-04T09:01:00
+  ↓new_modification_date [variables.TestCaseVariable-1743169410179]: 
+    value: now
+  ↓mode [variables.TestCaseVariable-1743169410182]: 
+    value: w
+  ↓new_user_password [variables.TestCaseVariable-1743169448242]: 
+    value: toto
+  ↓new_owner_password [variables.TestCaseVariable-1743169448244]: 
+    value: titi
+  ↓new_trapped [variables.TestCaseVariable-1743169448246]: 
+  ↓new_ap_canPrint [variables.TestCaseVariable-1743169448250]: 
+    description: Permission to print
+    value: false
+  ↓new_ap_canPrintHighQuality [variables.TestCaseVariable-1743174116558]: 
+    description: Permission to print faithfully
+    value: false
+  ↓new_ap_canModify [variables.TestCaseVariable-1743169448254]: 
+    description: Permission to modify
+  ↓new_ap_canModifyAnnotations [variables.TestCaseVariable-1743169448256]: 
+    description: Permission to modify annotations
+  ↓new_ap_canExtractContent [variables.TestCaseVariable-1743169448258]: 
+    description: Permission to extract content
+  ↓new_ap_canExtractForAccessibility [variables.TestCaseVariable-1743169448260]: 
+    description: Permission to extract for accessibility
+  ↓new_ap_canFillInForm [variables.TestCaseVariable-1743169448262]: 
+    description: Permission to fill in forms
+  ↓new_ap_canAssembleDocument [variables.TestCaseVariable-1743169448264]: 
+    description: Permission to assemble
+  ↓new_setProtection [variables.TestCaseVariable-1743174818704]: 
+    value: true
+  ↓new_ap_ForcePolicy [variables.TestCaseVariable-1743174818706]: 
+    description: Force new protection policy
+↓Test_Case_Write_Protected_Unprotect [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1743088320696]: 
+    required: true
+    value: .//templates/pdf/protected_pdf.pdf
+  ↓password [variables.TestCaseVariable-1743088320699]: 
+    value: C8o_pwd75!
+  ↓output_filename [variables.TestCaseVariable-1743088320702]: 
+    required: true
+    value: .//outputs/template_metadata_updated.pdf
+  ↓new_title [variables.TestCaseVariable-1743088320705]: 
+    value: 
+  ↓new_author [variables.TestCaseVariable-1743088320708]: 
+    value: Convertigo Studio
+  ↓new_subject [variables.TestCaseVariable-1743088320711]: 
+  ↓new_keywords [variables.TestCaseVariable-1743088320714]: 
+  ↓new_creator [variables.TestCaseVariable-1743088320717]: 
+  ↓new_producer [variables.TestCaseVariable-1743088320720]: 
+  ↓new_creation_date [variables.TestCaseVariable-1743088320723]: 
+    value: 1975-04-04T09:01:00
+  ↓new_modification_date [variables.TestCaseVariable-1743088320726]: 
+    value: now
+  ↓mode [variables.TestCaseVariable-1743088320729]: 
+    value: w
+  ↓new_setProtection [variables.TestCaseVariable-1743088371809]: 
+    value: false
+↓Test_Case_Write_Unprotected [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1743084898205]: 
+    required: true
+    value: .//templates/pdf/template_metadata.pdf
+  ↓output_filename [variables.TestCaseVariable-1743084898208]: 
+    required: true
+    value: .//outputs/template_metadata_updated.pdf
+  ↓new_title [variables.TestCaseVariable-1743084898211]: 
+    value: 
+  ↓new_author [variables.TestCaseVariable-1743084898214]: 
+    value: Convertigo Studio
+  ↓new_subject [variables.TestCaseVariable-1743084898217]: 
+  ↓new_keywords [variables.TestCaseVariable-1743084898220]: 
+  ↓new_creator [variables.TestCaseVariable-1743084898223]: 
+  ↓new_producer [variables.TestCaseVariable-1743084898226]: 
+  ↓new_creation_date [variables.TestCaseVariable-1743084898229]: 
+    value: 1975-04-04T09:01:00
+  ↓new_modification_date [variables.TestCaseVariable-1743084898232]: 
+    value: now
+  ↓password [variables.TestCaseVariable-1743085016715]: 
+  ↓mode [variables.TestCaseVariable-1743085016717]: 
+    value: w

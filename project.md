@@ -249,10 +249,10 @@ Get installed Fonts
 Auto start sequence to install some required fonts for Docker Linux Platform.
 </p></blockquote></details>
 
-<details><summary><b>metadata_read_pdf</b> : Get the metadata of the PDF file</summary><blockquote><p>
+<details><summary><b>metadata_pdf</b> : Get the metadata of the PDF file</summary><blockquote><p>
 
 
-## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") metadata_read_pdf
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") metadata_pdf
 
 Get the metadata of the PDF file.
 
@@ -280,43 +280,82 @@ Can be an absolute path or a relative Convertigo path:
 </tr>
 <tr>
 <td>
-<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;password
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;mode
 </td>
 <td>
-
+Read or Write PDF metadata. To write to PDF file, use 'w' or 'write'. output_filename must not be left blank or empty.
 </td>
-</tr>
-</table>
-
-</p></blockquote></details>
-
-<details><summary><b>metadata_write_pdf</b> : Set the metadata of the PDF file</summary><blockquote><p>
-
-
-## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") metadata_write_pdf
-
-Set the metadata of the PDF file.
-
-<span style="color:DarkGoldenRod">Variables</span>
-
-<table>
-<tr>
-<th>
-name
-</th>
-<th>
-comment
-</th>
 </tr>
 <tr>
 <td>
-<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_ap_canAssembleDocument
 </td>
 <td>
-ODT input template file name to fill. 
-Can be an absolute path or a relative Convertigo path: 
-".//" is relative to the project's path. 
-"./" is relative to the workspace path.
+Permission to assemble the document
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_ap_canExtractContent
+</td>
+<td>
+Permission to extract content from the document
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_ap_canExtractForAccessibility
+</td>
+<td>
+Permission to extract content for accessibility purposes
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_ap_canFillInForm
+</td>
+<td>
+Permission to fill in forms in the document
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_ap_canModify
+</td>
+<td>
+Permission to modify the document
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_ap_canModifyAnnotations
+</td>
+<td>
+Permission to modify annotations
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_ap_canPrint
+</td>
+<td>
+Permission to print the document
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_ap_canPrintHighQuality
+</td>
+<td>
+Permission to print the document faithfully
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_ap_ForcePolicy
+</td>
+<td>
+Force a new protection policy according to password, new_user_password and new_owner_password.
 </td>
 </tr>
 <tr>
@@ -361,10 +400,26 @@ Set the MODIFICATION DATE metadata
 </tr>
 <tr>
 <td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_owner_password
+</td>
+<td>
+Owner password of the protected PDF file.
+</td>
+</tr>
+<tr>
+<td>
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_producer
 </td>
 <td>
 Set the PRODUCER metadata
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_setProtection
+</td>
+<td>
+If "true", it will protect the PDF file with the given 'new_user_password' and 'new_owner_password', defaulting to 'password' variable if one is missing.
 </td>
 </tr>
 <tr>
@@ -385,6 +440,22 @@ Set the TITLE metadata
 </tr>
 <tr>
 <td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_trapped
+</td>
+<td>
+Set the TRAPPED metadata
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_user_password
+</td>
+<td>
+User password of the protected PDF file.
+</td>
+</tr>
+<tr>
+<td>
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
 </td>
 <td>
@@ -392,6 +463,14 @@ ODT output file path.
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 
 "./" is relative to the workspace path.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;password
+</td>
+<td>
+Password of the protected PDF file.
 </td>
 </tr>
 </table>

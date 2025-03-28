@@ -10,8 +10,7 @@
   ↓fill_pdf [sequences.GenericSequence]: 🗏 sequences/fill_pdf.yaml
   ↓getInstalledFonts [sequences.GenericSequence]: 🗏 sequences/getInstalledFonts.yaml
   ↓init_config [sequences.GenericSequence]: 🗏 sequences/init_config.yaml
-  ↓metadata_read_pdf [sequences.GenericSequence]: 🗏 sequences/metadata_read_pdf.yaml
-  ↓metadata_write_pdf [sequences.GenericSequence]: 🗏 sequences/metadata_write_pdf.yaml
+  ↓metadata_pdf [sequences.GenericSequence]: 🗏 sequences/metadata_pdf.yaml
   ↓u_create_odt [sequences.GenericSequence]: 🗏 sequences/u_create_odt.yaml
   ↓u_fill_odt [sequences.GenericSequence]: 🗏 sequences/u_fill_odt.yaml
   ↓u_fill_pdf [sequences.GenericSequence]: 🗏 sequences/u_fill_pdf.yaml
