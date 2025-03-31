@@ -1,11 +1,12 @@
 ↑convertigo: 8.0.0.m006
 ↓lib_fill_odt_pdf [core.Project]: 
   comment: ODFToolkit and PDF library
-  version: 1.9.7
+  version: 1.9.8
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓clean_outputs [sequences.GenericSequence]: 🗏 sequences/clean_outputs.yaml
   ↓demo_u_fill_odt [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_odt.yaml
   ↓demo_u_fill_pdf [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_pdf.yaml
+  ↓demo_u_fill_table_odt [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_table_odt.yaml
   ↓fill_odt [sequences.GenericSequence]: 🗏 sequences/fill_odt.yaml
   ↓fill_pdf [sequences.GenericSequence]: 🗏 sequences/fill_pdf.yaml
   ↓getInstalledFonts [sequences.GenericSequence]: 🗏 sequences/getInstalledFonts.yaml
