@@ -92,6 +92,14 @@ Demo sequence to fill an ODT template file.
 Demo sequence to fill an ODT template file.
 </p></blockquote></details>
 
+<details><summary><b>demo_u_fill_table_template_odt</b> : Demo sequence to fill an ODT template file</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") demo_u_fill_table_template_odt
+
+Demo sequence to fill an ODT template file.
+</p></blockquote></details>
+
 <details><summary><b>fill_odt</b> : Fills an ODT template file (Deprecated)</summary><blockquote><p>
 
 
@@ -589,6 +597,22 @@ ODT output file path.
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 
 "./" is relative to the workspace path.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;table_template_file
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;table_template_name
+</td>
+<td>
+
 </td>
 </tr>
 </table>

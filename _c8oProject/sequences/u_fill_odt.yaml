@@ -69,7 +69,8 @@ responseTimeout: 120
     	Packages.org.odftoolkit.simple.style.Font,
     	Packages.org.odftoolkit.simple.style.StyleTypeDefinitions,
     	Packages.org.odftoolkit.odfdom.type.Color,
-    	Packages.java.io.File
+    	Packages.java.io.File,
+    	Packages.java.io.FileInputStream
     );
     
     function get_file_name(file_path){
@@ -267,6 +268,32 @@ responseTimeout: 120
     							table1.remove();
     						}
     						break;
+    					case "tablet":
+    						var tt_name = ""+table_template_name;
+    						log.warn("TABLE TEMPLATE: " + get_full_path(table_template_file) + "//" + tt_name);
+    						table_template = fdoc.LoadTableTemplateFromForeignTable(new FileInputStream(get_full_path(table_template_file)), tt_name);
+    						var values = tags[i].value;
+    						var rows = values.length;
+    						var cols = values[0].length;
+    						log.warn("Rows: " + rows);
+    						log.warn("Cols: " + cols);
+    						if(rows>0 && cols>0){
+    							table1 = Table.newTable(fdoc, rows, cols);
+    							table1.setTableName("table1");
+    							for(var r=0; r<rows; r++){
+    								for(var c=0; c<cols; c++){
+    									var cell = table1.getCellByPosition(c, r);
+    									log.debug("row #"+r);
+    									log.debug("col #"+c);
+    									log.debug("val: "+values[r][c]);
+    									cell.setStringValue(values[r][c]);
+    								}
+    							}
+    							table1.applyStyle(table_template);
+    							item.replaceWith(fdoc.getTableByName("table1"));
+    							table1.remove();
+    						}
+    						break;
     					case "span":
     						var span = Span.newSpan(item);
     						var styleHandler = span.getStyleHandler();
@@ -333,6 +360,8 @@ responseTimeout: 120
     		"value": "&lt;replacement string or image absolute path&gt;"
     	}
     ]>'
+↓table_template_file [variables.RequestableVariable-1743417375236]: 
+↓table_template_name [variables.RequestableVariable-1743417393721]: 
 ↓Test_Case_marker_img [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1739973840643]: 
     required: true
