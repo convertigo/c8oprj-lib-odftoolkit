@@ -159,7 +159,7 @@ responseTimeout: 120
     	    log.debug("isHeader => " + isHeader);
     	
     	    // Si ''style'' est un objet, afficher ses propriétés
-    	    if (typeof style === "object" && style !== null) {
+    	    if (style != null && typeof style === "object") {
     	        log.debug("style (détails) => " + JSON.stringify(style));
     	    } else {
     	        log.warn("style n''est pas un objet ou est null.");
@@ -222,6 +222,37 @@ responseTimeout: 120
     		}
     	}
     	
+    	function getCellBorder(cell, borderType) {
+    		try {
+    			border = cell.getBorder(StyleTypeDefinitions.CellBordersType[borderType]);
+    			if (border != null && border.toString().trim() != "") {
+    	            return border;
+    	        }
+    		} catch (e) {
+    			log.error("Error occured getting cell border ''" + borderType + "'' because " + e);
+    		}
+    		return StyleTypeDefinitions.CellBordersType.NONE
+    	}
+    	
+    	function extractTableStyles(cell) {
+    	    var tb_styles = {
+    			cellBGColor: cell.getCellBackgroundColor(),
+    	        isTextWrapped: cell.isTextWrapped(),
+    	        horizontal: cell.getParagraphByIndex(0, false).getHorizontalAlignment(),
+    	        //vertical: cell.getVerticalAlignmentType(),
+    	        top: getCellBorder(cell, "TOP"),
+    	        bottom: getCellBorder(cell, "BOTTOM"),
+    	        left: getCellBorder(cell, "LEFT"),
+    	        right: getCellBorder(cell, "RIGHT"),
+    	        font: cell.getParagraphByIndex(0, false).getFont()
+    	    };
+    	
+    	    // Affiche les styles récupérés
+    	    log.warn("TABLE Styles: " + JSON.stringify(tb_styles, null, 2));
+    	    
+    	    return tb_styles;
+    	}
+    	
     	function replace_text(fdoc, tags){
     		for (var i=0; i<tags.length; i++){
     			log.debug("tag: " + tags[i].tag);
@@ -237,18 +268,35 @@ responseTimeout: 120
     					case "image":
     						item.replaceWith(new File(get_full_path(tags[i].value)).toURI());
     						break;
+    					case "tablet":
+    						var doc_table_template =  TextDocument.loadDocument(get_full_path(table_template_file));
+    						var table_template = doc_table_template.getTableByName(table_template_name);
+    						var tpl_rows = table_template.getRowCount();
+    						var tpl_cols = table_template.getColumnCount();
+    						var header_row_style = null;
+    						var even_row_style = null;
+    						var odd_row_style = null;
+    						if(tpl_rows == 3 && tpl_cols == 1){
+    							header_row_style = extractTableStyles(table_template.getCellByPosition(0, 0));
+    							even_row_style = extractTableStyles(table_template.getCellByPosition(0, 1));
+    							odd_row_style = extractTableStyles(table_template.getCellByPosition(0, 2));
+    						} else {
+    							log.error("Template table must be a 1*3 table");
+    						}
     					case "table":
     					case "tableh":
     						var values = tags[i].value;
     						var rows = values.length;
     						var cols = values[0].length;
     						var hasRowHeader = tags[i].type == "tableh";
+    						var hasTableTemplate = tags[i].type == "tablet";
     						var isHeader;
     						const validHAlign = [ "CENTER", "DEFAULT", "FILLED", "JUSTIFY", "LEFT", "RIGHT" ];
     						const validVAlign = [ "TOP", "BOTTOM", "MIDDLE", "DEFAULT" ];
     						log.debug("Rows: " + rows);
     						log.debug("Cols: " + cols);
     						log.debug("Has row header? " + hasRowHeader);
+    						log.debug("Has table template? " + hasTableTemplate);
     						if(rows>0 && cols>0){
     							table1 = Table.newTable(fdoc, rows, cols);
     							table1.setTableName("table1");
@@ -258,38 +306,25 @@ responseTimeout: 120
     									log.debug("row #"+r);
     									log.debug("col #"+c);
     									log.debug("val: "+values[r][c]);
-    									isHeader = r == 0 && hasRowHeader ? true : false;
-    									setCellAttributes(cell, r, c, isHeader, validHAlign, validVAlign, tags[i].style);
-    									cell.setFont(getCellFont(tags[i].style, r, c, isHeader));
+    									if(!hasTableTemplate){
+    										isHeader = r == 0 && hasRowHeader ? true : false;
+    										setCellAttributes(cell, r, c, isHeader, validHAlign, validVAlign, tags[i].style);
+    										cell.setFont(getCellFont(tags[i].style, r, c, isHeader));
+    									} else {
+    										if(r == 0){
+    											row_style = header_row_style;
+    										} else if(r % 2 === 0){
+    											row_style = even_row_style;
+    										} else {
+    											row_style = odd_row_style;
+    										}
+    										cell.setCellBackgroundColor(row_style.cellBGColor);
+    										cell.setFont(row_style.font);
+    										cell.setHorizontalAlignment(row_style.horizontal);
+    									}
     									cell.setStringValue(values[r][c]);
     								}
     							}
-    							item.replaceWith(fdoc.getTableByName("table1"));
-    							table1.remove();
-    						}
-    						break;
-    					case "tablet":
-    						var tt_name = ""+table_template_name;
-    						log.warn("TABLE TEMPLATE: " + get_full_path(table_template_file) + "//" + tt_name);
-    						table_template = fdoc.LoadTableTemplateFromForeignTable(new FileInputStream(get_full_path(table_template_file)), tt_name);
-    						var values = tags[i].value;
-    						var rows = values.length;
-    						var cols = values[0].length;
-    						log.warn("Rows: " + rows);
-    						log.warn("Cols: " + cols);
-    						if(rows>0 && cols>0){
-    							table1 = Table.newTable(fdoc, rows, cols);
-    							table1.setTableName("table1");
-    							for(var r=0; r<rows; r++){
-    								for(var c=0; c<cols; c++){
-    									var cell = table1.getCellByPosition(c, r);
-    									log.debug("row #"+r);
-    									log.debug("col #"+c);
-    									log.debug("val: "+values[r][c]);
-    									cell.setStringValue(values[r][c]);
-    								}
-    							}
-    							table1.applyStyle(table_template);
     							item.replaceWith(fdoc.getTableByName("table1"));
     							table1.remove();
     						}

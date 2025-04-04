@@ -272,7 +272,9 @@ comment: Get the metadata of the PDF file.
         			_error_stack = "" + e;
         		} finally {
         			// Fermer le document
-        	    	document.close();
+        			if(document != null){
+        	    		document.close();
+            		}
         		}
         	}
         }'
