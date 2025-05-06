@@ -2,7 +2,8 @@ comment: 'Clean the generated files from the ''outputs'' or ''read'' directories
 ↓init [steps.SimpleStep-1671528840321]: 
   expression: |
     'now = (new Date()).getTime();
-    folder = target == ''fill'' ? ''outputs'' : ''read'';'
+    folder = target == ''fill'' ? ''outputs'' : ''read'';
+    folder = (output_folder_path && output_folder_path.length > 0) ? output_folder_path : folder;'
 ↓List_directory [steps.ListDirStep-1671528590874]: 
   sourceDirectory: '".//" + folder'
 ↓Iterator [steps.IteratorStep-1671528710771]: 
@@ -45,6 +46,8 @@ comment: 'Clean the generated files from the ''outputs'' or ''read'' directories
   value: false
 ↓target [variables.RequestableVariable-1740155136088]: 
   value: fill
+↓output_folder_path [variables.RequestableVariable-1746438871708]: 
+  comment: '(Optionnal) Specify the path of the output folder that needs to be cleaned. This path override the ''target'' variable. Warning : ''.//'' will be append to this path.'
 ↓Test_Case [core.TestCase]: 
   ↓max_time [variables.TestCaseVariable-1671529491892]: 
     value: 86400000
