@@ -14,10 +14,13 @@ For more technical informations : [documentation](./project.md)
     - [demo_u_fill_odt](#demo_u_fill_odt)
     - [demo_u_fill_pdf](#demo_u_fill_pdf)
     - [demo_u_fill_table_odt](#demo_u_fill_table_odt)
+    - [demo_u_fill_table_template_odt](#demo_u_fill_table_template_odt)
     - [fill_odt](#fill_odt)
     - [fill_pdf](#fill_pdf)
     - [getInstalledFonts](#getinstalledfonts)
     - [init_config](#init_config)
+    - [metadata_pdf](#metadata_pdf)
+    - [odt2pdf](#odt2pdf)
     - [u_create_odt](#u_create_odt)
     - [u_fill_odt](#u_fill_odt)
     - [u_fill_pdf](#u_fill_pdf)
@@ -34,13 +37,13 @@ For more technical informations : [documentation](./project.md)
      <tr><td>To contribute</td><td>
 
      ```
-     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit.git:branch=1.9.6_full_styles
+     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit.git:branch=master
      ```
      </td></tr>
      <tr><td>To simply use</td><td>
 
      ```
-     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit/archive/1.9.6_full_styles.zip
+     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit/archive/master.zip
      ```
      </td></tr>
     </table>
@@ -51,7 +54,7 @@ For more technical informations : [documentation](./project.md)
 
 ### clean_outputs
 
-Clean the generated files from the 'outputs' or 'read' directories. Can be used in a Convertigo scheduled job to automate the process. Variables : 'max_time' => delete only files older than x ms. 'all' => Delete all files in folder even in a max_time is defined. 'target' => if value is 'fill' searches for files in 'outputs' folder else in 'read' folder.
+Clean the generated files. Can be used in a Convertigo scheduled job to automate the process. Variables : 'max_time' => delete only files older than x ms. 'all' => Delete all files in folder even in a max_time is defined. 'target' => Folder path containing the files to delete. Can use "./",  ".//" or absolute path syntax.
 
 **variables**
 
@@ -79,6 +82,10 @@ Demo sequence to fill an ODT template file.
 Demo sequence to fill an ODT template file.
 
 ### demo_u_fill_table_odt
+
+Demo sequence to fill an ODT template file.
+
+### demo_u_fill_table_template_odt
 
 Demo sequence to fill an ODT template file.
 
@@ -159,6 +166,126 @@ Get installed Fonts
 
 Auto start sequence to install some required fonts for Docker Linux Platform.
 
+### metadata_pdf
+
+Get the metadata of the PDF file.
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>input_filename</td><td>ODT input template file name to fill. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>mode</td><td>Read or Write PDF metadata. To write to PDF file, use 'w' or 'write'. output_filename must not be left blank or empty.</td>
+</tr>
+<tr>
+<td>new_ap_canAssembleDocument</td><td>Permission to assemble the document</td>
+</tr>
+<tr>
+<td>new_ap_canExtractContent</td><td>Permission to extract content from the document</td>
+</tr>
+<tr>
+<td>new_ap_canExtractForAccessibility</td><td>Permission to extract content for accessibility purposes</td>
+</tr>
+<tr>
+<td>new_ap_canFillInForm</td><td>Permission to fill in forms in the document</td>
+</tr>
+<tr>
+<td>new_ap_canModify</td><td>Permission to modify the document</td>
+</tr>
+<tr>
+<td>new_ap_canModifyAnnotations</td><td>Permission to modify annotations</td>
+</tr>
+<tr>
+<td>new_ap_canPrint</td><td>Permission to print the document</td>
+</tr>
+<tr>
+<td>new_ap_canPrintHighQuality</td><td>Permission to print the document faithfully</td>
+</tr>
+<tr>
+<td>new_ap_ForcePolicy</td><td>Force a new protection policy according to password, new_user_password and new_owner_password.</td>
+</tr>
+<tr>
+<td>new_author</td><td>Set the AUTHOR metadata</td>
+</tr>
+<tr>
+<td>new_creation_date</td><td>Set the CREATION DATE metadata</td>
+</tr>
+<tr>
+<td>new_creator</td><td>Set the CREATOR metadata</td>
+</tr>
+<tr>
+<td>new_keywords</td><td>Set the KEYWORDS metadata</td>
+</tr>
+<tr>
+<td>new_modification_date</td><td>Set the MODIFICATION DATE metadata</td>
+</tr>
+<tr>
+<td>new_owner_password</td><td>Owner password of the protected PDF file.</td>
+</tr>
+<tr>
+<td>new_producer</td><td>Set the PRODUCER metadata</td>
+</tr>
+<tr>
+<td>new_setProtection</td><td>If "true", it will protect the PDF file with the given 'new_user_password' and 'new_owner_password', defaulting to 'password' variable if one is missing.</td>
+</tr>
+<tr>
+<td>new_subject</td><td>Set the SUBJECT metadata</td>
+</tr>
+<tr>
+<td>new_title</td><td>Set the TITLE metadata</td>
+</tr>
+<tr>
+<td>new_trapped</td><td>Set the TRAPPED metadata</td>
+</tr>
+<tr>
+<td>new_user_password</td><td>User password of the protected PDF file.</td>
+</tr>
+<tr>
+<td>new_version</td><td>Set the VERSION metadata</td>
+</tr>
+<tr>
+<td>output_filename</td><td>ODT output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>password</td><td>Password of the protected PDF file.</td>
+</tr>
+</table>
+
+### odt2pdf
+
+Convert an ODT file to a PDF file
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>input_filename</td><td>ODT input file name to convert. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>output_filename</td><td>PDF output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+</table>
+
 ### u_create_odt
 
 Create a new Text document with a table.
@@ -221,6 +348,12 @@ Can be an absolute path or a relative Convertigo path:
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 
 "./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>table_template_file</td><td>Path of the ODT file containing a table to use as a template.</td>
+</tr>
+<tr>
+<td>table_template_name</td><td>Name of the template table.</td>
 </tr>
 </table>
 

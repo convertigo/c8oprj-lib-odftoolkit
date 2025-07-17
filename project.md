@@ -22,12 +22,12 @@ does nothing
 <details><summary><span style="color:DarkGoldenRod"><i>Sequences</i></span></summary><blockquote><p>
 
 
-<details><summary><b>clean_outputs</b> : Clean the generated files from the 'outputs' or 'read' directories</summary><blockquote><p>
+<details><summary><b>clean_outputs</b> : Clean the generated files</summary><blockquote><p>
 
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") clean_outputs
 
-Clean the generated files from the 'outputs' or 'read' directories. Can be used in a Convertigo scheduled job to automate the process. Variables : 'max_time' => delete only files older than x ms. 'all' => Delete all files in folder even in a max_time is defined. 'target' => if value is 'fill' searches for files in 'outputs' folder else in 'read' folder.
+Clean the generated files. Can be used in a Convertigo scheduled job to automate the process. Variables : 'max_time' => delete only files older than x ms. 'all' => Delete all files in folder even in a max_time is defined. 'target' => Folder path containing the files to delete. Can use "./",  ".//" or absolute path syntax.
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -88,6 +88,14 @@ Demo sequence to fill an ODT template file.
 
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") demo_u_fill_table_odt
+
+Demo sequence to fill an ODT template file.
+</p></blockquote></details>
+
+<details><summary><b>demo_u_fill_table_template_odt</b> : Demo sequence to fill an ODT template file</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") demo_u_fill_table_template_odt
 
 Demo sequence to fill an ODT template file.
 </p></blockquote></details>
@@ -464,6 +472,14 @@ User password of the protected PDF file.
 </tr>
 <tr>
 <td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;new_version
+</td>
+<td>
+Set the VERSION metadata
+</td>
+</tr>
+<tr>
+<td>
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
 </td>
 <td>
@@ -479,6 +495,50 @@ Can be an absolute path or a relative Convertigo path:
 </td>
 <td>
 Password of the protected PDF file.
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
+<details><summary><b>odt2pdf</b> : Convert an ODT file to a PDF file</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") odt2pdf
+
+Convert an ODT file to a PDF file
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;input_filename
+</td>
+<td>
+ODT input file name to convert. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
+</td>
+<td>
+PDF output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.
 </td>
 </tr>
 </table>
@@ -589,6 +649,22 @@ ODT output file path.
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 
 "./" is relative to the workspace path.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;table_template_file
+</td>
+<td>
+Path of the ODT file containing a table to use as a template.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;table_template_name
+</td>
+<td>
+Name of the template table.
 </td>
 </tr>
 </table>

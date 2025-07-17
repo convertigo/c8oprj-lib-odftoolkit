@@ -1,0 +1,118 @@
+comment: Convert an ODT file to a PDF file
+↓export [steps.SimpleStep-1743693982367]: 
+  expression: |
+    'var odf_api = JavaImporter(
+    	Packages.org.odftoolkit.odfdom.converter.pdf.PdfConverter,
+    	Packages.org.odftoolkit.odfdom.converter.pdf.PdfOptions,
+    	Packages.org.odftoolkit.odfdom.doc.OdfTextDocument,
+    	Packages.java.io.File,
+    	Packages.java.io.FileOutputStream
+    );
+    
+    var _error = false;
+    var _error_code = "-1";
+    var _error_msg = "";
+    var _error_stack = "";
+    
+    function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(3);;
+    		}
+    	}
+    	return file_path;
+    }
+    
+    var input_path = get_full_path(input_filename);
+    var output_path = get_full_path(output_filename);
+    var file_name = get_file_name(output_filename);
+    
+    with(odf_api){
+    	try {
+    		// Charger le fichier .odt
+    		var odt = OdfTextDocument.loadDocument(input_path);
+    		
+    		// Options pour la conversion PDF
+    		var options = PdfOptions.create();
+    		var output = new FileOutputStream(new File(output_path));
+    		
+    		// Convertir en PDF
+    		PdfConverter.getInstance().convert(odt, output, options);
+    		output.close();
+    		odt.close();
+    		log.debug("Conversion terminée !");
+    	} catch (e) {
+    		log.error("Erreur lors de la conversion : " + e);
+    		_error = true;
+    		_error_code = "-1";
+    		_error_msg = "ERROR: converting file ''" + input_path + "''";
+    		_error_stack = "" + e;
+    	}	
+    }'
+↓jIf [steps.IfStep-1743757560930]: 
+  condition: _error == true
+  ↓Error_structure [steps.XMLErrorStep-1743757560933]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_code
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_stack
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_msg
+  ↓Return [steps.ReturnStep-1743757560936]: 
+↓Element [steps.XMLElementStep-1743757603703]: 
+  nodeName: attachment
+  ↓jAttribute [steps.AttributeStep-1743757603706]: 
+    expression: '"attachment"'
+    nodeName: type
+  ↓jAttribute1 [steps.AttributeStep-1743757603709]: 
+    expression: file_name
+    nodeName: name
+  ↓jAttribute11 [steps.AttributeStep-1743757603712]: 
+    expression: output_path
+    nodeName: local-url
+  ↓jAttribute2 [steps.AttributeStep-1743757603715]: 
+    expression: '"application/octet-stream"'
+    nodeName: content-type
+↓input_filename [variables.RequestableVariable-1743695655398]: 
+  comment: |
+    'ODT input file name to convert. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓output_filename [variables.RequestableVariable-1743695661334]: 
+  comment: |
+    'PDF output file path. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓Test_Case [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1743695670342]: 
+    required: true
+    value: .//outputs/test_ens.odt
+  ↓output_filename [variables.TestCaseVariable-1743695670344]: 
+    required: true
+    value: .//outputs/export_odt.pdf
