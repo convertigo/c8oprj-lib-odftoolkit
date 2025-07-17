@@ -22,12 +22,12 @@ does nothing
 <details><summary><span style="color:DarkGoldenRod"><i>Sequences</i></span></summary><blockquote><p>
 
 
-<details><summary><b>clean_outputs</b> : Clean the generated files from the 'outputs' or 'read' directories</summary><blockquote><p>
+<details><summary><b>clean_outputs</b> : Clean the generated files</summary><blockquote><p>
 
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") clean_outputs
 
-Clean the generated files from the 'outputs' or 'read' directories. Can be used in a Convertigo scheduled job to automate the process. Variables : 'max_time' => delete only files older than x ms. 'all' => Delete all files in folder even in a max_time is defined. 'target' => if value is 'fill' searches for files in 'outputs' folder else in 'read' folder.
+Clean the generated files. Can be used in a Convertigo scheduled job to automate the process. Variables : 'max_time' => delete only files older than x ms. 'all' => Delete all files in folder even in a max_time is defined. 'target' => Folder path containing the files to delete. Can use "./",  ".//" or absolute path syntax.
 
 <span style="color:DarkGoldenRod">Variables</span>
 
