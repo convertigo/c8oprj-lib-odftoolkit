@@ -192,7 +192,7 @@ comment: Get the metadata of the PDF file.
         	    var pdf_metadata = {
         			file_name: get_file_name(input_filename),
         			protected: document.isEncrypted(),
-        			version: document.getVersion(),
+        			version: processMetadata(new_version*1, document.getVersion()),
         	        nb_pages: document.getNumberOfPages(),
         	        title: processMetadata(new_title, info.getTitle()),
         	        author: processMetadata(new_author, info.getAuthor()),
@@ -225,6 +225,7 @@ comment: Get the metadata of the PDF file.
         	    info.setProducer(pdf_metadata.producer);
         	    info.setCreationDate(processMetadata(processDate(new_creation_date), info.getCreationDate()));
         	    info.setModificationDate(processMetadata(processDate(new_modification_date), info.getModificationDate()));
+        	    document.setVersion(pdf_metadata.version);
         	    
         	    // Appliquer les modifications aux métadonnées
         	    document.setDocumentInformation(info);
@@ -383,6 +384,8 @@ comment: Get the metadata of the PDF file.
   comment: Set the CREATOR metadata
 ↓new_producer [variables.RequestableVariable-1743084666152]: 
   comment: Set the PRODUCER metadata
+↓new_version [variables.RequestableVariable-1745257376558]: 
+  comment: Set the VERSION metadata
 ↓new_trapped [variables.RequestableVariable-1743156574910]: 
   comment: Set the TRAPPED metadata
 ↓new_creation_date [variables.RequestableVariable-1743084666155]: 
