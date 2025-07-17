@@ -125,7 +125,7 @@ responseTimeout: 120
     	function setTextFont(style){
     		try {
     			style = objectify(style);
-    			return new Font(style.fontName, StyleTypeDefinitions.FontStyle[style.fontStyle], style.fontSize, getColor(style.fontColor));
+    			return new Font(style && style.fontName ? style.fontName : "Arial", style && style.fontStyle ? StyleTypeDefinitions.FontStyle[style.fontStyle] : StyleTypeDefinitions.FontStyle.REGULAR, style && style.fontSize ? style.fontSize : 10, style && style.fontColor ? getColor(style.fontColor) : Color.BLACK);
     		} catch(e){
     			log.warn("Setting Default Font values because: " + e);
     			return new Font("Arial", StyleTypeDefinitions.FontStyle.REGULAR, 10, Color.BLACK);
@@ -135,7 +135,7 @@ responseTimeout: 120
     	function getCellFont(style, row, column, isHeader) {
     		style = objectify(style);
     	    if (isHeader) {
-    			var title = style && style.header ? style.header : {fontName: "Arial", fontStyle: "BOLD", fontSize: 10, fontColor: "BLACK"};
+    			var title = {fontName: style && style.header && style.header.fontName ? style.header.fontName : "Arial", fontStyle: style && style.header && style.header.fontStyle ? style.header.fontStyle : "BOLD", fontSize: style && style.header && style.header.fontSize ? style.header.fontSize : 10, fontColor: style && style.header && style.header.fontColor ? style.header.fontColor : "BLACK"};
     	        return setTextFont(title);
     	    }
     	    const key = row + "-" + column;
@@ -396,7 +396,9 @@ responseTimeout: 120
     	}
     ]>'
 ↓table_template_file [variables.RequestableVariable-1743417375236]: 
+  comment: Path of the ODT file containing a table to use as a template.
 ↓table_template_name [variables.RequestableVariable-1743417393721]: 
+  comment: Name of the template table.
 ↓Test_Case_marker_img [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1739973840643]: 
     required: true

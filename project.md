@@ -656,7 +656,7 @@ Can be an absolute path or a relative Convertigo path:
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;table_template_file
 </td>
 <td>
-
+Path of the ODT file containing a table to use as a template.
 </td>
 </tr>
 <tr>
@@ -664,7 +664,7 @@ Can be an absolute path or a relative Convertigo path:
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;table_template_name
 </td>
 <td>
-
+Name of the template table.
 </td>
 </tr>
 </table>
