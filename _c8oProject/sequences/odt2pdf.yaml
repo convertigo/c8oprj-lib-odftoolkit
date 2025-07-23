@@ -2,11 +2,17 @@ comment: Convert an ODT file to a PDF file
 ↓export [steps.SimpleStep-1743693982367]: 
   expression: |
     'var odf_api = JavaImporter(
-    	Packages.org.odftoolkit.odfdom.converter.pdf.PdfConverter,
-    	Packages.org.odftoolkit.odfdom.converter.pdf.PdfOptions,
-    	Packages.org.odftoolkit.odfdom.doc.OdfTextDocument,
-    	Packages.java.io.File,
-    	Packages.java.io.FileOutputStream
+    	org.odftoolkit.odfdom.converter.pdf.PdfConverter,
+    	org.odftoolkit.odfdom.converter.pdf.PdfOptions,
+    	com.lowagie.text.FontFactory,
+    	org.odftoolkit.odfdom.doc.OdfTextDocument,
+    	java.io.File,
+    	java.io.FileOutputStream/*,
+    	org.apache.fontbox.ttf.TTFParser,
+    	org.apache.pdfbox.io.RandomAccessReadBuffer,
+    	java.nio.file.Paths,
+    	java.nio.file.Files,
+    	java.util.Arrays*/
     );
     
     var _error = false;
@@ -27,7 +33,7 @@ comment: Convert an ODT file to a PDF file
       			file_path = project_directory_path + file_path.substring(3);
     		}
      		else if(file_path.indexOf("./") != -1){
-      			file_path = project_directory_path + "../" + file_path.substring(3);;
+      			file_path = project_directory_path + "../" + file_path.substring(2);
     		}
     	}
     	return file_path;
@@ -38,18 +44,93 @@ comment: Convert an ODT file to a PDF file
     var file_name = get_file_name(output_filename);
     
     with(odf_api){
+    	var output = null;
+    	var odt = null;
+    	
+    	function registerAllFontsInFolder(folderPath){
+    	    var fontDir = new File(get_full_path(folderPath));
+    	    if (!fontDir.exists() || !fontDir.isDirectory()) {
+    	        log.warn("⚠️ Folder does not exist or is invalid: " + get_full_path(folderPath));
+    	        return;
+    	    }
+    	
+    	    var files = fontDir.listFiles();
+    	    for (var i = 0; i < files.length; i++) {
+    	        var f = files[i];
+    	        if (f.isFile()) {
+    	            var name = f.getName().toLowerCase();
+    	            if (name.endsWith(".ttf") || name.endsWith(".otf")) {
+    					// Aliases based on TTFParser:
+                		/*var ttf = null;
+                		try {
+    		                var path = Paths.get(f.getAbsolutePath());
+    		                var bytes = Files.readAllBytes(path);
+    		                var buffer = new RandomAccessReadBuffer(bytes);
+    		                var parser = new TTFParser();
+    		                var ttf = parser.parse(buffer);
+    		                var nameTable = ttf.getNameTable();
+    		                var records = nameTable.getNameRecords();
+    		                var alias = null;
+    		
+    		                // Parcours des enregistrements pour trouver "Full font name" (Name ID = 4)
+    		                for (var j = 0; j < records.length; j++) {
+    		                    var rec = records[j];
+    		                    if (rec.getNameId() == 4) {
+    		                        alias = rec.getString();
+    		                        break;
+    		                    }
+    		                }
+    		
+    		                // Fallback si non trouvé
+    		                if (!alias) alias = ttf.getName();
+    		
+    		                FontFactory.register(f.getAbsolutePath(), alias);
+    		                log.debug("✅ Registered Font: ''" + alias + "'' from: " + f.getName());
+    		            } catch (e) {
+    		                log.warn("⚠️ Erreur lors de l’analyse de ''" + f.getName() + "'' → " + e);
+    		            } finally {
+    		                if (ttf) ttf.close();
+    		            }*/
+    		            //aliases based on file name:
+    		            var fontAlias = (""+f.getName()).replace(".ttf", "").replace(/[_\-]/g, " ");
+                		FontFactory.register(f.getAbsolutePath(), fontAlias);
+                		log.debug("✅ Registered Font: ''" + fontAlias + "'' from: " + f.getAbsolutePath());
+    	            }
+    	        }
+    	    }
+    	    /*var allFonts = FontFactory.getRegisteredFonts().toArray();
+    		Arrays.sort(allFonts);
+    		for (var i = 0; i < allFonts.length; i++) {
+    		    log.warn("📚 Registered Font : " + allFonts[i]);
+    		}*/
+    	}
+    	
     	try {
     		// Charger le fichier .odt
-    		var odt = OdfTextDocument.loadDocument(input_path);
+    		odt = OdfTextDocument.loadDocument(input_path);
     		
     		// Options pour la conversion PDF
     		var options = PdfOptions.create();
-    		var output = new FileOutputStream(new File(output_path));
+    
+    		// Enregistre la font depuis son fichier .ttf
+    		if(fonts_folder != null && fonts_folder != ""){
+    			registerAllFontsInFolder(fonts_folder);
+    		} else if(font_paths != null && font_paths != "" && font_aliases != null && font_aliases != ""){
+    			if (font_paths.length !== font_aliases.length) {
+    		        log.warn("⚠️ Font arrays length mismatch!");
+    		    } else {
+    			    for (var i = 0; i < font_paths.length; i++) {
+    			        FontFactory.register(get_full_path(font_paths[i]), font_aliases[i]);
+    			        log.debug("✅ Registered Font: ''" + font_aliases[i] + "'' from: " + font_paths[i]);
+    			    }
+    		    }
+    		}
+    		
+    		
+    		output = new FileOutputStream(new File(output_path));
     		
     		// Convertir en PDF
     		PdfConverter.getInstance().convert(odt, output, options);
-    		output.close();
-    		odt.close();
     		log.debug("Conversion terminée !");
     	} catch (e) {
     		log.error("Erreur lors de la conversion : " + e);
@@ -57,7 +138,10 @@ comment: Convert an ODT file to a PDF file
     		_error_code = "-1";
     		_error_msg = "ERROR: converting file ''" + input_path + "''";
     		_error_stack = "" + e;
-    	}	
+    	} finally {
+    		if(output) output.close();
+    		if(odt) odt.close();
+    	}
     }'
 ↓jIf [steps.IfStep-1743757560930]: 
   condition: _error == true
@@ -109,10 +193,39 @@ comment: Convert an ODT file to a PDF file
     ".//" is relative to the project''s path. 
     "./" is relative to the workspace path.'
   required: true
+↓fonts_folder [variables.RequestableVariable-1753172873995]: 
+  comment: Folder absolute path containing the Fonts to register. Font name alias computed from file name. Use font_paths and font_aliases to manually declare fonts instead.
+↓font_paths [variables.RequestableMultiValuedVariable-1753194607177]: 
+  comment: Font absolute paths to register.
+↓font_aliases [variables.RequestableMultiValuedVariable-1753194616403]: 
+  comment: Font aliases according to font_paths values.
 ↓Test_Case [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1743695670342]: 
     required: true
-    value: .//outputs/test_ens.odt
+    value: .//templates/odf/test_pdf_convert.odt
   ↓output_filename [variables.TestCaseVariable-1743695670344]: 
     required: true
     value: .//outputs/export_odt.pdf
+  ↓fonts_folder [variables.TestCaseVariable-1753197453794]: 
+  ↓font_paths [variables.TestCaseMultiValuedVariable-1753197453796]: 
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: .//fonts/magneto.ttf
+          - java.lang.String: 
+            - ↑value: .//fonts/Jokerman.otf
+          - java.lang.String: 
+            - ↑value: .//fonts/edwardian_script_itc.ttf
+  ↓font_aliases [variables.TestCaseMultiValuedVariable-1753197453798]: 
+    value: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: Magneto
+          - java.lang.String: 
+            - ↑value: Jokerman
+          - java.lang.String: 
+            - ↑value: Edwardian Script ITC

@@ -273,6 +273,15 @@ Convert an ODT file to a PDF file
 <th>name</th><th>comment</th>
 </tr>
 <tr>
+<td>font_aliases</td><td>Font aliases according to font_paths values.</td>
+</tr>
+<tr>
+<td>font_paths</td><td>Font absolute paths to register.</td>
+</tr>
+<tr>
+<td>fonts_folder</td><td>Folder absolute path containing the Fonts to register. Font name alias computed from file name. Use font_paths and font_aliases to manually declare fonts instead.</td>
+</tr>
+<tr>
 <td>input_filename</td><td>ODT input file name to convert. 
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 
