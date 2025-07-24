@@ -9,5 +9,75 @@ responseTimeout: 600
   ↓Process_execute2 [steps.ProcessExecStep-1742393702073]: 
     commandLine: '["sudo", "apt-get", "install", "-y", "fontconfig"]'
     output: true
+  ↓exit_status1 [steps.XMLConcatStep-1753353250028]: 
+    nodeName: exit_status
+    separator: 
+    sourcesDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+            - com.twinsoft.convertigo.beans.common.XMLVector: 
+              - java.lang.String: 
+                - ↑value: process_exec_1
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+                - com.twinsoft.convertigo.beans.common.XMLVector: 
+                  - java.lang.String: 
+                    - ↑value: 1742392486006
+                  - java.lang.String: 
+                    - ↑value: ./exit/text()
+              - java.lang.String: 
+                - ↑value: ''
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+            - com.twinsoft.convertigo.beans.common.XMLVector: 
+              - java.lang.String: 
+                - ↑value: process_exec_2
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+                - com.twinsoft.convertigo.beans.common.XMLVector: 
+                  - java.lang.String: 
+                    - ↑value: 1742393702073
+                  - java.lang.String: 
+                    - ↑value: ./exit/text()
+              - java.lang.String: 
+                - ↑value: ''
+  ↓exit_status [steps.SimpleSourceStep-1753353364378]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1753353250028
+          - java.lang.String: 
+            - ↑value: ./text()
+    variableName: js_exit_status
 ↓config_done [steps.SimpleStep-1742483611366]: 
-  expression: context.server.set("init_config", "done");
+  expression: |
+    '// Enregistre la variable dans le serveur
+    context.server.set("init_config", "done");
+    
+    // Vérifie que js_exit_status existe avant de tester sa valeur
+    var exitStatusOk = true; // valeur par défaut : on considère que tout va bien
+    var isSuccess = true;
+    if (typeof js_exit_status != "undefined") {
+        exitStatusOk = js_exit_status == "00";
+    }
+    
+    // Vérifie que l''enregistrement s''est bien effectué
+    var InitOk = context.server.get("init_config") == "done";
+    
+    // Log final combiné
+    if (InitOk && exitStatusOk) {
+        log.warn("✅ Correct exit status and init properly set in Server.");
+    } else {
+    	isSuccess = false;
+        if (!InitOk) log.warn("❌ ''init_config'' key not set in Server.");
+        if (typeof js_exit_status != "undefined" && !exitStatusOk) {
+            log.warn("❌ Invalid exit status: " + js_exit_status);
+        }
+    }
+    
+    context.addTextNodeUnderRoot("init_success", isSuccess);'
