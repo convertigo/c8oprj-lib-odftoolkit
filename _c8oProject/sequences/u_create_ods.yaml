@@ -1,0 +1,259 @@
+comment: Create a new Calc document fr om a structured JSON.
+↓inputVars [steps.InputVariablesStep-1754002069249]: 
+↓IfExistThenElse [steps.IfExistThenElseStep-1754002069252]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1754002069249
+        - java.lang.String: 
+          - ↑value: ./rows/array
+  ↓jThen [steps.ThenStep-1754002069255]: 
+    ↓markers [steps.JsonSourceStep-1754002069258]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1754002069249
+            - java.lang.String: 
+              - ↑value: ./rows/array
+      variableName: o_rows
+  ↓jElse [steps.ElseStep-1754002069261]: 
+    ↓markers [steps.JsonSourceStep-1754002069264]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1754002069249
+            - java.lang.String: 
+              - ↑value: ./rows/text()
+      variableName: o_rows
+↓create_ods [steps.SimpleStep-1753977875060]: 
+  expression: |
+    'var odf_api = JavaImporter(
+    	org.odftoolkit.simple.SpreadsheetDocument,
+    	Packages.org.odftoolkit.simple.style.Font,
+    	Packages.org.odftoolkit.simple.style.StyleTypeDefinitions,
+    	Packages.org.odftoolkit.odfdom.type.Color,
+    	java.util.Calendar,
+    	java.util.GregorianCalendar
+    );
+    
+    var _error = false;
+    var _error_code = "-1";
+    var _error_msg = "";
+    var _error_stack = "";
+    
+    function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(2);
+    		}
+    	}
+    	return file_path;
+    }
+    
+    var output_path = get_full_path(output_filename);
+    
+    with(odf_api){
+    	var output = null;
+    	var doc = null;
+    	
+    	function objectify(s) {
+    	    if (typeof s == "string") {
+    	        try {
+    	            log.debug(''Try to parse the string as JSON...'');
+    	            const obj = JSON.parse(s); // Convertir la chaîne en objet JSON
+    	            // Vérifier toutes les propriétés de l''objet
+    	            Object.keys(obj).forEach(key => {
+    	                if (typeof obj[key] == "string") {
+    	                    try {
+    	                        log.debug("Parsing nested JSON for key: " + key);
+    	                        obj[key] = JSON.parse(obj[key]); // Désérialiser la chaîne imbriquée
+    	                    } catch (e) {
+    	                        log.warn("Failed to parse nested JSON for key: "+key+". Keeping it as a string.");
+    	                    }
+    	                }
+    	            });
+    	            return obj;
+    	        } catch (e) {
+    	            log.warn("Failed to parse JSON. Returning the string as is: " + e);
+    	        }
+    	    }
+    	    return s; // Retourner tel quel si ce n''est pas une chaîne JSON valide
+    	}
+    	
+    	function setTextFont(style){
+    		try {
+    			style = objectify(style);
+    			return new Font(style && style.fontName ? style.fontName : "Arial", style && style.fontStyle ? StyleTypeDefinitions.FontStyle[style.fontStyle] : StyleTypeDefinitions.FontStyle.REGULAR, style && style.fontSize ? style.fontSize : 10, style && style.fontColor ? getColor(style.fontColor) : Color.BLACK);
+    		} catch(e){
+    			log.warn("Setting Default Font values because: " + e);
+    			return new Font("Arial", StyleTypeDefinitions.FontStyle.REGULAR, 10, Color.BLACK);
+    		}
+    	}
+    	
+    	function getColor(color){
+    		const validColors = ["AQUA", "BLACK", "BLUE", "FUCHSIA", "GRAY", "GREEN", "LIME", "MAROON", "NAVY", "OLIVE", "ORANGE", "PURPLE", "RED", "SILVER", "TEAL", "WHITE", "YELLOW"];
+    		return color.startsWith("#") ? Color.valueOf(color) : validColors.includes(color) ? Color[color] : Color.WHITE;
+    	}
+    	
+    	function setCellBGColor(cell, color) {
+    	    cell.setCellBackgroundColor(getColor(color));
+    	}
+    	
+    	function setCellAttributes(cell, style){
+    		style = objectify(style);
+    		
+    		if(style && style.bgColor){
+    			setCellBGColor(cell, style.bgColor);
+    		}
+    		
+    		cell.setFont(setTextFont(style));
+    		
+    		if(style && style.HAlign){
+    			var validHAlign = [ "CENTER", "DEFAULT", "FILLED", "JUSTIFY", "LEFT", "RIGHT" ];
+    			if(validHAlign.includes(style.HAlign)){
+    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.HAlign]);
+    			} else {
+    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["DEFAULT"]);
+    			}
+    		}
+    		
+    		if(style && style.VAlign){
+    			var validVAlign = [ "TOP", "BOTTOM", "MIDDLE", "DEFAULT" ];
+    			if(validVAlign.includes(style.VAlign)){
+    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.VAlign]);
+    			} else {
+    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["DEFAULT"]);
+    			}
+    		}
+    	}
+    	
+    	try {
+    		if(o_rows != null){
+    			// Création du document
+    			var doc = SpreadsheetDocument.newSpreadsheetDocument();
+    			for (var i = 0; i < o_rows.sheets.length; i++) {
+    				var sheet = o_rows.sheets[i];
+    				var table = (i === 0) ? doc.getSheetByIndex(0) : doc.appendSheet(sheet.name);
+    				// Nomme la feuille
+    				table.setTableName(sheet.name);
+    				
+    				// Ajoute les en-têtes
+    				if(sheet && sheet.header && sheet.header.value){
+    				    for (var h = 0; h < sheet.header.value.length; h++) {
+    						var cell = table.getCellByPosition(h, 0);
+    				        
+    				        if(sheet.header && sheet.header.style){
+    							setCellAttributes(cell, sheet.header.style);
+    						}
+    						 
+    						cell.setStringValue(sheet.header.value[h]);
+    				    }
+    			    }
+    			    
+    			    // Données avec types
+    			    for (var r = 0; r < sheet.data.length; r++) {
+    			        var ligne = sheet.data[r];
+    			        for (var c = 0; c < ligne.length; c++) {
+    			            var cellule = ligne[c];
+    			            var valeur = cellule.value;
+    			            var type = cellule.type;
+    			            var style = cellule.style;
+    			            var cell = table.getCellByPosition(c, r + 1);
+    			            
+    			            if(style){
+    							setCellAttributes(cell, style);
+    						}
+    			
+    			            // Détection et conversion des types
+    			            if (type === "number") {
+    			                cell.setDoubleValue(valeur);
+    			            } else if (type === "boolean") {
+    			                cell.setBooleanValue(!!valeur);
+    			            } else if (type === "date") {
+    			                var formatter = new java.text.SimpleDateFormat("yyyy-MM-dd''T''HH:mm:ss");
+                				var parsedDate = formatter.parse(valeur);
+                				var calendar = new java.util.GregorianCalendar();
+                				calendar.setTime(parsedDate);
+    			                cell.setDateTimeValue(calendar);
+    			            } else {
+    			                cell.setStringValue(String(valeur));
+    			            }
+    			        }
+    			    }
+    			}
+    			log.debug("Conversion terminée !");
+    		}
+    	} catch (e) {
+    		log.error("Erreur lors de la conversion : " + e);
+    		_error = true;
+    		_error_code = "-1";
+    		_error_msg = "ERROR: creating file";
+    		_error_stack = "" + e;
+    	} finally {
+    		if(doc){
+    			doc.save(output_path);
+    		}
+    	}
+    }'
+↓output_filename [variables.RequestableVariable-1753977725391]: 
+  comment: |
+    'ODS output file path. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓rows [variables.RequestableVariable-1754003199087]: 
+  comment: |
+    'Structured object as follow : 
+    
+    {
+    	"sheets":
+    	[
+    		"name": "&lt;Sheet name&gt;",
+    		"header": 
+    		{
+    			"style": //Optional
+    			{
+    				"bgColor": "&lt;Background color&gt;",
+    				"HAlign": "&lt;Horizontal alignment&gt;",
+    				"VAlign": "&lt;Vertical alignment&gt;",
+    				"fontName": "&lt;Font name&gt;",
+    				"fontStyle": "&lt;Font style&gt;",
+    				"fontColor": "&lt;Font color&gt;",
+    				"fontSize": "&lt;Font size&gt;"
+    			},
+    			"value": [&lt;Array of strings&gt;]
+    		},
+    		"data":
+    		[
+    			[
+    				{
+    					"value" : "&lt;Cell content&gt;",
+    					"type": "&lt;Cell type&gt;"
+    				}
+    			]
+    		]
+    	]
+    }'
+↓Test_Case [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1753979447755]: 
+    required: true
+    value: .//outputs/filled_xls.ods
+  ↓rows [variables.TestCaseVariable-1754007083125]: 
+    value: '{ "sheets": [ { "name": "Rapport", "header": {"style": {"bgColor": "#e5e5e5", "HAlign": "CENTER", "fontStyle": "BOLD"}, "value": ["Nom", "Score", "Inscrit", "Dernier accès"] }, "data": [ [ { "value": "Alice", "type": "string" }, { "value": 88.5, "type": "number" }, { "value": true, "type": "boolean" }, { "value": "2025-08-04T19:10:00", "type": "date" } ], [ { "value": "Bob", "type": "string" }, { "value": 72, "type": "number" }, { "value": false, "type": "boolean" }, { "value": "1975-04-04T09:01:00", "type": "date" } ] ] }, { "name": "Statistiques", "header": { "value": ["Nom", "Score", "Inscrit", "Dernier accès"] }, "data": [ [ { "value": "Alice", "type": "string" }, { "value": 88.5, "type": "number" }, { "value": true, "type": "boolean" }, { "value": "2025-08-04T19:10:00", "type": "date" } ], [ { "value": "Bob", "type": "string" }, { "value": 72, "type": "number" }, { "value": false, "type": "boolean" }, { "value": "1975-04-04T09:01:00", "type": "date" } ] ] } ] }'

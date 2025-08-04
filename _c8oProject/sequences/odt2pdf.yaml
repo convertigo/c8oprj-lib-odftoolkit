@@ -108,7 +108,7 @@ comment: Convert an ODT file to a PDF file
     	try {
     		// Charger le fichier .odt
     		odt = OdfTextDocument.loadDocument(input_path);
-    		
+    
     		// Options pour la conversion PDF
     		var options = PdfOptions.create();
     
@@ -125,7 +125,6 @@ comment: Convert an ODT file to a PDF file
     			    }
     		    }
     		}
-    		
     		
     		output = new FileOutputStream(new File(output_path));
     		

@@ -138,7 +138,7 @@ responseTimeout: 120
     		"type": "&lt;tag type. ''image'' or ''string'' supported&gt;",
     		"value": "&lt;replacement string or image absolute path&gt;"
     	}
-    ]>'
+    ]'
 ↓Test_Case [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1740057615038]: 
     description: Output file name

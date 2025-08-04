@@ -21,6 +21,7 @@ For more technical informations : [documentation](./project.md)
     - [init_config](#init_config)
     - [metadata_pdf](#metadata_pdf)
     - [odt2pdf](#odt2pdf)
+    - [u_create_ods](#u_create_ods)
     - [u_create_odt](#u_create_odt)
     - [u_fill_odt](#u_fill_odt)
     - [u_fill_pdf](#u_fill_pdf)
@@ -295,6 +296,57 @@ Can be an absolute path or a relative Convertigo path:
 </tr>
 </table>
 
+### u_create_ods
+
+Create a new Calc document fr om a structured JSON.
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>output_filename</td><td>ODS output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>rows</td><td>Structured object as follow : 
+
+{
+	"sheets":
+	[
+		"name": "&lt;Sheet name&gt;",
+		"header": 
+		{
+			"style": //Optional
+			{
+				"bgColor": "&lt;Background color&gt;",
+				"HAlign": "&lt;Horizontal alignment&gt;",
+				"VAlign": "&lt;Vertical alignment&gt;",
+				"fontName": "&lt;Font name&gt;",
+				"fontStyle": "&lt;Font style&gt;",
+				"fontColor": "&lt;Font color&gt;",
+				"fontSize": "&lt;Font size&gt;"
+			},
+			"value": [&lt;Array of strings&gt;]
+		},
+		"data":
+		[
+			[
+				{
+					"value" : "&lt;Cell content&gt;",
+					"type": "&lt;Cell type&gt;"
+				}
+			]
+		]
+	]
+}</td>
+</tr>
+</table>
+
 ### u_create_odt
 
 Create a new Text document with a table.
@@ -393,7 +445,7 @@ Can be an absolute path or a relative Convertigo path:
 		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
 		"value": "&lt;replacement string or image absolute path&gt;"
 	}
-]></td>
+]</td>
 </tr>
 <tr>
 <td>output_filename</td><td>PDF output file path. 

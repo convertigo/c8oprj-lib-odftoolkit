@@ -569,6 +569,77 @@ Can be an absolute path or a relative Convertigo path:
 
 </p></blockquote></details>
 
+<details><summary><b>u_create_ods</b> : Create a new Calc document fr om a structured JSON</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") u_create_ods
+
+Create a new Calc document fr om a structured JSON.
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;output_filename
+</td>
+<td>
+ODS output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;rows
+</td>
+<td>
+Structured object as follow : 
+
+{
+	"sheets":
+	[
+		"name": "&lt;Sheet name&gt;",
+		"header": 
+		{
+			"style": //Optional
+			{
+				"bgColor": "&lt;Background color&gt;",
+				"HAlign": "&lt;Horizontal alignment&gt;",
+				"VAlign": "&lt;Vertical alignment&gt;",
+				"fontName": "&lt;Font name&gt;",
+				"fontStyle": "&lt;Font style&gt;",
+				"fontColor": "&lt;Font color&gt;",
+				"fontSize": "&lt;Font size&gt;"
+			},
+			"value": [&lt;Array of strings&gt;]
+		},
+		"data":
+		[
+			[
+				{
+					"value" : "&lt;Cell content&gt;",
+					"type": "&lt;Cell type&gt;"
+				}
+			]
+		]
+	]
+}
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
 <details><summary><b>u_create_odt</b> : Create a new Text document with a table</summary><blockquote><p>
 
 
@@ -739,7 +810,7 @@ Structured array as follow :
 		"type": "&lt;tag type. 'image' or 'string' supported&gt;",
 		"value": "&lt;replacement string or image absolute path&gt;"
 	}
-]>
+]
 </td>
 </tr>
 <tr>

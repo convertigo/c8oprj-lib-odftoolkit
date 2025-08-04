@@ -62,6 +62,7 @@ responseTimeout: 120
     'var odf_api = JavaImporter(
     	Packages.org.odftoolkit.simple.TextDocument,
     	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
+    	org.odftoolkit.odfdom.dom.style.props,
     	org.odftoolkit.simple.text.Span,
     	Packages.org.odftoolkit.simple.draw.Image,	
     	Packages.org.odftoolkit.simple.table.Table,
@@ -325,6 +326,11 @@ responseTimeout: 120
     									cell.setStringValue(values[r][c]);
     								}
     							}
+    							var odfTable = table1.getOdfElement();
+    							var odfTableStyle = odfTable.getAutomaticStyle();
+    							odfTableStyle.setProperty(OdfTableProperties.BreakBefore, "page");
+    							//odfTableStyle.setProperty(OdfTableProperties.BreakAfter, "page");
+    							odfTableStyle.setProperty(OdfTableProperties.KeepWithNext, "false");
     							item.replaceWith(fdoc.getTableByName("table1"));
     							table1.remove();
     						}
