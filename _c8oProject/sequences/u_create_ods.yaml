@@ -69,7 +69,6 @@ comment: Create a new Calc document fr om a structured JSON.
     var output_path = get_full_path(output_filename);
     
     with(odf_api){
-    	var output = null;
     	var doc = null;
     	
     	function objectify(s) {
@@ -211,6 +210,61 @@ comment: Create a new Calc document fr om a structured JSON.
     		}
     	}
     }'
+↓Sequence_JS [steps.SimpleStep-1754483051807]: 
+  expression: |
+    'function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(2);
+    		}
+    	}
+    	return file_path;
+    }
+    
+    var output_path = get_full_path(output_filename);
+    
+    var SpreadsheetDocument = Packages.org.odftoolkit.simple.SpreadsheetDocument;
+    
+    // Create document
+    var doc = SpreadsheetDocument.newSpreadsheetDocument();
+    
+    // Sheet 1
+    var sheet1 = doc.getSheetByIndex(0);
+    sheet1.setTableName("Sheet1");
+    
+    for (var col = 0; col < 5; col++) {
+        sheet1.getCellByPosition(col, 0).setStringValue("Header " + (col + 1));
+    }
+    
+    
+    sheet1.getCellByPosition(0, 0).setStringValue("Header 1");
+    sheet1.getCellByPosition(1, 0).setStringValue("Header 2");
+    sheet1.getCellByPosition(0, 1).setStringValue("Data 1");
+    sheet1.getCellByPosition(1, 1).setStringValue("Data 2");
+    
+    // Sheet 2 (IMPORTANT: name and fill at least one cell)
+    var sheet2 = doc.appendSheet("Sheet2");
+    for (var col = 0; col < 5; col++) {
+        sheet2.getCellByPosition(col, 0).setStringValue("Header " + (col + 1));
+    }
+    
+    sheet2.getCellByPosition(0, 0).setStringValue("Sheet2 A1");
+    sheet2.getCellByPosition(1, 0).setStringValue("Sheet2 B1");
+    
+    // SAVE
+    doc.save(new java.io.File(output_path));
+    '
+  isEnabled: false
 ↓output_filename [variables.RequestableVariable-1753977725391]: 
   comment: |
     'ODS output file path. 

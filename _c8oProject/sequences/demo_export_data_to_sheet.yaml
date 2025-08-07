@@ -1,0 +1,1076 @@
+comment: Demo sequence to create a spreadhseet filled with data.
+↓init [steps.SimpleStep-1754572202995]: 
+  expression: |
+    'function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(3);;
+    		}
+    	}
+    	return file_path;
+    }
+    
+    var output_filename = get_full_path(".//outputs/created_excel.xlsx");
+    '
+↓object [steps.JsonObjectStep-1754572202998]: 
+  output: false
+  ↓array [steps.JsonArrayStep-1754572203001]: 
+    key: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: sheets
+    output: false
+    ↓object1 [steps.JsonObjectStep-1754572203088]: 
+      output: false
+      ↓name [steps.JsonFieldStep-1754572203091]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: name
+        output: false
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: Books
+      ↓header [steps.JsonObjectStep-1754572203094]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: header
+        output: false
+        ↓value [steps.JsonArrayStep-1754572203097]: 
+          key: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: value
+          output: false
+          ↓field [steps.JsonFieldStep-1754572203100]: 
+            output: false
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: Title
+          ↓field1 [steps.JsonFieldStep-1754572203103]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: field1
+            output: false
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: Author
+          ↓field2 [steps.JsonFieldStep-1754572203106]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: field2
+            output: false
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: Year
+          ↓field3 [steps.JsonFieldStep-1754575973298]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: field3
+            output: false
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: Available
+      ↓data [steps.JsonArrayStep-1754572203109]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: data
+        output: false
+        ↓array [steps.JsonArrayStep-1754572203112]: 
+          output: false
+          ↓object [steps.JsonObjectStep-1754572203115]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754572203118]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: The Stranger
+            ↓type [steps.JsonFieldStep-1754572203121]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object1 [steps.JsonObjectStep-1754572203124]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754572203127]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: Albert Camus
+            ↓type [steps.JsonFieldStep-1754572203130]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object2 [steps.JsonObjectStep-1754572203133]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754572203136]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 1942
+            ↓type [steps.JsonFieldStep-1754572203139]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: number
+          ↓object3 [steps.JsonObjectStep-1754576066164]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576066167]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: false
+            ↓type [steps.JsonFieldStep-1754576066170]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: boolean
+        ↓array1 [steps.JsonArrayStep-1754576124515]: 
+          output: false
+          ↓object [steps.JsonObjectStep-1754576124518]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576124521]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: The Little Prince
+            ↓type [steps.JsonFieldStep-1754576124524]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object1 [steps.JsonObjectStep-1754576124527]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576124530]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: Antoine de Saint-Exupéry
+            ↓type [steps.JsonFieldStep-1754576124533]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object2 [steps.JsonObjectStep-1754576124536]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576124539]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 1943
+            ↓type [steps.JsonFieldStep-1754576124542]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: number
+          ↓object3 [steps.JsonObjectStep-1754576124545]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576124548]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: false
+            ↓type [steps.JsonFieldStep-1754576124551]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: boolean
+        ↓array2 [steps.JsonArrayStep-1754576126220]: 
+          output: false
+          ↓object [steps.JsonObjectStep-1754576126223]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576126226]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: The Miserables
+            ↓type [steps.JsonFieldStep-1754576126229]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object1 [steps.JsonObjectStep-1754576126232]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576126235]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: Victor Hugo
+            ↓type [steps.JsonFieldStep-1754576126238]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object2 [steps.JsonObjectStep-1754576126241]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576126244]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 1862
+            ↓type [steps.JsonFieldStep-1754576126247]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: number
+          ↓object3 [steps.JsonObjectStep-1754576126250]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576126253]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: true
+            ↓type [steps.JsonFieldStep-1754576126256]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: boolean
+    ↓object [steps.JsonObjectStep-1754572203004]: 
+      output: false
+      ↓name [steps.JsonFieldStep-1754572203007]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: name
+        output: false
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: Borrowings
+      ↓header [steps.JsonObjectStep-1754572203010]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: header
+        output: false
+        ↓value [steps.JsonArrayStep-1754572203013]: 
+          key: 
+            - xmlizable: 
+              - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+              - SmartType: 
+                - ↑mode: PLAIN
+                - →→: value
+          output: false
+          ↓field [steps.JsonFieldStep-1754572203016]: 
+            output: false
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: Name
+          ↓field1 [steps.JsonFieldStep-1754572203019]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: field1
+            output: false
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: Book Title
+          ↓field2 [steps.JsonFieldStep-1754572203022]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: field2
+            output: false
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: Borrowed On
+          ↓field3 [steps.JsonFieldStep-1754576358572]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: field3
+            output: false
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: Due Date
+          ↓field4 [steps.JsonFieldStep-1754576396464]: 
+            key: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: field4
+            output: false
+            value: 
+              - xmlizable: 
+                - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                - SmartType: 
+                  - ↑mode: PLAIN
+                  - →→: Returned
+      ↓data [steps.JsonArrayStep-1754572203025]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: data
+        output: false
+        ↓array [steps.JsonArrayStep-1754572203028]: 
+          output: false
+          ↓object [steps.JsonObjectStep-1754572203031]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754572203034]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: Alice Martin
+            ↓type [steps.JsonFieldStep-1754572203037]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object1 [steps.JsonObjectStep-1754572203040]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754572203043]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: The Little Prince
+            ↓type [steps.JsonFieldStep-1754572203046]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object2 [steps.JsonObjectStep-1754572203049]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754572203052]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 2025-08-01T10:00:00
+            ↓type [steps.JsonFieldStep-1754572203055]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: date
+          ↓object3 [steps.JsonObjectStep-1754576471633]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576471636]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 2025-08-15T10:00:00
+            ↓type [steps.JsonFieldStep-1754576471639]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: date
+          ↓object4 [steps.JsonObjectStep-1754576495726]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576495729]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: false
+            ↓type [steps.JsonFieldStep-1754576495732]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: boolean
+        ↓array1 [steps.JsonArrayStep-1754576522664]: 
+          output: false
+          ↓object [steps.JsonObjectStep-1754576522667]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576522670]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: Bob Lefèvre
+            ↓type [steps.JsonFieldStep-1754576522673]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object1 [steps.JsonObjectStep-1754576522676]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576522679]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: The Miserables
+            ↓type [steps.JsonFieldStep-1754576522682]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object2 [steps.JsonObjectStep-1754576522685]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576522688]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 2025-07-20T14:30:00
+            ↓type [steps.JsonFieldStep-1754576522691]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: date
+          ↓object3 [steps.JsonObjectStep-1754576522694]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576522697]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 2025-08-10T14:30:00
+            ↓type [steps.JsonFieldStep-1754576522700]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: date
+          ↓object4 [steps.JsonObjectStep-1754576522703]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576522706]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: true
+            ↓type [steps.JsonFieldStep-1754576522709]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: boolean
+        ↓array2 [steps.JsonArrayStep-1754576523094]: 
+          output: false
+          ↓object [steps.JsonObjectStep-1754576523097]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576523100]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: Chloé Dubois
+            ↓type [steps.JsonFieldStep-1754576523103]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object1 [steps.JsonObjectStep-1754576523106]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576523109]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: The Stranger
+            ↓type [steps.JsonFieldStep-1754576523112]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: string
+          ↓object2 [steps.JsonObjectStep-1754576523115]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576523118]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 2025-08-05T09:00:00
+            ↓type [steps.JsonFieldStep-1754576523121]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: date
+          ↓object3 [steps.JsonObjectStep-1754576523124]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576523127]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: 2025-08-19T09:00:00
+            ↓type [steps.JsonFieldStep-1754576523130]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: date
+          ↓object4 [steps.JsonObjectStep-1754576523133]: 
+            output: false
+            ↓value [steps.JsonFieldStep-1754576523136]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: value
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: false
+            ↓type [steps.JsonFieldStep-1754576523139]: 
+              key: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: type
+              output: false
+              value: 
+                - xmlizable: 
+                  - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+                  - SmartType: 
+                    - ↑mode: PLAIN
+                    - →→: boolean
+↓Call_Sequence1 [steps.SequenceStep-1754572203172]: 
+  sourceSequence: lib_fill_odt_pdf.u_export_data_to_sheet
+  ↓rows [variables.StepVariable-1754572203175]: 
+    comment: Data source. Can be a Convertigo Complex variable or a JSON String. It must be an array of objects.
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1754572202998
+          - java.lang.String: 
+            - ↑value: .
+  ↓output_filename [variables.StepVariable-1754572203178]: 
+    comment: Name of the output file with extension.
+  ↓book_type [variables.StepVariable-1754572203181]: 
+    comment: Type of workbook to export to. Default is XLSX.
+    value: xlsx
+↓Copy [steps.XMLCopyStep-1754572372258]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1754572203172
+        - java.lang.String: 
+          - ↑value: ./document/*

@@ -1,4 +1,26 @@
-comment: Create a new Text document with a table.
+comment: Create a new Text document with a table. Works the same as u_fill_odt sequence.
+↓jIf [steps.IfStep-1754469966039]: 
+  condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null && context.server.get("init_config") != "done"
+  ↓Error_structure [steps.XMLErrorStep-1754469966042]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: '-4'
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Server Font configuration is not finished yet. Please retry later...
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: PLAIN
+          - →→: Font initialization not done.
+  ↓Return [steps.ReturnStep-1754469966045]: 
 ↓inputVars [steps.InputVariablesStep-1740238462392]: 
 ↓IfExistThenElse [steps.IfExistThenElseStep-1740238462395]: 
   sourceDefinition: 
@@ -36,13 +58,16 @@ comment: Create a new Text document with a table.
     'var odf_api = JavaImporter(
     	Packages.org.odftoolkit.simple.TextDocument,
     	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
-    	Packages.org.odftoolkit.simple.draw.Image,
+    	Packages.org.odftoolkit.odfdom.dom.style.props,
+    	Packages.org.odftoolkit.simple.text.Span,
+    	Packages.org.odftoolkit.simple.draw.Image,	
     	Packages.org.odftoolkit.simple.table.Table,
     	Packages.org.odftoolkit.simple.table.Cell,	
     	Packages.org.odftoolkit.simple.style.Font,
     	Packages.org.odftoolkit.simple.style.StyleTypeDefinitions,
     	Packages.org.odftoolkit.odfdom.type.Color,
-    	Packages.java.io.File
+    	Packages.java.io.File,
+    	Packages.java.io.FileInputStream
     );
     
     function get_file_name(file_path){
@@ -64,46 +89,291 @@ comment: Create a new Text document with a table.
     	return file_path;
     }
     var output_path = get_full_path(output_filename);
+    var file_name = get_file_name(get_full_path(output_filename));
     
     with(odf_api){
     	
-    	//o_markers = [{"tag": "table1", "type": "table", "value": [["rouge", "pomme", "chat", "Paris"], ["bleu", "banane", "chien", "Londres"], ["vert", "orange", "lion", "New York"], ["jaune", "raisin", "tigre", "Tokyo"], ["violet", "mangue", "éléphant", "Sydney"], ["orange", "kiwi", "loup", "Rome"], ["rose", "fraise", "renard", "Berlin"], ["marron", "poire", "ours", "Moscou"], ["noir", "cerise", "zèbre", "Madrid"], ["blanc", "ananas", "girafe", "Vancouver"]]}];
+    	function objectify(s) {
+    	    if (typeof s == "string") {
+    	        try {
+    	            log.debug(''Try to parse the string as JSON...'');
+    	            const obj = JSON.parse(s); // Convertir la chaîne en objet JSON
+    	            // Vérifier toutes les propriétés de l''objet
+    	            Object.keys(obj).forEach(key => {
+    	                if (typeof obj[key] == "string") {
+    	                    try {
+    	                        log.debug("Parsing nested JSON for key: " + key);
+    	                        obj[key] = JSON.parse(obj[key]); // Désérialiser la chaîne imbriquée
+    	                    } catch (e) {
+    	                        log.warn("Failed to parse nested JSON for key: "+key+". Keeping it as a string.");
+    	                    }
+    	                }
+    	            });
+    	            return obj;
+    	        } catch (e) {
+    	            log.warn("Failed to parse JSON. Returning the string as is: " + e);
+    	        }
+    	    }
+    	    return s; // Retourner tel quel si ce n''est pas une chaîne JSON valide
+    	}
     	
-    	for (var i=0; i<o_markers.length; i++){
-    		if(o_markers[i].type.indexOf("table") == 0){
-    			var rows = o_markers[i].value.length;
-    			var cols = o_markers[i].value[0].length;
-    			var values = o_markers[i].value;
-    			var hasRowHeader = o_markers[i].type == "tableh";
-    			log.debug("Rows: " + rows);
-    			log.debug("Cols: " + cols);
-    			log.debug("Has row header? " + hasRowHeader);
-    			if(rows>0 && cols>0){
-    				document = TextDocument.newTextDocument();
-    				table1 = Table.newTable(document, rows, cols);
-    				//table1 = Table.newTable(document, rows, cols, 0, 1);
-    				table1.setTableName("table1");
-    				var font = new Font("Arial", StyleTypeDefinitions.FontStyle.BOLD, 16, Color.BLUE);
-    				for(var r=0; r<rows; r++){
-    					//rt = "";
-    					for(var c=0; c<cols; c++){
-    						//log.debug("value: "+values[r][c]);
-    						//rt += values[r][c] + ",";
-    						var cell = table1.getCellByPosition(c, r);
-    						if(r == 0 && hasRowHeader){
-    							cell.setFont(font);
-    							cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType.CENTER);
-    							cell.setCellBackgroundColor(Color.valueOf("#c1c5c7"));
-    						}
-    						cell.setStringValue(values[r][c]);
-    					}
-    					//log.debug("row: "+ rt);
-    				}
-    				document.save(output_path);
-    			}
+    	function setTextFont(style){
+    		try {
+    			style = objectify(style);
+    			return new Font(style && style.fontName ? style.fontName : "Arial", style && style.fontStyle ? StyleTypeDefinitions.FontStyle[style.fontStyle] : StyleTypeDefinitions.FontStyle.REGULAR, style && style.fontSize ? style.fontSize : 10, style && style.fontColor ? getColor(style.fontColor) : Color.BLACK);
+    		} catch(e){
+    			log.warn("Setting Default Font values because: " + e);
+    			return new Font("Arial", StyleTypeDefinitions.FontStyle.REGULAR, 10, Color.BLACK);
     		}
     	}
+    	
+    	function getCellFont(style, row, column, isHeader) {
+    		style = objectify(style);
+    	    if (isHeader) {
+    			var title = {fontName: style && style.header && style.header.fontName ? style.header.fontName : "Arial", fontStyle: style && style.header && style.header.fontStyle ? style.header.fontStyle : "BOLD", fontSize: style && style.header && style.header.fontSize ? style.header.fontSize : 10, fontColor: style && style.header && style.header.fontColor ? style.header.fontColor : "BLACK"};
+    	        return setTextFont(title);
+    	    }
+    	    const key = row + "-" + column;
+    	    return setTextFont(style && style.cells && style.cells[key] ? style.cells[key] : style && style.defaults ? style.defaults : {});
+    	}
+    	
+    	function getColor(color){
+    		const validColors = ["AQUA", "BLACK", "BLUE", "FUCHSIA", "GRAY", "GREEN", "LIME", "MAROON", "NAVY", "OLIVE", "ORANGE", "PURPLE", "RED", "SILVER", "TEAL", "WHITE", "YELLOW"];
+    		return color.startsWith("#") ? Color.valueOf(color) : validColors.includes(color) ? Color[color] : Color.WHITE;
+    	}
+    	
+    	function setCellBGColor(cell, color) {
+    	    cell.setCellBackgroundColor(getColor(color));
+    	}
+    	
+    	function setCellAttributes(cell, row, column, isHeader, HAlign, VAlign, style) {
+    	    // Afficher les logs pour chaque variable
+    	    log.debug("cell => " + cell);
+    	    log.debug("row => " + row);
+    	    log.debug("column => " + column);
+    	    log.debug("isHeader => " + isHeader);
+    	
+    	    // Si ''style'' est un objet, afficher ses propriétés
+    	    if (style != null && typeof style === "object") {
+    	        log.debug("style (détails) => " + JSON.stringify(style));
+    	    } else {
+    	        log.debug("style n''est pas un objet ou est null.");
+    	    }
+    	    
+    	    if(isHeader){
+    			if(style && style.header && HAlign.includes(style.header.cellHAlign)){
+    				log.debug("[header] cellHAlign: "+ style.header.cellHAlign);
+    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.header.cellHAlign]);
+    			}else{
+    				log.debug("Setting Header to default HAlign: CENTER");
+    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["CENTER"]);
+    			}
+    			if(style && style.header && VAlign.includes(style.header.cellVAlign)){
+    				log.debug("[header] cellVAlign: "+ style.header.cellVAlign);
+    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.header.cellVAlign]);
+    			}else{
+    				log.debug("Setting Header to default VAlign: MIDDLE");
+    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["MIDDLE"]);
+    			}
+    			if(style && style.header && style.header.cellBGColor){
+    				log.debug("[header] cellBGColor: "+ style.header.cellBGColor);
+    				setCellBGColor(cell, style.header.cellBGColor);
+    			}else{
+    				log.warn("Setting Header to default BGColor: #e5e5e5");
+    				setCellBGColor(cell, "#e5e5e5");
+    			}
+    			return;
+    		}
+    		const key = row + "-" + column;
+    		log.debug("Searching Atributes for cell " + key);
+    		if(style && style.cells && style.cells[key] && HAlign.includes(style.cells[key].cellHAlign)){
+    			log.debug("[cell] cellHAlign: "+ style.cells[key].cellHAlign);
+    			cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.cells[key].cellHAlign]);
+    		} else if(style && style.defaults && HAlign.includes(style.defaults.cellHAlign)){
+    			log.debug("[defaults] cellHAlign: "+ style.defaults.cellHAlign);
+    			cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.defaults.cellHAlign]);
+    		}else{
+    			log.debug("No valid attribute found for cellHAlign. Do nothing");
+    		}
+    		
+    		if(style && style.cells && style.cells[key] && VAlign.includes(style.cells[key].cellVAlign)){
+    			log.debug("[cell] cellVAlign: "+ style.cells[key].cellVAlign);
+    			cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.cells[key].cellVAlign]);
+    		} else if(style && style.defaults && VAlign.includes(style.defaults.cellVAlign)){
+    			log.debug("[defaults] cellVAlign: "+ style.defaults.cellVAlign);
+    			cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.defaults.cellVAlign]);
+    		}else{
+    			log.debug("No valid attribute found for cellVAlign. Do nothing");
+    		}
+    		
+    		if(style && style.cells && style.cells[key] && style.cells[key].cellBGColor){
+    			log.debug("[cell] cellBGColor: "+ style.cells[key].cellBGColor);
+    			setCellBGColor(cell, style.cells[key].cellBGColor);
+    		} else if(style && style.defaults && style.defaults.cellBGColor){
+    			log.debug("[defaults] cellBGColor: "+ style.defaults.cellBGColor);
+    			setCellBGColor(cell, style.defaults.cellBGColor);
+    		}else{
+    			log.debug("No valid attribute found for BGColor. Do nothing");
+    		}
+    	}
+    	
+    	function getCellBorder(cell, borderType) {
+    		try {
+    			border = cell.getBorder(StyleTypeDefinitions.CellBordersType[borderType]);
+    			if (border != null && border.toString().trim() != "") {
+    	            return border;
+    	        }
+    		} catch (e) {
+    			log.error("Error occured getting cell border ''" + borderType + "'' because " + e);
+    		}
+    		return StyleTypeDefinitions.CellBordersType.NONE
+    	}
+    	
+    	function extractTableStyles(cell) {
+    	    var tb_styles = {
+    			cellBGColor: cell.getCellBackgroundColor(),
+    	        isTextWrapped: cell.isTextWrapped(),
+    	        horizontal: cell.getParagraphByIndex(0, false).getHorizontalAlignment(),
+    	        //vertical: cell.getVerticalAlignmentType(),
+    	        top: getCellBorder(cell, "TOP"),
+    	        bottom: getCellBorder(cell, "BOTTOM"),
+    	        left: getCellBorder(cell, "LEFT"),
+    	        right: getCellBorder(cell, "RIGHT"),
+    	        font: cell.getParagraphByIndex(0, false).getFont()
+    	    };
+    	
+    	    // Affiche les styles récupérés
+    	    log.debug("TABLE Styles: " + JSON.stringify(tb_styles, null, 2));
+    	    
+    	    return tb_styles;
+    	}
+    	
+    	function replace_text(fdoc, tags){
+    		for (var i=0; i<tags.length; i++){
+    			log.debug("tag: " + tags[i].tag);
+    			log.debug("tag type: " + tags[i].type);
+    			log.debug("tag value: " + tags[i].value);
+    				switch (tags[i].type){
+    					case "image":
+    						pg = fodc.addParagraph(null);
+    						Image.newImage(pg, new File(get_full_path(tags[i].value)).toURI());
+    						break;
+    					case "tablet":
+    						var doc_table_template =  TextDocument.loadDocument(get_full_path(table_template_file));
+    						var table_template = doc_table_template.getTableByName(table_template_name);
+    						var tpl_rows = table_template.getRowCount();
+    						var tpl_cols = table_template.getColumnCount();
+    						var header_row_style = null;
+    						var even_row_style = null;
+    						var odd_row_style = null;
+    						if(tpl_rows == 3 && tpl_cols == 1){
+    							header_row_style = extractTableStyles(table_template.getCellByPosition(0, 0));
+    							even_row_style = extractTableStyles(table_template.getCellByPosition(0, 1));
+    							odd_row_style = extractTableStyles(table_template.getCellByPosition(0, 2));
+    						} else {
+    							log.error("Template table must be a 1*3 table");
+    						}
+    					case "table":
+    					case "tableh":
+    						var values = tags[i].value;
+    						var rows = values.length;
+    						var cols = values[0].length;
+    						var hasRowHeader = tags[i].type == "tableh";
+    						var hasTableTemplate = tags[i].type == "tablet";
+    						var isHeader;
+    						const validHAlign = [ "CENTER", "DEFAULT", "FILLED", "JUSTIFY", "LEFT", "RIGHT" ];
+    						const validVAlign = [ "TOP", "BOTTOM", "MIDDLE", "DEFAULT" ];
+    						log.debug("Rows: " + rows);
+    						log.debug("Cols: " + cols);
+    						log.debug("Has row header? " + hasRowHeader);
+    						log.debug("Has table template? " + hasTableTemplate);
+    						if(rows>0 && cols>0){
+    							table1 = Table.newTable(fdoc, rows, cols);
+    							table1.setTableName("table1");
+    							//var odfTable = table1.getOdfElement();
+    							//var odfTableStyle = odfTable.getAutomaticStyle();
+    							//odfTableStyle.setProperty(OdfTableProperties.BreakBefore, "page");
+    							//odfTableStyle.setProperty(OdfTableProperties.BreakAfter, "page");
+    							//odfTableStyle.setProperty(OdfTableProperties.KeepWithNext, "true");
+    							for(var r=0; r<rows; r++){
+    								var current_row = table1.getRowByIndex(r);
+    								var odfRowElem = current_row.getOdfElement();
+    								var styleHandler = odfRowElem.getOrCreateUnqiueAutomaticStyle();
+    								styleHandler.setProperty(OdfTableRowProperties.KeepTogether, "always");
+    								//odfRowElem.setProperty(OdfTableRowProperties.KeepTogether, "always");
+    								for(var c=0; c<cols; c++){
+    									var cell = table1.getCellByPosition(c, r);
+    									log.debug("row #"+r);
+    									log.debug("col #"+c);
+    									log.debug("val: "+values[r][c]);
+    									if(!hasTableTemplate){
+    										isHeader = r == 0 && hasRowHeader ? true : false;
+    										setCellAttributes(cell, r, c, isHeader, validHAlign, validVAlign, tags[i].style);
+    										cell.setFont(getCellFont(tags[i].style, r, c, isHeader));
+    									} else {
+    										if(r == 0){
+    											row_style = header_row_style;
+    										} else if(r % 2 === 0){
+    											row_style = even_row_style;
+    										} else {
+    											row_style = odd_row_style;
+    										}
+    										cell.setCellBackgroundColor(row_style.cellBGColor);
+    										cell.setFont(row_style.font);
+    										cell.setHorizontalAlignment(row_style.horizontal);
+    									}
+    									cell.setStringValue(values[r][c]);
+    								}
+    							}
+    							
+    							//item.replaceWith(fdoc.getTableByName("table1"));
+    							//table1.remove();
+    							//item.cut();
+    						}
+    						break;
+    					case "span":
+    						var navigation = new TextNavigation("span", fdoc);
+    						var item = navigation.nextSelection();
+    						var span = Span.newSpan(item);
+    						var styleHandler = span.getStyleHandler();
+    						styleHandler.getTextPropertiesForWrite().setFont(setTextFont(tags[i].style));
+    						span.setTextContent(tags[i].value);
+    						break;
+    					case "paragraph":
+    					case "string":
+    					default:
+    						var pg = fdoc.addParagraph(tags[i].value);
+    						pg.setFont(setTextFont(tags[i].style));
+    				}
+    		}
+    	}
+    	
+    	try {
+    		var document = null;
+    		if(o_markers != null){
+    			document = TextDocument.newTextDocument();
+    			replace_text(document, o_markers);
+    		}
+    	} catch (e) {
+    		log.warn("ERROR: " + e);
+    	} finally {
+    		if (document) document.save(output_path);
+    	}
     }'
+↓Element [steps.XMLElementStep-1754469988933]: 
+  nodeName: attachment
+  ↓jAttribute [steps.AttributeStep-1754469988936]: 
+    expression: '"attachment"'
+    nodeName: type
+  ↓jAttribute1 [steps.AttributeStep-1754469988939]: 
+    expression: file_name
+    nodeName: name
+  ↓jAttribute11 [steps.AttributeStep-1754469988942]: 
+    expression: output_path
+    nodeName: local-url
+  ↓jAttribute2 [steps.AttributeStep-1754469988945]: 
+    expression: '"application/octet-stream"'
+    nodeName: content-type
 ↓output_filename [variables.RequestableVariable-1740155948340]: 
   comment: |
     'Output ODT file name (without extension). 

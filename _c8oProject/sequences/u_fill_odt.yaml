@@ -87,7 +87,7 @@ responseTimeout: 120
       			file_path = project_directory_path + file_path.substring(3);
     		}
      		else if(file_path.indexOf("./") != -1){
-      			file_path = project_directory_path + "../" + file_path.substring(3);;
+      			file_path = project_directory_path + "../" + file_path.substring(2);
     		}
     	}
     	return file_path;
@@ -163,7 +163,7 @@ responseTimeout: 120
     	    if (style != null && typeof style === "object") {
     	        log.debug("style (détails) => " + JSON.stringify(style));
     	    } else {
-    	        log.warn("style n''est pas un objet ou est null.");
+    	        log.debug("style n''est pas un objet ou est null.");
     	    }
     	    
     	    if(isHeader){
@@ -249,7 +249,7 @@ responseTimeout: 120
     	    };
     	
     	    // Affiche les styles récupérés
-    	    log.warn("TABLE Styles: " + JSON.stringify(tb_styles, null, 2));
+    	    log.debug("TABLE Styles: " + JSON.stringify(tb_styles, null, 2));
     	    
     	    return tb_styles;
     	}
@@ -350,15 +350,16 @@ responseTimeout: 120
     		}
     	}
     	
-    	var document = TextDocument.loadDocument(template_path);
-    	
     	try {
+    		var document = null;
     		if(o_markers != null){
+    			document = TextDocument.loadDocument(template_path);
     			replace_text(document, o_markers);
-    			document.save(output_path);
     		}
     	} catch (e) {
     		log.warn("ERROR: " + e);
+    	} finally {
+    		if(document) document.save(output_path);
     	}
     }'
 ↓Element [steps.XMLElementStep-1739960996678]: 

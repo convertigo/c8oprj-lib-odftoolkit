@@ -11,6 +11,7 @@ For more technical informations : [documentation](./project.md)
 - [Installation](#installation)
 - [Sequences](#sequences)
     - [clean_outputs](#clean_outputs)
+    - [demo_export_data_to_sheet](#demo_export_data_to_sheet)
     - [demo_u_fill_odt](#demo_u_fill_odt)
     - [demo_u_fill_pdf](#demo_u_fill_pdf)
     - [demo_u_fill_table_odt](#demo_u_fill_table_odt)
@@ -23,6 +24,7 @@ For more technical informations : [documentation](./project.md)
     - [odt2pdf](#odt2pdf)
     - [u_create_ods](#u_create_ods)
     - [u_create_odt](#u_create_odt)
+    - [u_export_data_to_sheet](#u_export_data_to_sheet)
     - [u_fill_odt](#u_fill_odt)
     - [u_fill_pdf](#u_fill_pdf)
     - [u_read_odt](#u_read_odt)
@@ -73,6 +75,10 @@ Clean the generated files. Can be used in a Convertigo scheduled job to automate
 <td>target</td><td></td>
 </tr>
 </table>
+
+### demo_export_data_to_sheet
+
+Demo sequence to create a spreadhseet filled with data.
 
 ### demo_u_fill_odt
 
@@ -349,7 +355,7 @@ Can be an absolute path or a relative Convertigo path:
 
 ### u_create_odt
 
-Create a new Text document with a table.
+Create a new Text document with a table. Works the same as u_fill_odt sequence.
 
 **variables**
 
@@ -371,6 +377,80 @@ Create a new Text document with a table.
 <tr>
 <td>output_filename</td><td>Output ODT file name (without extension). 
 '.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.</td>
+</tr>
+</table>
+
+### u_export_data_to_sheet
+
+Use to export data to various file format (txt, csv, xlsx, ods...). Uses the SheetJS CE framework.
+
+**Output**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>file</td><td>local_path -> Server local file path.<br> url_path -> Server file path url.</td>
+</tr>
+<tr>
+<td>attachment</td><td>@local-url -> Server local file path.<br>@name -> File name.</td>
+</tr>
+<tr>
+<td>success</td><td>true/false</td>
+</tr>
+<tr>
+<td>error</td><td>Error message.</td>
+</tr>
+</table>
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>book_type</td><td>Type of workbook to export to. Default is XLSX.</td>
+</tr>
+<tr>
+<td>output_filename</td><td>Output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace pat</td>
+</tr>
+<tr>
+<td>rows</td><td>Structured object as follow: 
+
+{
+	"sheets":
+	[
+		"name": "&lt;Sheet name&gt;",
+		"header": 
+		{
+			"style": //Optional
+			{
+				"bgColor": "&lt;Background color&gt;",
+				"HAlign": "&lt;Horizontal alignment&gt;",
+				"VAlign": "&lt;Vertical alignment&gt;",
+				"fontName": "&lt;Font name&gt;",
+				"fontStyle": "&lt;Font style&gt;",
+				"fontColor": "&lt;Font color&gt;",
+				"fontSize": "&lt;Font size&gt;"
+			},
+			"value": [&lt;Array of strings&gt;]
+		},
+		"data":
+		[
+			[
+				{
+					"value" : "&lt;Cell content&gt;",
+					"type": "&lt;Cell type&gt;"
+				}
+			]
+		]
+	]
+}</td>
 </tr>
 </table>
 

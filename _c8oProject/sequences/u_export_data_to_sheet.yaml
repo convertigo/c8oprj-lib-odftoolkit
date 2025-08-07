@@ -1,0 +1,514 @@
+comment: |
+  'Use to export data to various file format (txt, csv, xlsx, ods...). Uses the SheetJS CE framework.
+  
+  **Output**
+  
+  <table>
+  <tr>
+  <th>name</th><th>comment</th>
+  </tr>
+  <tr>
+  <td>file</td><td>local_path -> Server local file path.<br> url_path -> Server file path url.</td>
+  </tr>
+  <tr>
+  <td>attachment</td><td>@local-url -> Server local file path.<br>@name -> File name.</td>
+  </tr>
+  <tr>
+  <td>success</td><td>true/false</td>
+  </tr>
+  <tr>
+  <td>error</td><td>Error message.</td>
+  </tr>
+  </table>'
+↓inputVars [steps.InputVariablesStep-1754554765854]: 
+↓IfExistThenElse [steps.IfExistThenElseStep-1754554825573]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1754554765854
+        - java.lang.String: 
+          - ↑value: ./rows/object
+  ↓jThen [steps.ThenStep-1754554825576]: 
+    ↓markers [steps.JsonSourceStep-1754554825579]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1754554765854
+            - java.lang.String: 
+              - ↑value: ./rows/object
+      variableName: o_rows
+  ↓jElse [steps.ElseStep-1754554825582]: 
+    ↓markers [steps.JsonSourceStep-1754554825585]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1754554765854
+            - java.lang.String: 
+              - ↑value: ./rows/text()
+      variableName: o_rows
+↓file_utils [steps.SimpleStep-1754559698275]: 
+  expression: |
+    'function get_file_name(file_path){
+    	if(file_path != ""){
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path){
+    	if(file_path != ""){
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+     		if(file_path.indexOf(".//") != -1){
+      			file_path = project_directory_path + file_path.substring(3);
+    		}
+     		else if(file_path.indexOf("./") != -1){
+      			file_path = project_directory_path + "../" + file_path.substring(2);
+    		}
+    	}
+    	return file_path;
+    }
+    
+    function get_file_url(project_name, file_name){
+    	var c8o_url = context.parentContext ? context.parentContext.getConvertigoUrl() : context.getConvertigoUrl();
+    	var c8o_project = context.parentContext ? context.parentContext.getProjectName() : context.getProjectName();
+    	return c8o_url + "projects/" + c8o_project + "/" + file_name;
+    }
+    
+    function isBinary(){
+    	//return true;
+    	return isBinary = context.httpServletRequest.getServletPath() && context.httpServletRequest.getServletPath().endsWith(''.bin'') && context.parentContext == null ? true : false;
+    }'
+↓booktypes [steps.SimpleStep-1754554765866]: 
+  expression: |
+    'var book_types = {
+      "xlsx": {
+        "extension": ".xlsx",
+        "sheets": "multi",
+        "Description": "Excel 2007+ XML Format"
+      },
+      "xlsm": {
+        "extension": ".xlsm",
+        "sheets": "multi",
+        "Description": "Excel 2007+ Macro XML Format"
+      },
+      "xlsb": {
+        "extension": ".xlsb",
+        "sheets": "multi",
+        "Description": "Excel 2007+ Binary Format"
+      },
+      "biff8": {
+        "extension": ".xls",
+        "sheets": "multi",
+        "Description": "Excel 97-2004 Workbook Format"
+      },
+      "biff5": {
+        "extension": ".xls",
+        "sheets": "multi",
+        "Description": "Excel 5.0/95 Workbook Format"
+      },
+      "biff4": {
+        "extension": ".xls",
+        "sheets": "single",
+        "Description": "Excel 4.0 Worksheet Format"
+      },
+      "biff3": {
+        "extension": ".xls",
+        "sheets": "single",
+        "Description": "Excel 3.0 Worksheet Format"
+      },
+      "biff2": {
+        "extension": ".xls",
+        "sheets": "single",
+        "Description": "Excel 2.0 Worksheet Format"
+      },
+      "xlml": {
+        "extension": ".xls",
+        "sheets": "multi",
+        "Description": "Excel 2003-2004 (SpreadsheetML)"
+      },
+      "numbers": {
+        "extension": ".numbers",
+        "sheets": "multi",
+        "Description": "Numbers 3.0+ Spreadsheet"
+      },
+      "ods": {
+        "extension": ".ods",
+        "sheets": "multi",
+        "Description": "OpenDocument Spreadsheet"
+      },
+      "fods": {
+        "extension": ".fods",
+        "sheets": "multi",
+        "Description": "Flat OpenDocument Spreadsheet"
+      },
+      "wk3": {
+        "extension": ".wk3",
+        "sheets": "multi",
+        "Description": "Lotus Workbook (WK3)"
+      },
+      "csv": {
+        "extension": ".csv",
+        "sheets": "single",
+        "Description": "Comma Separated Values"
+      },
+      "txt": {
+        "extension": ".txt",
+        "sheets": "single",
+        "Description": "UTF-16 Unicode Text (TXT)"
+      },
+      "sylk": {
+        "extension": ".sylk",
+        "sheets": "single",
+        "Description": "Symbolic Link (SYLK)"
+      },
+      "html": {
+        "extension": ".html",
+        "sheets": "single",
+        "Description": "HTML Document"
+      },
+      "dif": {
+        "extension": ".dif",
+        "sheets": "single",
+        "Description": "Data Interchange Format (DIF)"
+      },
+      "dbf": {
+        "extension": ".dbf",
+        "sheets": "single",
+        "Description": "dBASE II + VFP Extensions (DBF)"
+      },
+      "wk1": {
+        "extension": ".wk1",
+        "sheets": "single",
+        "Description": "Lotus Worksheet (WK1)"
+      },
+      "rtf": {
+        "extension": ".rtf",
+        "sheets": "single",
+        "Description": "Rich Text Format (RTF)"
+      },
+      "prn": {
+        "extension": ".prn",
+        "sheets": "single",
+        "Description": "Lotus Formatted Text"
+      },
+      "eth": {
+        "extension": ".eth",
+        "sheets": "single",
+        "Description": "Ethercalc Record Format (ETH)"
+      }
+    }
+    '
+↓write_xlsx [steps.SimpleStep-1754554765869]: 
+  expression: |
+    '//include(''SheetJS/Shim.js'');
+    //include(''SheetJS/SheetJS.js'');
+    include(''SheetJS/shim.min.js'');
+    include(''SheetJS/xlsx.full.min.js'');
+    
+    var is_success = true;
+    var _error_code = "-1";
+    var _error_msg = "";
+    var _error_stack = "";
+    
+    book_type = (book_type != null) && book_type != "" ? book_type : "xlsx";
+    ext = book_types[book_type] != null && book_types[book_type] != "" ? book_types[book_type]["extension"] : ".xlsx";
+    output_filename = output_filename != null && output_filename != "" ? output_filename : "output" + ext;
+    var output_file = get_full_path(output_filename);
+    var file_name = get_file_name(output_file);
+    var url_file = get_file_url("", file_name);
+    
+    function parseDateWithFormat(dateStr, format) {
+    	if (!dateStr) return null;
+    
+    	// ✅ 1. Si aucun format fourni, on tente ISO standard
+    	if (!format) {
+    		var isoDate = new Date(dateStr);
+    		return isNaN(isoDate.getTime()) ? null : isoDate;
+    	}
+    
+    	// ✅ 2. Sinon, parser manuellement selon le format
+    	var parts = dateStr.match(/\d+/g);
+    	if (!parts) return null;
+    
+    	var fmt = format.toUpperCase().match(/(YYYY|MM|DD|HH|mm|ss)/g);
+    	if (!fmt || fmt.length !== parts.length) return null;
+    
+    	var dateParts = {
+    		YYYY: 1970,
+    		MM: 1,
+    		DD: 1,
+    		HH: 0,
+    		mm: 0,
+    		ss: 0
+    	};
+    
+    	for (var i = 0; i < fmt.length; i++) {
+    		var key = fmt[i];
+    		var val = parseInt(parts[i], 10);
+    		if (isNaN(val)) return null;
+    		dateParts[key] = val;
+    	}
+    
+    	var d = new Date(
+    		dateParts["YYYY"],
+    		dateParts["MM"] - 1,
+    		dateParts["DD"],
+    		dateParts["HH"],
+    		dateParts["mm"],
+    		dateParts["ss"]
+    	);
+    
+    	return isNaN(d.getTime()) ? null : d;
+    }
+    
+    try {
+    	var wb = XLSX.utils.book_new();
+    
+    	for (var i = 0; i < o_rows.sheets.length; i++) {
+    		var sheet = o_rows.sheets[i];
+    		var rows = [];
+    
+    		// Add header row
+    		if (sheet.header && sheet.header.value) {
+    			rows.push(sheet.header.value);
+    		}
+    		
+    		// Add data rows
+    		for (var r = 0; r < sheet.data.length; r++) {
+    			var row = [];
+    	
+    			for (var c = 0; c < sheet.data[r].length; c++) {
+    				var cell = sheet.data[r][c];
+    				var typedCell;
+    	
+    				switch (cell.type) {
+    					case "date":
+    						var parsed = parseDateWithFormat(cell.value, cell.inputFormat);
+    				
+    						if (!parsed) {
+    							typedCell = {
+    								t: "s",
+    								v: String((cell.value !== undefined && cell.value !== null) ? cell.value : "")
+    							};
+    						} else {
+    							typedCell = {
+    								t: "d",
+    								v: parsed,
+    								z: cell.excelFormat || "yyyy-mm-dd hh:mm:ss"
+    							};
+    						}
+    						break;
+    				
+    					case "number":
+    						var parsedNumber = Number(cell.value);
+    						typedCell = isNaN(parsedNumber)
+    							? { t: "s", v: String((cell.value !== undefined && cell.value !== null) ? cell.value : "") }
+    							: { t: "n", v: parsedNumber };
+    						break;
+    				
+    					case "boolean":
+    						var val = String(cell.value).toLowerCase().trim();
+    						typedCell = {
+    							t: "b",
+    							v: val === "true" || val === "1"
+    						};
+    						break;
+    				
+    					default:
+    						typedCell = {
+    							t: "s",
+    							v: String((cell.value !== undefined && cell.value !== null) ? cell.value : "")
+    						};
+    				}
+    				row.push(typedCell);
+    			}
+    	
+    			rows.push(row);
+    		}
+    
+    		// Convert to worksheet
+    		var ws = XLSX.utils.aoa_to_sheet(rows);
+    		
+    		// Optional: Apply header style
+    		/*if (sheet.header && sheet.header.style) {
+    			var hdr = sheet.header;
+    			for (var c = 0; c < hdr.value.length; c++) {
+    				var cellAddress = XLSX.utils.encode_cell({ r: 0, c: c });
+    				if (!ws[cellAddress]) continue;
+    				ws[cellAddress].s = {
+    					fill: { fgColor: { rgb: hdr.style.bgColor.replace("#", "") } },
+    					alignment: { horizontal: hdr.style.HAlign.toLowerCase() },
+    					font: { bold: hdr.style.fontStyle === "BOLD" }
+    				};
+    			}
+    		}*/
+    		
+    		XLSX.utils.book_append_sheet(wb, ws, sheet.name || "Sheet" + (i + 1));
+    	}
+    
+    	// Write to base64 and save via Java
+    	var output = XLSX.write(wb, { bookType: book_type, type: "base64", cellStyles: true });
+    	ba = com.twinsoft.convertigo.engine.util.Base64.decode(output);
+    	org.apache.commons.io.FileUtils.writeByteArrayToFile(new java.io.File(output_file), ba);
+    
+    } catch (e) {
+    	is_success = false;
+    	_error_msg = "Error while exporting data to Sheet";
+    	_error_stack = "" + e;
+    	log.warn("" + e);
+    }
+    '
+↓jIfThenElse [steps.IfThenElseStep-1754554765872]: 
+  condition: is_success
+  ↓jThen [steps.ThenStep-1754554765875]: 
+    ↓file [steps.JsonObjectStep-1754554765878]: 
+      key: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: PLAIN
+            - →→: file
+      ↓local_path [steps.JsonFieldStep-1754554765881]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: local_path
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: output_file
+      ↓url_path [steps.JsonFieldStep-1754554765884]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: url_path
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: url_file
+      ↓file_name [steps.JsonFieldStep-1754574448207]: 
+        key: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: PLAIN
+              - →→: file_name
+        value: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: file_name
+    ↓jIf [steps.IfStep-1754561276454]: 
+      condition: isBinary()
+      ↓IfFileExists [steps.IfFileExistStep-1754561422670]: 
+        condition: output_file
+        ↓Element [steps.XMLElementStep-1754561444843]: 
+          nodeName: attachment
+          ↓jAttribute [steps.AttributeStep-1754561444846]: 
+            expression: '"attachment"'
+            nodeName: type
+          ↓jAttribute1 [steps.AttributeStep-1754561444849]: 
+            expression: file_name
+            nodeName: name
+          ↓jAttribute11 [steps.AttributeStep-1754561444852]: 
+            expression: output_file
+            nodeName: local-url
+          ↓jAttribute2 [steps.AttributeStep-1754561444855]: 
+            expression: '"application/octet-stream"'
+            nodeName: content-type
+  ↓jElse [steps.ElseStep-1754554765887]: 
+    ↓Error_structure [steps.XMLErrorStep-1754570268736]: 
+      code: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: JS
+            - →→: _error_code
+      details: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: JS
+            - →→: _error_stack
+      message: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+          - SmartType: 
+            - ↑mode: JS
+            - →→: _error_msg
+↓success [steps.JsonFieldStep-1754554765893]: 
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: success
+  value: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: is_success
+↓rows [variables.RequestableVariable-1754554765896]: 
+  comment: |
+    'Structured object as follow: 
+    
+    {
+    	"sheets":
+    	[
+    		"name": "&lt;Sheet name&gt;",
+    		"header": 
+    		{
+    			"style": //Optional
+    			{
+    				"bgColor": "&lt;Background color&gt;",
+    				"HAlign": "&lt;Horizontal alignment&gt;",
+    				"VAlign": "&lt;Vertical alignment&gt;",
+    				"fontName": "&lt;Font name&gt;",
+    				"fontStyle": "&lt;Font style&gt;",
+    				"fontColor": "&lt;Font color&gt;",
+    				"fontSize": "&lt;Font size&gt;"
+    			},
+    			"value": [&lt;Array of strings&gt;]
+    		},
+    		"data":
+    		[
+    			[
+    				{
+    					"value" : "&lt;Cell content&gt;",
+    					"type": "&lt;Cell type&gt;"
+    				}
+    			]
+    		]
+    	]
+    }'
+↓output_filename [variables.RequestableVariable-1754554765899]: 
+  comment: |
+    'Output file path. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace pat'
+↓book_type [variables.RequestableVariable-1754554765905]: 
+  comment: Type of workbook to export to. Default is XLSX.
+  value: xlsx
+↓Test_Case [core.TestCase]: 
+  ↓rows [variables.TestCaseVariable-1754554765909]: 
+    value: '{ "sheets": [ { "name": "Books", "header": { "value": ["Title", "Author", "Year", "Available"] }, "data": [ [ { "value": "The Stranger", "type": "string" }, { "value": "Albert Camus", "type": "string" }, { "value": 1942, "type": "number" }, { "value": false, "type": "boolean" } ], [ { "value": "The Little Prince", "type": "string" }, { "value": "Antoine de Saint-Exupéry", "type": "string" }, { "value": 1943, "type": "number" }, { "value": false, "type": "boolean" } ], [ { "value": "Les Misérables", "type": "string" }, { "value": "Victor Hugo", "type": "string" }, { "value": 1862, "type": "number" }, { "value": true, "type": "boolean" } ] ] }, { "name": "Borrowings", "header": { "value": ["Name", "Book Title", "Borrowed On", "Due Date", "Returned"] }, "data": [ [ { "value": "Alice Martin", "type": "string" }, { "value": "The Little Prince", "type": "string" }, { "value": "2025-08-01T10:00:00", "type": "date" }, { "value": "2025-08-15T10:00:00", "type": "date" }, { "value": false, "type": "boolean" } ], [ { "value": "Bob Lefèvre", "type": "string" }, { "value": "Les Misérables", "type": "string" }, { "value": "2025-07-20T14:30:00", "type": "date" }, { "value": "2025-08-10T14:30:00", "type": "date" }, { "value": true, "type": "boolean" } ], [ { "value": "Chloé Dubois", "type": "string" }, { "value": "The Stranger", "type": "string" }, { "value": "2025-08-05T09:00:00", "type": "date" }, { "value": "2025-08-19T09:00:00", "type": "date" }, { "value": false, "type": "boolean" } ] ] } ] }'
+  ↓book_type [variables.TestCaseVariable-1754554765918]: 
+    value: xlsx
+  ↓output_filename [variables.TestCaseVariable-1754559631804]: 
+    value: .//outputs/books.xlsx
