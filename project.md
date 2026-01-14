@@ -577,12 +577,12 @@ Can be an absolute path or a relative Convertigo path:
 
 </p></blockquote></details>
 
-<details><summary><b>soffice_odt2pdf</b></summary><blockquote><p>
+<details><summary><b>soffice_odt2pdf</b> : Convert an ODT file to a PDF file using LibreOffice</summary><blockquote><p>
 
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") soffice_odt2pdf
 
-
+Convert an ODT file to a PDF file using LibreOffice
 
 <span style="color:DarkGoldenRod">Variables</span>
 
@@ -622,7 +622,7 @@ Can be an absolute path or a relative Convertigo path:
 <img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;soffice_path
 </td>
 <td>
-
+LibreOffice 'soffice' absolute path. Default is 'soffice'
 </td>
 </tr>
 </table>

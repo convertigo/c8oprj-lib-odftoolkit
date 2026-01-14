@@ -305,6 +305,8 @@ Can be an absolute path or a relative Convertigo path:
 
 ### soffice_odt2pdf
 
+Convert an ODT file to a PDF file using LibreOffice
+
 **variables**
 
 <table>
@@ -324,7 +326,7 @@ Can be an absolute path or a relative Convertigo path:
 "./" is relative to the workspace path.</td>
 </tr>
 <tr>
-<td>soffice_path</td><td></td>
+<td>soffice_path</td><td>LibreOffice 'soffice' absolute path. Default is 'soffice'</td>
 </tr>
 </table>
 

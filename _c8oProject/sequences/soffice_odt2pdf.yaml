@@ -1,3 +1,4 @@
+comment: Convert an ODT file to a PDF file using LibreOffice
 ↓converter [steps.SimpleStep-1768383988612]: 
   expression: |
     '// LibreOffice headless ODT -> PDF test (RhinoJS)
@@ -203,6 +204,8 @@
     "./" is relative to the workspace path.'
   required: true
 ↓soffice_path [variables.RequestableVariable-1768383988645]: 
+  comment: LibreOffice 'soffice' absolute path. Default is 'soffice'
+  value: soffice
 ↓Test_Case [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1768383988649]: 
     required: true
