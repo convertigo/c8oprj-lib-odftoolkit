@@ -9,6 +9,21 @@ responseTimeout: 600
   ↓Process_execute2 [steps.ProcessExecStep-1742393702073]: 
     commandLine: '["sudo", "apt-get", "install", "-y", "fontconfig"]'
     output: true
+  ↓Process_execute3 [steps.ProcessExecStep-1768383620918]: 
+    commandLine: '["sudo", "apt-get", "install", "-y", "software-properties-common"]'
+    output: true
+  ↓Process_execute4 [steps.ProcessExecStep-1768383671511]: 
+    commandLine: '["sudo", "add-apt-repository", "universe"]'
+    output: true
+  ↓Process_execute1 [steps.ProcessExecStep-1768383612815]: 
+    commandLine: '["sudo", "apt-get", "update"]'
+    output: true
+  ↓Process_execute5 [steps.ProcessExecStep-1768383757703]: 
+    commandLine: '["sudo", "apt-get", "install", "-y", "libreoffice-writer", "libreoffice-core", "libreoffice-common"]'
+    output: true
+  ↓Process_execute6 [steps.ProcessExecStep-1768383892881]: 
+    commandLine: '["sudo", "apt-get", "install", "-y", "ttf-mscorefonts-installer", "fonts-dejavu", "fonts-liberation"]'
+    output: true
   ↓exit_status1 [steps.XMLConcatStep-1753353250028]: 
     nodeName: exit_status
     separator: 

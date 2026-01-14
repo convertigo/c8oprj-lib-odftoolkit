@@ -1,7 +1,7 @@
 ↑convertigo: 8.0.0.m006
 ↓lib_fill_odt_pdf [core.Project]: 
   comment: ODFToolkit and PDF library
-  version: 1.9.14
+  version: 1.9.15
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓clean_outputs [sequences.GenericSequence]: 🗏 sequences/clean_outputs.yaml
   ↓demo_export_data_to_sheet [sequences.GenericSequence]: 🗏 sequences/demo_export_data_to_sheet.yaml
@@ -15,6 +15,7 @@
   ↓init_config [sequences.GenericSequence]: 🗏 sequences/init_config.yaml
   ↓metadata_pdf [sequences.GenericSequence]: 🗏 sequences/metadata_pdf.yaml
   ↓odt2pdf [sequences.GenericSequence]: 🗏 sequences/odt2pdf.yaml
+  ↓soffice_odt2pdf [sequences.GenericSequence]: 🗏 sequences/soffice_odt2pdf.yaml
   ↓u_create_ods [sequences.GenericSequence]: 🗏 sequences/u_create_ods.yaml
   ↓u_create_odt [sequences.GenericSequence]: 🗏 sequences/u_create_odt.yaml
   ↓u_export_data_to_sheet [sequences.GenericSequence]: 🗏 sequences/u_export_data_to_sheet.yaml

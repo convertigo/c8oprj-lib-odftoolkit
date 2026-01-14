@@ -22,6 +22,7 @@ For more technical informations : [documentation](./project.md)
     - [init_config](#init_config)
     - [metadata_pdf](#metadata_pdf)
     - [odt2pdf](#odt2pdf)
+    - [soffice_odt2pdf](#soffice_odt2pdf)
     - [u_create_ods](#u_create_ods)
     - [u_create_odt](#u_create_odt)
     - [u_export_data_to_sheet](#u_export_data_to_sheet)
@@ -299,6 +300,31 @@ Can be an absolute path or a relative Convertigo path:
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 
 "./" is relative to the workspace path.</td>
+</tr>
+</table>
+
+### soffice_odt2pdf
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>input_filename</td><td>ODT input file name to convert. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>output_filename</td><td>PDF output file path. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>soffice_path</td><td></td>
 </tr>
 </table>
 

@@ -1,0 +1,232 @@
+↓converter [steps.SimpleStep-1768383988612]: 
+  expression: |
+    '// LibreOffice headless ODT -> PDF test (RhinoJS)
+    
+    var J = JavaImporter(
+    	java.io.File,
+    	java.lang.ProcessBuilder,
+    	java.util.concurrent.TimeUnit,
+    	java.io.BufferedReader,
+    	java.io.InputStreamReader,
+    	java.nio.file.Files,
+    	java.nio.file.StandardCopyOption,
+    	java.util.ArrayList,
+    	java.lang.String
+    );
+    
+    var _error = false;
+    var _error_code = "-1";
+    var _error_msg = "";
+    var _error_stack = "";
+    
+    function get_file_name(file_path) {
+    	if (file_path != "") {
+    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+    	}
+    }
+    
+    function get_full_path(file_path) {
+    	if (file_path != "") {
+    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+    		if (file_path.indexOf(".//") != -1) {
+    			file_path = project_directory_path + file_path.substring(3);
+    		}
+    		else if (file_path.indexOf("./") != -1) {
+    			file_path = project_directory_path + "../" + file_path.substring(2);
+    		}
+    	}
+    	return file_path;
+    }
+    
+    // Force tout en java.lang.String (évite ConsString)
+    function jstr(v) { return new J.String(String(v)); }
+    
+    function readStreamToString(is) {
+    	var br = new J.BufferedReader(new J.InputStreamReader(is));
+    	var sb = "";
+    	var line;
+    	while ((line = br.readLine()) != null) sb += line + "\n";
+    	return sb;
+    }
+    
+    function ensureDir(dirPath) {
+    	var d = new J.File(String(dirPath));
+    	if (!d.exists()) d.mkdirs();
+    	return d;
+    }
+    
+    function baseName(filename) {
+    	// retire la dernière extension
+    	return String(filename).replace(/\.[^.]+$/, "");
+    }
+    
+    function convertWithLibreOffice(inputPath, outputPdfPath, sofficeCmd, timeoutSeconds) {
+    	sofficeCmd = sofficeCmd || "soffice";
+    	timeoutSeconds = timeoutSeconds || 120;
+    
+    	var inFile = new J.File(String(inputPath));
+    	if (!inFile.exists()) throw "Input file not found: " + inputPath;
+    
+    	var outFile = new J.File(String(outputPdfPath));
+    	var outDir = ensureDir(outFile.getParentFile().getAbsolutePath());
+    
+    	var expectedPdf = new J.File(outDir, baseName(inFile.getName()) + ".pdf");
+    
+    	var profileDir = ensureDir(new J.File(outDir, ".lo-profile-" + new Date().getTime()).getAbsolutePath());
+    	var profileUrl = "file:///" + String(profileDir.getAbsolutePath()).replace(/\\/g, "/");
+    
+    	if (expectedPdf.exists()) expectedPdf["delete"]();
+    	if (outFile.exists()) outFile["delete"]();
+    
+    	// ✅ PATCH: construire une java.util.ArrayList<String> (pas un tableau JS)
+    	var cmd = new J.ArrayList();
+    	cmd.add(jstr(sofficeCmd));
+    	cmd.add(jstr("--headless"));
+    	cmd.add(jstr("--nologo"));
+    	cmd.add(jstr("--nofirststartwizard"));
+    	cmd.add(jstr("--norestore"));
+    	cmd.add(jstr("-env:UserInstallation=" + profileUrl));
+    	cmd.add(jstr("--convert-to"));
+    	cmd.add(jstr("pdf"));
+    	cmd.add(jstr("--outdir"));
+    	cmd.add(jstr(outDir.getAbsolutePath()));
+    	cmd.add(jstr(inFile.getAbsolutePath()));
+    
+    	// log lisible
+    	// (cmd.toString() met des [] et des virgules, mais c''est ok)
+    	log.warn("Running:\n  " + String(cmd.toString()));
+    
+    	// ✅ PATCH: ProcessBuilder(List<String>)
+    	var pb = new J.ProcessBuilder(cmd);
+    	pb.redirectErrorStream(true);
+    
+    	var p = pb.start();
+    
+    	var finished = p.waitFor(timeoutSeconds, J.TimeUnit.SECONDS);
+    	var out = readStreamToString(p.getInputStream());
+    
+    	if (!finished) {
+    		try { p.destroyForcibly(); } catch (ignore) { }
+    		throw "LibreOffice timed out.\nOutput:\n" + out;
+    	}
+    
+    	var code = p.exitValue();
+    	if (code != 0) {
+    		throw "LibreOffice failed with code=" + code + "\nOutput:\n" + out;
+    	}
+    
+    	if (!expectedPdf.exists()) {
+    		throw "LibreOffice did not produce expected PDF: " + expectedPdf.getAbsolutePath() + "\nOutput:\n" + out;
+    	}
+    
+    	if (expectedPdf.getAbsolutePath() != outFile.getAbsolutePath()) {
+    		var ok = expectedPdf.renameTo(outFile);
+    		if (!ok) {
+    			J.Files.copy(expectedPdf.toPath(), outFile.toPath(), J.StandardCopyOption.REPLACE_EXISTING);
+    			expectedPdf["delete"]();
+    		}
+    	}
+    
+    	log.warn("OK: " + outFile.getAbsolutePath());
+    	return outFile.getAbsolutePath();
+    }
+    
+    /* =========================
+       
+       ========================= */
+    
+    var SOFFICE = get_full_path(soffice_path); // ou "soffice"
+    
+    var INPUT_ODT = get_full_path(input_filename);
+    var OUTPUT_PDF = get_full_path(output_filename);
+    var FILE_NAME = get_file_name(output_filename);
+    
+    try {
+    	var pdf = convertWithLibreOffice(INPUT_ODT, OUTPUT_PDF, SOFFICE, 120);
+    	log.warn("✅ PDF generated: " + pdf);
+    } catch (e) {
+    	log.warn("❌ Error: " + e);
+    	_error = true;
+    	_error_code = "-1";
+    	_error_msg = "ERROR: converting file ''" + INPUT_ODT + "''";
+    	_error_stack = "" + e;
+    }
+    '
+↓jIf [steps.IfStep-1768383988615]: 
+  condition: _error == true
+  ↓Error_structure [steps.XMLErrorStep-1768383988618]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_code
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_stack
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_msg
+  ↓Return [steps.ReturnStep-1768383988621]: 
+↓Element [steps.XMLElementStep-1768383988624]: 
+  nodeName: attachment
+  ↓jAttribute [steps.AttributeStep-1768383988627]: 
+    expression: '"attachment"'
+    nodeName: type
+  ↓jAttribute1 [steps.AttributeStep-1768383988630]: 
+    expression: FILE_NAME
+    nodeName: name
+  ↓jAttribute11 [steps.AttributeStep-1768383988633]: 
+    expression: OUTPUT_PDF
+    nodeName: local-url
+  ↓jAttribute2 [steps.AttributeStep-1768383988636]: 
+    expression: '"application/octet-stream"'
+    nodeName: content-type
+↓input_filename [variables.RequestableVariable-1768383988639]: 
+  comment: |
+    'ODT input file name to convert. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓output_filename [variables.RequestableVariable-1768383988642]: 
+  comment: |
+    'PDF output file path. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓soffice_path [variables.RequestableVariable-1768383988645]: 
+↓Test_Case [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1768383988649]: 
+    required: true
+    value: .//out/new_file_cerfa.odt
+  ↓output_filename [variables.TestCaseVariable-1768383988652]: 
+    required: true
+    value: .//out/new_file_cerfa.pdf
+  ↓soffice_path [variables.TestCaseVariable-1768383988655]: 
+    value: C:/Program Files/LibreOffice/program/soffice.exe
+↓Test_Case1 [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1768383988659]: 
+    required: true
+    value: C:/TMP/01_Certificat_ENS_HF.odt
+  ↓output_filename [variables.TestCaseVariable-1768383988662]: 
+    required: true
+    value: C:/TMP/test_20260113_1742.pdf
+  ↓soffice_path [variables.TestCaseVariable-1768383988665]: 
+    value: C:/Program Files/LibreOffice/program/soffice.exe
+↓Test_Case2 [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1768384027828]: 
+    required: true
+    value: /home/convertigo/01_Certificat_ENS-2426-02012026.odt
+  ↓output_filename [variables.TestCaseVariable-1768384027830]: 
+    required: true
+    value: /home/convertigo/zefinalpdf.pdf
+  ↓soffice_path [variables.TestCaseVariable-1768384027832]: 
+    value: soffice
