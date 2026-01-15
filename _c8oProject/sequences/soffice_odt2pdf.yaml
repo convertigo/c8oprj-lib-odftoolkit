@@ -20,6 +20,10 @@ comment: Convert an ODT file to a PDF file using LibreOffice
     var _error_msg = "";
     var _error_stack = "";
     
+    // ------------------------------------------------------------
+    // Utils
+    // ------------------------------------------------------------
+    
     function get_file_name(file_path) {
     	if (file_path != "") {
     		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
@@ -37,6 +41,77 @@ comment: Convert an ODT file to a PDF file using LibreOffice
     		}
     	}
     	return file_path;
+    }
+    
+    function toFileURI(path) {
+        return "file:///" + String(path)
+            .replace(/\\/g, "/")
+            .replace(/ /g, "%20");
+    }
+    
+    function createTempProfile() {
+        var base = java.lang.System.getProperty("java.io.tmpdir");
+        log.warn("TEMP DIR: " + base);
+        var profile = new J.File(base, "lo-profile-" + new Date().getTime());
+        profile.mkdirs();
+        return profile;
+    }
+    
+    // ------------------------------------------------------------
+    // Suppression sécurisée du profil temporaire
+    // ------------------------------------------------------------
+    
+    function deleteDirectoryRecursive(dir) {
+        if (dir == null) return false;
+    
+        try {
+            var files = dir.listFiles();
+            if (files != null) {
+                for (var i = 0; i < files.length; i++) {
+                    var f = files[i];
+                    try {
+                        if (f.isDirectory()) {
+                            deleteDirectoryRecursive(f);
+                        } else {
+                            f["delete"]();
+                        }
+                    } catch (inner) {
+                        log.warn("⚠️ Failed to delete file: " + f.getAbsolutePath() + " -> " + inner);
+                    }
+                }
+            }
+            return dir["delete"]();
+        } catch (e) {
+            log.warn("⚠️ Failed to delete directory: " + dir.getAbsolutePath() + " -> " + e);
+            return false;
+        }
+    }
+    
+    function deleteTempProfile(profileDir) {
+        if (profileDir == null) return false;
+    
+        try {
+            var tmpBase = new J.File(java.lang.System.getProperty("java.io.tmpdir")).getCanonicalFile();
+            var target = profileDir.getCanonicalFile();
+    
+            // Vérifie que le dossier est bien dans le répertoire temporaire
+            if (!target.getPath().startsWith(tmpBase.getPath())) {
+                log.warn("❌ Refusing to delete non-temp directory: " + target);
+                return false;
+            }
+    
+            // Vérifie que ce n’est pas un lien symbolique
+            if (!target.getAbsolutePath().equals(target.getCanonicalPath())) {
+                log.warn("❌ Refusing to delete symlink: " + target);
+                return false;
+            }
+    
+            return deleteDirectoryRecursive(target);
+    
+        } catch (e) {
+            log.warn("⚠️ Error validating temp profile deletion: " + e);
+            return false;
+        }
     }
     
     // Force tout en java.lang.String (évite ConsString)
@@ -61,80 +136,89 @@ comment: Convert an ODT file to a PDF file using LibreOffice
     	return String(filename).replace(/\.[^.]+$/, "");
     }
     
+    // ------------------------------------------------------------
+    // Conversion LibreOffice
+    // ------------------------------------------------------------
+    
     function convertWithLibreOffice(inputPath, outputPdfPath, sofficeCmd, timeoutSeconds) {
-    	sofficeCmd = sofficeCmd || "soffice";
-    	timeoutSeconds = timeoutSeconds || 120;
+        sofficeCmd = sofficeCmd || "soffice";
+        timeoutSeconds = timeoutSeconds || 120;
     
-    	var inFile = new J.File(String(inputPath));
-    	if (!inFile.exists()) throw "Input file not found: " + inputPath;
+        var profileDir = null;
     
-    	var outFile = new J.File(String(outputPdfPath));
-    	var outDir = ensureDir(outFile.getParentFile().getAbsolutePath());
+        try {
+            var inFile = new J.File(String(inputPath));
+            if (!inFile.exists()) throw "Input file not found: " + inputPath;
     
-    	var expectedPdf = new J.File(outDir, baseName(inFile.getName()) + ".pdf");
+            var outFile = new J.File(String(outputPdfPath));
+            var outDir = ensureDir(outFile.getParentFile().getAbsolutePath());
     
-    	var profileDir = ensureDir(new J.File(outDir, ".lo-profile-" + new Date().getTime()).getAbsolutePath());
-    	var profileUrl = "file:///" + String(profileDir.getAbsolutePath()).replace(/\\/g, "/");
+            var expectedPdf = new J.File(outDir, baseName(inFile.getName()) + ".pdf");
     
-    	if (expectedPdf.exists()) expectedPdf["delete"]();
-    	if (outFile.exists()) outFile["delete"]();
+            profileDir = createTempProfile();
+            var profileUrl = toFileURI(profileDir.getAbsolutePath());
     
-    	// ✅ PATCH: construire une java.util.ArrayList<String> (pas un tableau JS)
-    	var cmd = new J.ArrayList();
-    	cmd.add(jstr(sofficeCmd));
-    	cmd.add(jstr("--headless"));
-    	cmd.add(jstr("--nologo"));
-    	cmd.add(jstr("--nofirststartwizard"));
-    	cmd.add(jstr("--norestore"));
-    	cmd.add(jstr("-env:UserInstallation=" + profileUrl));
-    	cmd.add(jstr("--convert-to"));
-    	cmd.add(jstr("pdf"));
-    	cmd.add(jstr("--outdir"));
-    	cmd.add(jstr(outDir.getAbsolutePath()));
-    	cmd.add(jstr(inFile.getAbsolutePath()));
+            if (expectedPdf.exists()) expectedPdf["delete"]();
+            if (outFile.exists()) outFile["delete"]();
     
-    	// log lisible
-    	// (cmd.toString() met des [] et des virgules, mais c''est ok)
-    	log.warn("Running:\n  " + String(cmd.toString()));
+            var cmd = new J.ArrayList();
+            cmd.add(jstr(sofficeCmd));
+            cmd.add(jstr("--headless"));
+            cmd.add(jstr("--nologo"));
+            cmd.add(jstr("--nofirststartwizard"));
+            cmd.add(jstr("--norestore"));
+            cmd.add(jstr("-env:UserInstallation=" + profileUrl));
+            cmd.add(jstr("--convert-to"));
+            cmd.add(jstr("pdf"));
+            cmd.add(jstr("--outdir"));
+            cmd.add(jstr(outDir.getAbsolutePath()));
+            cmd.add(jstr(toFileURI(inFile.getAbsolutePath())));
     
-    	// ✅ PATCH: ProcessBuilder(List<String>)
-    	var pb = new J.ProcessBuilder(cmd);
-    	pb.redirectErrorStream(true);
+            log.warn("Running:\n  " + String(cmd.toString()));
     
-    	var p = pb.start();
+            var pb = new J.ProcessBuilder(cmd);
+            pb.redirectErrorStream(true);
     
-    	var finished = p.waitFor(timeoutSeconds, J.TimeUnit.SECONDS);
-    	var out = readStreamToString(p.getInputStream());
+            var p = pb.start();
+            var finished = p.waitFor(timeoutSeconds, J.TimeUnit.SECONDS);
+            var out = readStreamToString(p.getInputStream());
     
-    	if (!finished) {
-    		try { p.destroyForcibly(); } catch (ignore) { }
-    		throw "LibreOffice timed out.\nOutput:\n" + out;
-    	}
+            if (!finished) {
+                try { p.destroyForcibly(); } catch (ignore) {}
+                throw "LibreOffice timed out.\nOutput:\n" + out;
+            }
     
-    	var code = p.exitValue();
-    	if (code != 0) {
-    		throw "LibreOffice failed with code=" + code + "\nOutput:\n" + out;
-    	}
+            var code = p.exitValue();
+            if (code != 0) {
+                throw "LibreOffice failed with code=" + code + "\nOutput:\n" + out;
+            }
     
-    	if (!expectedPdf.exists()) {
-    		throw "LibreOffice did not produce expected PDF: " + expectedPdf.getAbsolutePath() + "\nOutput:\n" + out;
-    	}
+            if (!expectedPdf.exists()) {
+                throw "LibreOffice did not produce expected PDF: " + expectedPdf.getAbsolutePath() + "\nOutput:\n" + out;
+            }
     
-    	if (expectedPdf.getAbsolutePath() != outFile.getAbsolutePath()) {
-    		var ok = expectedPdf.renameTo(outFile);
-    		if (!ok) {
-    			J.Files.copy(expectedPdf.toPath(), outFile.toPath(), J.StandardCopyOption.REPLACE_EXISTING);
-    			expectedPdf["delete"]();
-    		}
-    	}
+            if (expectedPdf.getAbsolutePath() != outFile.getAbsolutePath()) {
+                var ok = expectedPdf.renameTo(outFile);
+                if (!ok) {
+                    J.Files.copy(expectedPdf.toPath(), outFile.toPath(), J.StandardCopyOption.REPLACE_EXISTING);
+                    expectedPdf["delete"]();
+                }
+            }
     
-    	log.warn("OK: " + outFile.getAbsolutePath());
-    	return outFile.getAbsolutePath();
+            log.warn("OK: " + outFile.getAbsolutePath());
+            return outFile.getAbsolutePath();
+    
+        } finally {
+            if (profileDir != null) {
+                log.warn("🧹 Cleaning temp profile: " + profileDir.getAbsolutePath());
+                deleteTempProfile(profileDir);
+            }
+        }
     }
     
-    /* =========================
-       
-       ========================= */
+    // ------------------------------------------------------------
+    // Entrées / Exécution
+    // ------------------------------------------------------------
     
     var SOFFICE = get_full_path(soffice_path); // ou "soffice"
     
@@ -209,10 +293,10 @@ comment: Convert an ODT file to a PDF file using LibreOffice
 ↓Test_Case [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1768383988649]: 
     required: true
-    value: .//out/new_file_cerfa.odt
+    value: .//outputs/test_ens.odt
   ↓output_filename [variables.TestCaseVariable-1768383988652]: 
     required: true
-    value: .//out/new_file_cerfa.pdf
+    value: .//outputs/test_ens.pdf
   ↓soffice_path [variables.TestCaseVariable-1768383988655]: 
     value: C:/Program Files/LibreOffice/program/soffice.exe
 ↓Test_Case1 [core.TestCase]: 
