@@ -495,6 +495,9 @@ It will output an attachment structure and if you call it with .bin requester it
 <th>name</th><th>comment</th>
 </tr>
 <tr>
+<td>break_before</td><td>Define the BreakBefore table style property. Can be 'auto', 'column' or 'page'. Default is set to 'page'.</td>
+</tr>
+<tr>
 <td>input_filename</td><td>ODT input template file name to fill. 
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 

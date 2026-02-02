@@ -328,7 +328,7 @@ responseTimeout: 120
     							}
     							var odfTable = table1.getOdfElement();
     							var odfTableStyle = odfTable.getAutomaticStyle();
-    							odfTableStyle.setProperty(OdfTableProperties.BreakBefore, "page");
+    							odfTableStyle.setProperty(OdfTableProperties.BreakBefore, ((break_before && break_before != "") ? break_before : "page"));
     							//odfTableStyle.setProperty(OdfTableProperties.BreakAfter, "page");
     							odfTableStyle.setProperty(OdfTableProperties.KeepWithNext, "false");
     							item.replaceWith(fdoc.getTableByName("table1"));
@@ -406,6 +406,9 @@ responseTimeout: 120
   comment: Path of the ODT file containing a table to use as a template.
 ↓table_template_name [variables.RequestableVariable-1743417393721]: 
   comment: Name of the template table.
+↓break_before [variables.RequestableVariable-1770026149173]: 
+  comment: Define the BreakBefore table style property. Can be 'auto', 'column' or 'page'. Default is set to 'page'.
+  value: page
 ↓Test_Case_marker_img [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1739973840643]: 
     required: true
