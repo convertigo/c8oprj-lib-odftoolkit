@@ -208,7 +208,7 @@ comment: |
     '//include(''SheetJS/Shim.js'');
     //include(''SheetJS/SheetJS.js'');
     include(''SheetJS/shim.min.js'');
-    include(''SheetJS/xlsx.full.min.js'');
+    include(''SheetJS/xlsx.style.min.js'');
     
     var is_success = true;
     var _error_code = "-1";
@@ -334,19 +334,47 @@ comment: |
     		// Convert to worksheet
     		var ws = XLSX.utils.aoa_to_sheet(rows);
     		
-    		// Optional: Apply header style
-    		/*if (sheet.header && sheet.header.style) {
+    		if (sheet.header && sheet.header.style) {
     			var hdr = sheet.header;
+    			var hstyle = hdr.style || {};
     			for (var c = 0; c < hdr.value.length; c++) {
     				var cellAddress = XLSX.utils.encode_cell({ r: 0, c: c });
     				if (!ws[cellAddress]) continue;
-    				ws[cellAddress].s = {
-    					fill: { fgColor: { rgb: hdr.style.bgColor.replace("#", "") } },
-    					alignment: { horizontal: hdr.style.HAlign.toLowerCase() },
-    					font: { bold: hdr.style.fontStyle === "BOLD" }
-    				};
+    
+    				var cellStyle = {};
+    				if (hstyle.bgColor) {
+    					cellStyle.fill = {
+    						patternType: "solid",
+    						fgColor: { rgb: String(hstyle.bgColor).replace("#", "") }
+    					};
+    				}
+    
+    				var alignment = {};
+    				if (hstyle.HAlign) alignment.horizontal = String(hstyle.HAlign).toLowerCase();
+    				if (hstyle.VAlign) alignment.vertical = String(hstyle.VAlign).toLowerCase();
+    				if (Object.keys(alignment).length) {
+    					cellStyle.alignment = alignment;
+    				}
+    
+    				var font = {};
+    				if (hstyle.fontName) font.name = String(hstyle.fontName);
+    				if (hstyle.fontColor) font.color = { rgb: String(hstyle.fontColor).replace("#", "") };
+    				if (hstyle.fontSize) {
+    					var fsize = Number(hstyle.fontSize);
+    					if (!isNaN(fsize)) font.sz = fsize;
+    				}
+    				if (hstyle.fontStyle) {
+    					var fstyle = String(hstyle.fontStyle).toUpperCase();
+    					font.bold = fstyle.indexOf("BOLD") !== -1;
+    					font.italic = fstyle.indexOf("ITALIC") !== -1;
+    				}
+    				if (Object.keys(font).length) {
+    					cellStyle.font = font;
+    				}
+    
+    				ws[cellAddress].s = cellStyle;
     			}
-    		}*/
+    		}
     		
     		XLSX.utils.book_append_sheet(wb, ws, sheet.name || "Sheet" + (i + 1));
     	}
@@ -507,7 +535,167 @@ comment: |
   value: xlsx
 ↓Test_Case [core.TestCase]: 
   ↓rows [variables.TestCaseVariable-1754554765909]: 
-    value: '{ "sheets": [ { "name": "Books", "header": { "value": ["Title", "Author", "Year", "Available"] }, "data": [ [ { "value": "The Stranger", "type": "string" }, { "value": "Albert Camus", "type": "string" }, { "value": 1942, "type": "number" }, { "value": false, "type": "boolean" } ], [ { "value": "The Little Prince", "type": "string" }, { "value": "Antoine de Saint-Exupéry", "type": "string" }, { "value": 1943, "type": "number" }, { "value": false, "type": "boolean" } ], [ { "value": "Les Misérables", "type": "string" }, { "value": "Victor Hugo", "type": "string" }, { "value": 1862, "type": "number" }, { "value": true, "type": "boolean" } ] ] }, { "name": "Borrowings", "header": { "value": ["Name", "Book Title", "Borrowed On", "Due Date", "Returned"] }, "data": [ [ { "value": "Alice Martin", "type": "string" }, { "value": "The Little Prince", "type": "string" }, { "value": "2025-08-01T10:00:00", "type": "date" }, { "value": "2025-08-15T10:00:00", "type": "date" }, { "value": false, "type": "boolean" } ], [ { "value": "Bob Lefèvre", "type": "string" }, { "value": "Les Misérables", "type": "string" }, { "value": "2025-07-20T14:30:00", "type": "date" }, { "value": "2025-08-10T14:30:00", "type": "date" }, { "value": true, "type": "boolean" } ], [ { "value": "Chloé Dubois", "type": "string" }, { "value": "The Stranger", "type": "string" }, { "value": "2025-08-05T09:00:00", "type": "date" }, { "value": "2025-08-19T09:00:00", "type": "date" }, { "value": false, "type": "boolean" } ] ] } ] }'
+    value: |
+      '{
+          "sheets": [
+              {
+                  "name": "Books",
+                  "header": {
+                  	"style": {
+      		          "bgColor": "#1F4E78",
+      		          "HAlign": "CENTER",
+      		          "VAlign": "CENTER",
+      		          "fontName": "Calibri",
+      		          "fontStyle": "BOLD",
+      		          "fontColor": "#FFFFFF",
+      		          "fontSize": "14"
+              		},
+                      "value": [
+                          "Title",
+                          "Author",
+                          "Year",
+                          "Available"
+                      ]
+                  },
+                  "data": [
+                      [
+                          {
+                              "value": "The Stranger",
+                              "type": "string"
+                          },
+                          {
+                              "value": "Albert Camus",
+                              "type": "string"
+                          },
+                          {
+                              "value": 1942,
+                              "type": "number"
+                          },
+                          {
+                              "value": false,
+                              "type": "boolean"
+                          }
+                      ],
+                      [
+                          {
+                              "value": "The Little Prince",
+                              "type": "string"
+                          },
+                          {
+                              "value": "Antoine de Saint-Exupéry",
+                              "type": "string"
+                          },
+                          {
+                              "value": 1943,
+                              "type": "number"
+                          },
+                          {
+                              "value": false,
+                              "type": "boolean"
+                          }
+                      ],
+                      [
+                          {
+                              "value": "Les Misérables",
+                              "type": "string"
+                          },
+                          {
+                              "value": "Victor Hugo",
+                              "type": "string"
+                          },
+                          {
+                              "value": 1862,
+                              "type": "number"
+                          },
+                          {
+                              "value": true,
+                              "type": "boolean"
+                          }
+                      ]
+                  ]
+              },
+              {
+                  "name": "Borrowings",
+                  "header": {
+                      "value": [
+                          "Name",
+                          "Book Title",
+                          "Borrowed On",
+                          "Due Date",
+                          "Returned"
+                      ]
+                  },
+                  "data": [
+                      [
+                          {
+                              "value": "Alice Martin",
+                              "type": "string"
+                          },
+                          {
+                              "value": "The Little Prince",
+                              "type": "string"
+                          },
+                          {
+                              "value": "2025-08-01T10:00:00",
+                              "type": "date"
+                          },
+                          {
+                              "value": "2025-08-15T10:00:00",
+                              "type": "date"
+                          },
+                          {
+                              "value": false,
+                              "type": "boolean"
+                          }
+                      ],
+                      [
+                          {
+                              "value": "Bob Lefèvre",
+                              "type": "string"
+                          },
+                          {
+                              "value": "Les Misérables",
+                              "type": "string"
+                          },
+                          {
+                              "value": "2025-07-20T14:30:00",
+                              "type": "date"
+                          },
+                          {
+                              "value": "2025-08-10T14:30:00",
+                              "type": "date"
+                          },
+                          {
+                              "value": true,
+                              "type": "boolean"
+                          }
+                      ],
+                      [
+                          {
+                              "value": "Chloé Dubois",
+                              "type": "string"
+                          },
+                          {
+                              "value": "The Stranger",
+                              "type": "string"
+                          },
+                          {
+                              "value": "2025-08-05T09:00:00",
+                              "type": "date"
+                          },
+                          {
+                              "value": "2025-08-19T09:00:00",
+                              "type": "date"
+                          },
+                          {
+                              "value": false,
+                              "type": "boolean"
+                          }
+                      ]
+                  ]
+              }
+          ]
+      }'
   ↓book_type [variables.TestCaseVariable-1754554765918]: 
     value: xlsx
   ↓output_filename [variables.TestCaseVariable-1754559631804]: 
