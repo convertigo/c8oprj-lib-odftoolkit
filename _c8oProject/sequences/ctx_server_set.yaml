@@ -1,0 +1,21 @@
+accessibility: Private
+autoStart: ${auto_start.init_done=false}
+comment: Set Name/Value in server
+↓set_in_server [steps.SimpleStep-1786005150207]: 
+  expression: |
+    'var proceed =
+        set_name  != null && set_name  !== "" &&
+        set_value != null && set_value !== "";
+    
+    var set_Ok = false;
+    
+    if (proceed) {
+        context.server.set(set_name, set_value);
+        set_Ok = context.server.get(set_name) === set_value;
+    }
+    
+    context.addTextNodeUnderRoot("success", set_Ok);'
+↓set_name [variables.RequestableVariable-1786005300257]: 
+  value: init_config
+↓set_value [variables.RequestableVariable-1786005316001]: 
+  value: done

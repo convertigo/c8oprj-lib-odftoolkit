@@ -11,6 +11,7 @@ For more technical informations : [documentation](./project.md)
 - [Installation](#installation)
 - [Sequences](#sequences)
     - [clean_outputs](#clean_outputs)
+    - [ctx_server_set](#ctx_server_set)
     - [demo_export_data_to_sheet](#demo_export_data_to_sheet)
     - [demo_u_fill_odt](#demo_u_fill_odt)
     - [demo_u_fill_pdf](#demo_u_fill_pdf)
@@ -20,6 +21,8 @@ For more technical informations : [documentation](./project.md)
     - [fill_pdf](#fill_pdf)
     - [getInstalledFonts](#getinstalledfonts)
     - [init_config](#init_config)
+    - [init_config_loop](#init_config_loop)
+    - [launch_pexec](#launch_pexec)
     - [metadata_pdf](#metadata_pdf)
     - [odt2pdf](#odt2pdf)
     - [soffice_odt2pdf](#soffice_odt2pdf)
@@ -74,6 +77,24 @@ Clean the generated files. Can be used in a Convertigo scheduled job to automate
 </tr>
 <tr>
 <td>target</td><td></td>
+</tr>
+</table>
+
+### ctx_server_set
+
+Set Name/Value in server
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>set_name</td><td></td>
+</tr>
+<tr>
+<td>set_value</td><td></td>
 </tr>
 </table>
 
@@ -173,6 +194,25 @@ Get installed Fonts
 ### init_config
 
 Auto start sequence to install some required fonts for Docker Linux Platform.
+
+### init_config_loop
+
+Auto start sequence to install some required fonts for Docker Linux Platform using launch_pexec loop.
+
+### launch_pexec
+
+Launch Process Exec
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>cmd_line</td><td></td>
+</tr>
+</table>
 
 ### metadata_pdf
 

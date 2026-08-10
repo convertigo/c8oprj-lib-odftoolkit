@@ -68,6 +68,44 @@ Define the maximum time in millisecond before deleting the file. Default is 8640
 
 </p></blockquote></details>
 
+<details><summary><b>ctx_server_set</b> : Set Name/Value in server</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") ctx_server_set
+
+Set Name/Value in server
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;set_name
+</td>
+<td>
+
+</td>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;set_value
+</td>
+<td>
+
+</td>
+</tr>
+</table>
+
+</p></blockquote></details>
+
 <details><summary><b>demo_export_data_to_sheet</b> : Demo sequence to create a spreadhseet filled with data</summary><blockquote><p>
 
 
@@ -271,6 +309,44 @@ Get installed Fonts
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") init_config
 
 Auto start sequence to install some required fonts for Docker Linux Platform.
+</p></blockquote></details>
+
+<details><summary><b>init_config_loop</b> : Auto start sequence to install some required fonts for Docker Linux Platform using launch_pexec loop</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") init_config_loop
+
+Auto start sequence to install some required fonts for Docker Linux Platform using launch_pexec loop.
+</p></blockquote></details>
+
+<details><summary><b>launch_pexec</b> : Launch Process Exec</summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") launch_pexec
+
+Launch Process Exec
+
+<span style="color:DarkGoldenRod">Variables</span>
+
+<table>
+<tr>
+<th>
+name
+</th>
+<th>
+comment
+</th>
+</tr>
+<tr>
+<td>
+<img src="https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/variables/images/variable_color_16x16.png?raw=true "  alt="RequestableVariable" >&nbsp;cmd_line
+</td>
+<td>
+
+</td>
+</tr>
+</table>
+
 </p></blockquote></details>
 
 <details><summary><b>metadata_pdf</b> : Get the metadata of the PDF file</summary><blockquote><p>

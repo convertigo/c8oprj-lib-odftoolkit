@@ -1,0 +1,60 @@
+autoStart: ${auto_start.init_config_loop=true}
+comment: Auto start sequence to install some required fonts for Docker Linux Platform using launch_pexec loop.
+responseTimeout: 1200
+↓jIf [steps.IfStep-1786031000001]: 
+  condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null
+  ↓init_cmd_lines [steps.SimpleStep-1786031000002]: 
+    expression: |
+      'cmd_lines = [
+          ["bash", "-lc", "if pgrep -a apt-get; then sudo pkill -TERM -x apt-get || true; sleep 5; pgrep -a apt-get && sudo pkill -KILL -x apt-get || true; fi"],
+          ["bash", "-lc", "echo ''ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true'' | sudo debconf-set-selections"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 dpkg --configure -a"],
+          ["sudo", "mkdir", "-p", "-m", "755", "/etc/apt/keyrings"],
+          ["bash", "-lc", "curl --connect-timeout 30 --max-time 120 -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor --yes -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg"],
+          ["sudo", "chmod", "644", "/etc/apt/keyrings/kubernetes-apt-keyring.gpg"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 apt-get -o DPkg::Lock::Timeout=60 update"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 apt-get -o DPkg::Lock::Timeout=60 install -y apt-utils"],
+          ["bash", "-lc", "dpkg -l apt-utils && which apt-extracttemplates"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 apt-get -o DPkg::Lock::Timeout=60 install -y fontconfig"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 apt-get -o DPkg::Lock::Timeout=60 install -y software-properties-common"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 add-apt-repository -y universe"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 apt-get -o DPkg::Lock::Timeout=60 update"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 600 apt-get -o DPkg::Lock::Timeout=60 install -y libreoffice-writer libreoffice-core libreoffice-common"],
+          ["bash", "-lc", "echo ''ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true'' | sudo debconf-set-selections"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 600 apt-get -o DPkg::Lock::Timeout=60 install -y ttf-mscorefonts-installer fonts-dejavu fonts-liberation"],
+          ["sudo", "mkdir", "-p", "/usr/share/fonts/truetype/custom"],
+          ["sudo", "cp", "-rf", "fonts/.", "/usr/share/fonts/truetype/custom/"],
+          ["sudo", "chmod", "-R", "a+rX", "/usr/share/fonts/truetype/custom/"],
+          ["sudo", "fc-cache", "-f", "-v"]
+      ]'
+  ↓jIterator [steps.SimpleIteratorStep-1786031000003]: 
+    expression: cmd_lines
+    ↓set_cmd_line [steps.SimpleStep-1786031000004]: 
+      expression: cmd_line = JSON.stringify(item);
+    ↓Call_launch_pexec [steps.SequenceStep-1786031000005]: 
+      sourceSequence: lib_fill_odt_pdf.launch_pexec
+      ↓cmd_line [variables.StepVariable-1786031000006]: 
+    ↓Copy [steps.XMLCopyStep-1786031926631]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1786031000005
+            - java.lang.String: 
+              - ↑value: ./document/*
+↓Call_Sequence [steps.SequenceStep-1786031000007]: 
+  sourceSequence: lib_fill_odt_pdf.ctx_server_set
+  ↓set_name [variables.StepVariable-1786031000008]: 
+    value: init_config
+  ↓set_value [variables.StepVariable-1786031000009]: 
+    value: done
+↓Copy [steps.XMLCopyStep-1786031000010]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1786031000007
+        - java.lang.String: 
+          - ↑value: ./document/*

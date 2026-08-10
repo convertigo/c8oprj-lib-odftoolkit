@@ -1,8 +1,32 @@
-autoStart: true
+autoStart: ${auto_start.init_config=false}
 comment: Auto start sequence to install some required fonts for Docker Linux Platform.
-responseTimeout: 600
+responseTimeout: 1200
 ↓jIf [steps.IfStep-1742482606623]: 
   condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null
+  ↓Process_execute13 [steps.ProcessExecStep-1786023151302]: 
+    commandLine: '["pgrep", "-a", "apt-get"]'
+    output: true
+  ↓Process_execute14 [steps.ProcessExecStep-1786023368685]: 
+    commandLine: '["sudo", "pkill", "-TERM", "-x", "apt-get"]'
+    output: true
+  ↓Process_execute15 [steps.ProcessExecStep-1786023369888]: 
+    commandLine: '["sleep", "5"]'
+    output: true
+  ↓Process_execute16 [steps.ProcessExecStep-1786023370467]: 
+    commandLine: '["bash", "-c", "pgrep -a apt-get && sudo pkill -KILL -x apt-get"]'
+    output: true
+  ↓Process_execute17 [steps.ProcessExecStep-1786023396007]: 
+    commandLine: '["sudo", "dpkg", "--configure", "-a"]'
+    output: true
+  ↓Process_execute10 [steps.ProcessExecStep-1786022532968]: 
+    commandLine: '["sudo", "mkdir", "-p", "-m", "755", "/etc/apt/keyrings"]'
+    output: true
+  ↓Process_execute11 [steps.ProcessExecStep-1786022585224]: 
+    commandLine: '["bash", "-c", "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor --yes -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg"]'
+    output: true
+  ↓Process_execute12 [steps.ProcessExecStep-1786023015833]: 
+    commandLine: '["sudo", "chmod", "644", "/etc/apt/keyrings/kubernetes-apt-keyring.gpg"]'
+    output: true
   ↓Process_execute [steps.ProcessExecStep-1742392486006]: 
     commandLine: '["sudo", "apt-get", "update"]'
     output: true
@@ -34,21 +58,18 @@ responseTimeout: 600
   ↓Process_execute8 [steps.ProcessExecStep-1768384001000]: 
     commandLine: '["sudo", "fc-cache", "-f", "-v"]'
     output: true
-↓config_done [steps.SimpleStep-1742483611366]: 
-  expression: |
-    '// Enregistre la variable dans le serveur
-    context.server.set("init_config", "done");
-    var isSuccess = true;
-    
-    // Vérifie que l''enregistrement s''est bien effectué
-    var InitOk = context.server.get("init_config") == "done";
-    
-    // Log final combiné
-    if (InitOk) {
-        log.warn("✅ ''init_config'' key properly set in Server.");
-    } else {
-    	isSuccess = false;
-        if (!InitOk) log.warn("❌ ''init_config'' key not set in Server.");
-    }
-    
-    context.addTextNodeUnderRoot("init_success", true);'
+↓Call_Sequence [steps.SequenceStep-1786025966072]: 
+  sourceSequence: lib_fill_odt_pdf.ctx_server_set
+  ↓set_name [variables.StepVariable-1786025966074]: 
+    value: init_config
+  ↓set_value [variables.StepVariable-1786025966076]: 
+    value: done
+↓Copy [steps.XMLCopyStep-1786026807891]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1786025966072
+        - java.lang.String: 
+          - ↑value: ./document/*

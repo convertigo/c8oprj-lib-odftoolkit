@@ -1,0 +1,10 @@
+accessibility: Private
+comment: Launch Process Exec
+responseTimeout: 900
+↓jIf [steps.IfStep-1786028162352]: 
+  condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null
+  ↓Process_execute_standalone [steps.ProcessExecStep-1786028162355]: 
+    commandLine: JSON.parse(cmd_line)
+    executionDirectory: .
+    output: true
+↓cmd_line [variables.RequestableVariable-1786029361772]: 
