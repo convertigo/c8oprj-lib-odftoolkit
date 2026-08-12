@@ -59,7 +59,39 @@ responseTimeout: 120
       variableName: o_markers
 ↓fill_template [steps.SimpleStep-1739960996675]: 
   expression: |
-    'var odf_api = JavaImporter(
+    '/* =====================================================================================
+     * u_fill_odt / SimpleStep "fill_template" - EVOLUTIONS UPSTREAM 1.11.5
+     * Projet Convertigo : lib_fill_odt_pdf (upstream : convertigo/c8oprj-lib-odftoolkit)
+     *
+     * Depuis le tag 1.11.5, les 3 evolutions ci-dessous font partie du code upstream.
+     * Elles ne doivent donc plus etre considerees comme des patches locaux a reappliquer.
+     * Les zones concernees sont encadrees par un bloc "UPSTREAM 1.11.5 #n" /
+     * "FIN UPSTREAM 1.11.5 #n".
+     *
+     * -------------------------------------------------------------------------------------
+     * UPSTREAM 1.11.5 #1 - Nom de table unique (au lieu de "table1" code en dur)
+     *   Emplacement : case "table" / "tableh", creation de la table + item.replaceWith()
+     *   Avant 1.11.5 : chaque tableau genere est nomme "table1". Des qu''un document
+     *   contient plusieurs tableaux (cas systematique avec un tag de type "array" qui
+     *   enchaine plusieurs tableaux), fdoc.getTableByName("table1") devient ambigu et
+     *   peut renvoyer un autre tableau que celui qui vient d''etre construit.
+     *
+     * UPSTREAM 1.11.5 #2 - Support des cellules fusionnees (colspan / rowspan)
+     *   Emplacement : case "table" / "tableh", apres la boucle de remplissage
+     *   Avant 1.11.5 : aucun support de fusion. L''API Simple ODF n''accepte pas
+     *   colspan/rowspan a la creation : il faut construire la grille rectangulaire
+     *   complete, puis fusionner apres coup. Lit une nouvelle propriete "merges" du tag.
+     *   Contient 2 sous-parties (phase 1 = fusions, phase 2 = bordures) : voir commentaires.
+     *
+     * UPSTREAM 1.11.5 #3 - Propagation de "merges" dans le case "array"
+     *   Emplacement : case "array", construction de subTag
+     *   Avant 1.11.5 : subTag est reconstruit champ par champ (tag/type/value/style),
+     *   donc toute autre propriete du tag est perdue. Consequence : "merges" n''arrive
+     *   jamais au case "table" pour un tableau imbrique dans un "array" -> evolution #2
+     *   sans effet dans ce cas (qui est le cas d''usage principal).
+     * ===================================================================================== */
+    
+    var odf_api = JavaImporter(
     	Packages.org.odftoolkit.simple.TextDocument,
     	Packages.org.odftoolkit.simple.meta.Meta,
     	Packages.java.util.Arrays,
@@ -294,7 +326,21 @@ responseTimeout: 120
     				log.debug("Has table template? " + hasTableTemplate);
     				if (rows > 0 && cols > 0) {
     					table1 = Table.newTable(fdoc, rows, cols);
-    					table1.setTableName("table1");
+    
+    					// ===== UPSTREAM 1.11.5 #1 : nom de table unique =====
+    					// AVANT 1.11.5 : table1.setTableName("table1");
+    					//
+    					// POURQUOI : le nom "table1" est code en dur. Or un meme document peut
+    					// contenir plusieurs tableaux : c''est systematique avec un tag de type
+    					// "array", qui rappelle ce meme bloc "case table" pour chaque tableau
+    					// rencontre. Deux tableaux nommes "table1" dans le document rendent
+    					// fdoc.getTableByName("table1") (plus bas) ambigu : il peut renvoyer le
+    					// premier tableau trouve au lieu de celui qui vient d''etre construit,
+    					// ce qui insere/style le mauvais tableau selon l''ordre de traitement.
+    					var uniqueTableName = "table_" + new Date().getTime() + "_" + Math.floor(Math.random() * 100000);
+    					table1.setTableName(uniqueTableName);
+    					// ===== FIN UPSTREAM 1.11.5 #1 =====
+    
     					for (var r = 0; r < rows; r++) {
     						for (var c = 0; c < cols; c++) {
     							var cell = table1.getCellByPosition(c, r);
@@ -320,12 +366,103 @@ responseTimeout: 120
     							cell.setStringValue(values[r][c]);
     						}
     					}
+    
+    					// ===== UPSTREAM 1.11.5 #2 : fusion des cellules (colspan/rowspan) =====
+    					// AVANT 1.11.5 : ce bloc n''existe pas du tout (aucun support de fusion).
+    					//
+    					// POURQUOI : le format de tag JSON ne permet pas d''exprimer colspan/rowspan,
+    					// et l''API Simple ODF ne permet pas de creer une table avec des cellules
+    					// fusionnees. La seule voie possible est donc :
+    					//   1) construire la grille rectangulaire complete (fait ci-dessus),
+    					//   2) appliquer les fusions apres coup (ci-dessous).
+    					//
+    					// NOUVELLE PROPRIETE DE TAG ATTENDUE : "merges", tableau d''objets
+    					//   { row: <int>, col: <int>, rowspan: <int>, colspan: <int> }
+    					//   ou row/col sont les coordonnees 0-based de la cellule d''ancrage
+    					//   (haut-gauche) de la zone a fusionner. Propriete optionnelle : si
+    					//   absente, le comportement est identique a 1.11.4.
+    					if (tag.merges && tag.merges.length > 0) {
+    						log.debug("Applying " + tag.merges.length + " merge(s)");
+    
+    						// ---- Phase 1 : application des fusions ----
+    						// NB : getCellRangeByPosition prend (startCol, startRow, endCol, endRow),
+    						// soit colonne PUIS ligne, coherent avec getCellByPosition(c, r) utilise
+    						// plus haut. Le try/catch est individuel pour qu''une fusion invalide
+    						// (coordonnees hors grille) n''interrompe pas les autres.
+    						for (var mi = 0; mi < tag.merges.length; mi++) {
+    							var mg = tag.merges[mi];
+    							if (mg.rowspan > 1 || mg.colspan > 1) {
+    								var endCol = mg.col + mg.colspan - 1;
+    								var endRow = mg.row + mg.rowspan - 1;
+    								log.debug("Merging cols " + mg.col + "-" + endCol + ", rows " + mg.row + "-" + endRow);
+    								try {
+    									table1.getCellRangeByPosition(mg.col, mg.row, endCol, endRow).merge();
+    								} catch (e) {
+    									log.error("Merge failed row=" + mg.row + " col=" + mg.col + ": " + e);
+    								}
+    							}
+    						}
+    
+    						// ---- Phase 2 : bordures des cellules fusionnees ----
+    						// PROBLEME TRAITE ICI : apres merge(), les cellules absorbees deviennent
+    						// des <table:covered-table-cell> et ne dessinent plus rien. Seul le style
+    						// de la cellule d''ancrage subsiste, et il ne couvre que la largeur/hauteur
+    						// d''une cellule : la zone fusionnee apparait donc "ouverte" (bordure
+    						// manquante a droite et/ou en bas).
+    						//
+    						// DEUX PIEGES rencontres et contournes ici, dans cet ordre :
+    						//
+    						//  (a) INSTANCE DETACHEE. merge() reecrit la structure de la ligne. Un
+    						//      objet Cell obtenu depuis l''ancienne instance "table1" apres la
+    						//      fusion peut pointer un element hors de l''arbre du document :
+    						//      l''ecriture reussit sans exception mais n''a AUCUN effet dans le
+    						//      fichier final. D''ou la relecture d''une instance fraiche de la
+    						//      table via fdoc.getTableByName(), et une phase 2 separee de la
+    						//      phase 1 (toutes les fusions doivent etre faites avant).
+    						//
+    						//  (b) RACCOURCI fo:border INEFFICACE. Ecrire le raccourci 4 cotes
+    						//      (OdfTableCellProperties.Border) ne produit rien de visible : les
+    						//      styles crees par Table.newTable() portent deja les attributs par
+    						//      cote (fo:border-left/right/top/bottom) et, par la spec ODF, les
+    						//      attributs par cote L''EMPORTENT sur le raccourci. Il faut donc
+    						//      ecrire explicitement les 4 cotes, comme ci-dessous.
+    						//      (Meme constat avec l''API haut niveau Cell.setBorders(ALL_FOUR, ...)
+    						//      qui reste sans effet sur une cellule fusionnee.)
+    						var freshTable = fdoc.getTableByName(uniqueTableName);
+    						for (var mj = 0; mj < tag.merges.length; mj++) {
+    							var mg2 = tag.merges[mj];
+    							if (mg2.rowspan > 1 || mg2.colspan > 1) {
+    								try {
+    									var anchorEl = freshTable.getCellByPosition(mg2.col, mg2.row).getOdfElement();
+    									// NB : "Unqiue" est une faute de frappe presente dans l''API
+    									// odfdom elle-meme (getOrCreateUnqiueAutomaticStyle) : a
+    									// ecrire telle quelle, ce n''est pas une coquille locale.
+    									var anchorStyle = anchorEl.getOrCreateUnqiueAutomaticStyle();
+    									anchorStyle.setProperty(OdfTableCellProperties.BorderTop, "0.5pt solid #000000");
+    									anchorStyle.setProperty(OdfTableCellProperties.BorderBottom, "0.5pt solid #000000");
+    									anchorStyle.setProperty(OdfTableCellProperties.BorderLeft, "0.5pt solid #000000");
+    									anchorStyle.setProperty(OdfTableCellProperties.BorderRight, "0.5pt solid #000000");
+    									log.debug("Border set on anchor " + mg2.row + "-" + mg2.col
+    										+ " | style=" + anchorEl.getStyleName()
+    										+ " | spanned-cols=" + anchorEl.getTableNumberColumnsSpannedAttribute()
+    										+ " | readback-right=" + anchorStyle.getProperty(OdfTableCellProperties.BorderRight));
+    								} catch (e) {
+    									log.error("Border on anchor " + mg2.row + "-" + mg2.col + " failed: " + e);
+    								}
+    							}
+    						}
+    					} else {
+    						log.debug("No merges to apply for this table");
+    					}
+    					// ===== FIN UPSTREAM 1.11.5 #2 =====
+    
     					var odfTable = table1.getOdfElement();
     					var odfTableStyle = odfTable.getAutomaticStyle();
     					odfTableStyle.setProperty(OdfTableProperties.BreakBefore, ((break_before && break_before != "") ? break_before : "page"));
     					//odfTableStyle.setProperty(OdfTableProperties.BreakAfter, "page");
     					odfTableStyle.setProperty(OdfTableProperties.KeepWithNext, "false");
-    					item.replaceWith(fdoc.getTableByName("table1"));
+    					// UPSTREAM 1.11.5 #1 (suite) : avant 1.11.5 = fdoc.getTableByName("table1")
+    					item.replaceWith(fdoc.getTableByName(uniqueTableName));
     					table1.remove();
     				}
     				break;
@@ -349,7 +486,25 @@ responseTimeout: 120
     			            tag: tempMarkers[j],
     			            type: arrayValues[j].type,
     			            value: arrayValues[j].value,
-    			            style: arrayValues[j].style
+    			            style: arrayValues[j].style,
+    			            // ===== UPSTREAM 1.11.5 #3 : propagation de "merges" =====
+    			            // AVANT 1.11.5 : cette ligne n''existe pas (subTag s''arrete a "style").
+    			            //
+    			            // POURQUOI : subTag est reconstruit champ par champ, donc TOUTE
+    			            // propriete du sous-tag autre que tag/type/value/style est perdue
+    			            // avant l''appel recursif a processTagReplacement(). Pour un tableau
+    			            // imbrique dans un tag de type "array" (cas d''usage principal :
+    			            // contenu riche melangeant texte et tableaux sous un seul marqueur),
+    			            // tag.merges arrivait donc toujours a undefined dans le case "table"
+    			            // -> l''evolution #2 restait sans effet, sans aucune erreur visible.
+    			            //
+    			            // Une copie generique des proprietes serait plus robuste pour de
+    			            // futures extensions, mais la copie explicite est retenue ici car
+    			            // l''acces par propriete (arrayValues[j].xxx) est deja prouve
+    			            // fonctionnel dans ce code, contrairement a un for...in dont le
+    			            // comportement depend de la nature exacte de l''objet cote Rhino.
+    			            merges: arrayValues[j].merges
+    			            // ===== FIN UPSTREAM 1.11.5 #3 =====
     			        };
     			        var sub_nav = new TextNavigation(
     			            java.util.regex.Pattern.quote(tempMarkers[j]), fdoc

@@ -3,7 +3,7 @@
   comment: ODFToolkit and PDF library
   contextTimeout: 1800
   httpSessionTimeout: 3600
-  version: 1.11.4
+  version: 1.11.5
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓clean_outputs [sequences.GenericSequence]: 🗏 sequences/clean_outputs.yaml
   ↓ctx_server_set [sequences.GenericSequence]: 🗏 sequences/ctx_server_set.yaml
