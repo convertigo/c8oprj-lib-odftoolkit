@@ -34,6 +34,11 @@ comment: |
     	replace_text(document, "__c8o_signature", new File(signature).toURI());
     	//replace_text(document, "__c8o_signature", Image.newImage(document.getParagraphByIndex(1, false),new File(signature).toURI()));
     	document.save(output_path);
+    	
+    	
+    	// Delete the generated file when the HTTP session ends
+    	var outputFile = new File(output_path);
+    	context.addFileToDeleteAtEndOfSession(outputFile);
     }'
 ↓Element [steps.XMLElementStep-1669218417383]: 
   nodeName: attachment

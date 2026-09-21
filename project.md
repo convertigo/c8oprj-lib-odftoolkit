@@ -22,6 +22,14 @@ does nothing
 <details><summary><span style="color:DarkGoldenRod"><i>Sequences</i></span></summary><blockquote><p>
 
 
+<details><summary><b>autoRemoveFolder</b></summary><blockquote><p>
+
+
+## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") autoRemoveFolder
+
+
+</p></blockquote></details>
+
 <details><summary><b>clean_outputs</b> : Clean the generated files</summary><blockquote><p>
 
 
