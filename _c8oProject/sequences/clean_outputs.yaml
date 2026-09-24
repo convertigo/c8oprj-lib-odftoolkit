@@ -1,43 +1,66 @@
 accessibility: Private
 comment: 'Clean the generated files. Can be used in a Convertigo scheduled job to automate the process. Variables : ''max_time'' => delete only files older than x ms. ''all'' => Delete all files in folder even in a max_time is defined. ''target'' => Folder path containing the files to delete. Can use "./",  ".//" or absolute path syntax.'
-↓jIf [steps.IfStep-1752754109667]: 
-  condition: target == null || target == ""
-  ↓Return [steps.ReturnStep-1752754134023]: 
-↓init [steps.SimpleStep-1671528840321]: 
+↓jIf1 [steps.IfStep-1790267009340]: 
+  condition: target == null || target == "" || target != ".//outputs"
+  ↓Return [steps.ReturnStep-1790267009343]: 
+↓init1 [steps.SimpleStep-1790267009346]: 
   expression: now = (new Date()).getTime();
-↓List_directory [steps.ListDirStep-1671528590874]: 
+↓List_directory1 [steps.ListDirStep-1790267009349]: 
   sourceDirectory: target
-↓Iterator [steps.IteratorStep-1671528710771]: 
+↓Iterator1 [steps.IteratorStep-1790267009352]: 
   sourceDefinition: 
     - xmlizable: 
       - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
       - com.twinsoft.convertigo.beans.common.XMLVector: 
         - java.lang.String: 
-          - ↑value: 1671528590874
+          - ↑value: 1790267009349
         - java.lang.String: 
           - ↑value: ./file
-  ↓jSimpleSource [steps.SimpleSourceStep-1671529002093]: 
+  ↓jSimpleSource [steps.SimpleSourceStep-1790267009355]: 
     sourceDefinition: 
       - xmlizable: 
         - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
         - com.twinsoft.convertigo.beans.common.XMLVector: 
           - java.lang.String: 
-            - ↑value: 1671528710771
+            - ↑value: 1790267009352
           - java.lang.String: 
             - ↑value: ./@lastModified
     variableName: lastModified
-  ↓jIf [steps.IfStep-1671528935021]: 
-    condition: all == "true" || (now - lastModified > max_time)
-    ↓Copy [steps.XMLCopyStep-1671529345357]: 
+  ↓fileName [steps.SimpleSourceStep-1790267009358]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1790267009352
+          - java.lang.String: 
+            - ↑value: ./text()
+    variableName: fileName
+  ↓checkFilePolicy [steps.SimpleStep-1790267009361]: 
+    expression: |
+      'var isFileRemovable = true;
+      var lowerFileName = ("" + fileName).toLowerCase();
+      
+      if (lowerFileName == ".gitkeep") {
+      	isFileRemovable = false;
+      } else {
+      	if (!/\.(xlsx|xlsm|xlsb|xls|numbers|ods|odt|pdf|fods|wk3|csv|txt|sylk|html|dif|dbf|wk1|rtf|prn|eth)$/i.test(fileName)) {
+      		isFileRemovable = false;
+      	}
+      }
+      '
+  ↓jIf [steps.IfStep-1790267009364]: 
+    condition: (all == "true" && isFileRemovable) || ((now - lastModified > max_time) && isFileRemovable)
+    ↓Copy [steps.XMLCopyStep-1790267009367]: 
       sourceDefinition: 
         - xmlizable: 
           - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
           - com.twinsoft.convertigo.beans.common.XMLVector: 
             - java.lang.String: 
-              - ↑value: 1671528710771
+              - ↑value: 1790267009352
             - java.lang.String: 
               - ↑value: .
-    ↓Delete_file [steps.DeleteStep-1671529688325]: 
+    ↓Delete_file [steps.DeleteStep-1790267009370]: 
       sourcePath: target + "/" + item.getTextContent()
 ↓max_time [variables.RequestableVariable-1671529075167]: 
   comment: Define the maximum time in millisecond before deleting the file. Default is 86400000ms (24h). Only works if 'all' is 'false'
