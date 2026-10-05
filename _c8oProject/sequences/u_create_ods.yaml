@@ -1,4 +1,4 @@
-comment: Create a new Calc document fr om a structured JSON.
+comment: Create a new Calc document from a structured JSON (odfdom 0.13 table API). It outputs an attachment structure.
 ↓inputVars [steps.InputVariablesStep-1754002069249]: 
 ↓IfExistThenElse [steps.IfExistThenElseStep-1754002069252]: 
   sourceDefinition: 
@@ -8,7 +8,7 @@ comment: Create a new Calc document fr om a structured JSON.
         - java.lang.String: 
           - ↑value: 1754002069249
         - java.lang.String: 
-          - ↑value: ./rows/object
+          - ↑value: ./rows/*[1]
   ↓jThen [steps.ThenStep-1754002069255]: 
     ↓markers [steps.JsonSourceStep-1754002069258]: 
       sourceDefinition: 
@@ -18,7 +18,7 @@ comment: Create a new Calc document fr om a structured JSON.
             - java.lang.String: 
               - ↑value: 1754002069249
             - java.lang.String: 
-              - ↑value: ./rows/object
+              - ↑value: ./rows/*[1]
       variableName: o_rows
   ↓jElse [steps.ElseStep-1754002069261]: 
     ↓markers [steps.JsonSourceStep-1754002069264]: 
@@ -33,13 +33,21 @@ comment: Create a new Calc document fr om a structured JSON.
       variableName: o_rows
 ↓create_ods [steps.SimpleStep-1753977875060]: 
   expression: |
-    'var odf_api = JavaImporter(
-    	org.odftoolkit.simple.SpreadsheetDocument,
-    	Packages.org.odftoolkit.simple.style.Font,
-    	Packages.org.odftoolkit.simple.style.StyleTypeDefinitions,
-    	Packages.org.odftoolkit.odfdom.type.Color,
-    	java.util.Calendar,
-    	java.util.GregorianCalendar
+    '/* =====================================================================================
+     * u_create_ods / SimpleStep "create_ods"
+     *
+     * Creates a spreadsheet from a structured JSON with the odfdom 0.13 table API
+     * (OdfSpreadsheetDocument, OdfTable, OdfTableCell):
+     * { "sheets": [ { "name", "header": { "style", "value": [...] },
+     *                 "data": [ [ { "value", "type", "style" } ] ] } ] }
+     * Types: string (default), number, boolean, date (yyyy-MM-ddTHH:mm:ss).
+     * Styles: bgColor, HAlign, VAlign, fontName, fontStyle, fontSize, fontColor.
+     * ===================================================================================== */
+    
+    var odf_api = JavaImporter(
+    	Packages.org.odftoolkit.odfdom.doc.OdfSpreadsheetDocument,
+    	Packages.org.odftoolkit.odfdom.doc.table.OdfTable,
+    	java.io.File
     );
     
     var _error = false;
@@ -47,224 +55,230 @@ comment: Create a new Calc document fr om a structured JSON.
     var _error_msg = "";
     var _error_stack = "";
     
-    function get_file_name(file_path){
-    	if(file_path != ""){
-    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
-    	}
-    }
+    var STYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+    var FO_NS = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
+    var SVG_NS = "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0";
+    var OFFICE_NS = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
     
-    function get_full_path(file_path){
-    	if(file_path != ""){
-    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
-     		if(file_path.indexOf(".//") != -1){
-      			file_path = project_directory_path + file_path.substring(3);
-    		}
-     		else if(file_path.indexOf("./") != -1){
-      			file_path = project_directory_path + "../" + file_path.substring(2);
+    var COLORS = {
+    	AQUA: "#00ffff", BLACK: "#000000", BLUE: "#0000ff", FUCHSIA: "#ff00ff", GRAY: "#808080",
+    	GREEN: "#008000", LIME: "#00ff00", MAROON: "#800000", NAVY: "#000080", OLIVE: "#808000",
+    	ORANGE: "#ffa500", PURPLE: "#800080", RED: "#ff0000", SILVER: "#c0c0c0", TEAL: "#008080",
+    	WHITE: "#ffffff", YELLOW: "#ffff00"
+    };
+    var H_ALIGN = { CENTER: "center", JUSTIFY: "justify", FILLED: "justify", LEFT: "left", RIGHT: "right" };
+    var V_ALIGN = { TOP: "top", MIDDLE: "middle", BOTTOM: "bottom" };
+    
+    function get_full_path(file_path) {
+    	if (file_path != null && file_path != "") {
+    		file_path = String(file_path);
+    		var project_directory_path = String(context.getProjectDirectory()).replace(/\\/g, "/") + "/";
+    		if (file_path.indexOf(".//") == 0) {
+    			file_path = project_directory_path + file_path.substring(3);
+    		} else if (file_path.indexOf("./") == 0) {
+    			file_path = project_directory_path + "../" + file_path.substring(2);
     		}
     	}
     	return file_path;
     }
     
-    var output_path = get_full_path(output_filename);
+    function get_file_name(file_path) {
+    	if (file_path != null && file_path != "") {
+    		return String(org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path)));
+    	}
+    	return "";
+    }
     
-    with(odf_api){
+    // Plain JS copy of a JSON structure (JSON strings, Java strings and arrays included).
+    function toPlain(v) {
+    	if (v == null) return null;
+    	if (typeof v == "string" || v instanceof String || v instanceof java.lang.String) {
+    		var s = String(v).trim();
+    		if (s.charAt(0) == "[" || s.charAt(0) == "{") {
+    			try {
+    				return toPlain(JSON.parse(s));
+    			} catch (e) {}
+    		}
+    		return String(v);
+    	}
+    	if (typeof v == "number" || typeof v == "boolean") return v;
+    	if (v instanceof Number || v instanceof Boolean) return v.valueOf();
+    	if (v instanceof java.util.List) v = v.toArray();
+    	if (Array.isArray(v) || (v instanceof java.lang.Object && v.getClass().isArray())) {
+    		var a = [];
+    		for (var i = 0; i < v.length; i++) a.push(toPlain(v[i]));
+    		return a;
+    	}
+    	if (v instanceof java.lang.Object) return String(v.toString());
+    	var o = {};
+    	for (var k in v) o[k] = toPlain(v[k]);
+    	return o;
+    }
+    
+    function colorHex(color) {
+    	var s = String(color).trim();
+    	if (/^#[0-9a-f]{6}$/i.test(s)) return s.toLowerCase();
+    	if (COLORS[s.toUpperCase()]) return COLORS[s.toUpperCase()];
+    	log.warn("[u_create_ods] Unknown color ''" + s + "'', using WHITE");
+    	return COLORS.WHITE;
+    }
+    
+    var output_path = get_full_path(output_filename);
+    var file_name = get_file_name(output_filename);
+    
+    with (odf_api) {
+    
+    	function ensureFontFace(dom, name) {
+    		var root = dom.getDocumentElement();
+    		var decls = root.getElementsByTagNameNS(OFFICE_NS, "font-face-decls");
+    		var container = decls.getLength() > 0 ? decls.item(0) : null;
+    		if (container == null) {
+    			container = dom.createElementNS(OFFICE_NS, "office:font-face-decls");
+    			root.insertBefore(container, root.getElementsByTagNameNS(OFFICE_NS, "automatic-styles").item(0));
+    		}
+    		var faces = container.getElementsByTagNameNS(STYLE_NS, "font-face");
+    		for (var i = 0; i < faces.getLength(); i++) {
+    			if (String(faces.item(i).getAttributeNS(STYLE_NS, "name")) == name) return name;
+    		}
+    		var face = dom.createElementNS(STYLE_NS, "style:font-face");
+    		face.setAttributeNS(STYLE_NS, "style:name", name);
+    		face.setAttributeNS(SVG_NS, "svg:font-family", name.indexOf(" ") != -1 ? "''" + name + "''" : name);
+    		container.appendChild(face);
+    		return name;
+    	}
+    
+    	/* Same rules as before: the font is always set (Arial 10 black by default). */
+    	function styleCell(cell, style) {
+    		style = toPlain(style) || {};
+    		if (style.bgColor) cell.setCellBackgroundColor(colorHex(style.bgColor));
+    		if (style.HAlign && H_ALIGN[String(style.HAlign)]) cell.setHorizontalAlignment(H_ALIGN[String(style.HAlign)]);
+    		if (style.VAlign && V_ALIGN[String(style.VAlign)]) cell.setVerticalAlignment(V_ALIGN[String(style.VAlign)]);
+    		var st = cell.getOdfElement().getOrCreateUnqiueAutomaticStyle();
+    		var dom = st.getOwnerDocument();
+    		var props = null;
+    		for (var c = st.getFirstChild(); c != null; c = c.getNextSibling()) {
+    			if (c.getNodeType() == 1 && String(c.getLocalName()) == "text-properties") props = c;
+    		}
+    		if (props == null) {
+    			props = dom.createElementNS(STYLE_NS, "style:text-properties");
+    			st.appendChild(props);
+    		}
+    		var fontStyle = String(style.fontStyle || "REGULAR").toUpperCase();
+    		props.setAttributeNS(STYLE_NS, "style:font-name", ensureFontFace(dom, String(style.fontName || "Arial")));
+    		props.setAttributeNS(FO_NS, "fo:font-size", (parseFloat(style.fontSize) || 10) + "pt");
+    		props.setAttributeNS(FO_NS, "fo:font-weight", fontStyle.indexOf("BOLD") != -1 ? "bold" : "normal");
+    		props.setAttributeNS(FO_NS, "fo:font-style", fontStyle.indexOf("ITALIC") != -1 ? "italic" : "normal");
+    		props.setAttributeNS(FO_NS, "fo:color", colorHex(style.fontColor || "BLACK"));
+    	}
+    
+    	function setValue(cell, value, type) {
+    		if (type === "number") {
+    			cell.setDoubleValue(new java.lang.Double(value * 1));
+    		} else if (type === "boolean") {
+    			cell.setBooleanValue(value === true || String(value) == "true" ? java.lang.Boolean.TRUE : java.lang.Boolean.FALSE);
+    		} else if (type === "date") {
+    			var format = new java.text.SimpleDateFormat("yyyy-MM-dd''T''HH:mm:ss");
+    			var calendar = new java.util.GregorianCalendar();
+    			calendar.setTime(format.parse(String(value)));
+    			cell.setDateTimeValue(calendar);
+    			// odfdom 0.13 writes the date without seconds, which LibreOffice reads as 0.
+    			cell.getOdfElement().setAttributeNS(OFFICE_NS, "office:date-value", format.format(calendar.getTime()));
+    		} else {
+    			cell.setStringValue(value == null ? "" : String(value));
+    		}
+    	}
+    
     	var doc = null;
-    	
-    	function objectify(s) {
-    	    if (typeof s == "string") {
-    	        try {
-    	            log.debug(''Try to parse the string as JSON...'');
-    	            const obj = JSON.parse(s); // Convertir la chaîne en objet JSON
-    	            // Vérifier toutes les propriétés de l''objet
-    	            Object.keys(obj).forEach(key => {
-    	                if (typeof obj[key] == "string") {
-    	                    try {
-    	                        log.debug("Parsing nested JSON for key: " + key);
-    	                        obj[key] = JSON.parse(obj[key]); // Désérialiser la chaîne imbriquée
-    	                    } catch (e) {
-    	                        log.warn("Failed to parse nested JSON for key: "+key+". Keeping it as a string.");
-    	                    }
-    	                }
-    	            });
-    	            return obj;
-    	        } catch (e) {
-    	            log.warn("Failed to parse JSON. Returning the string as is: " + e);
-    	        }
-    	    }
-    	    return s; // Retourner tel quel si ce n''est pas une chaîne JSON valide
-    	}
-    	
-    	function setTextFont(style){
-    		try {
-    			style = objectify(style);
-    			return new Font(style && style.fontName ? style.fontName : "Arial", style && style.fontStyle ? StyleTypeDefinitions.FontStyle[style.fontStyle] : StyleTypeDefinitions.FontStyle.REGULAR, style && style.fontSize ? style.fontSize : 10, style && style.fontColor ? getColor(style.fontColor) : Color.BLACK);
-    		} catch(e){
-    			log.warn("Setting Default Font values because: " + e);
-    			return new Font("Arial", StyleTypeDefinitions.FontStyle.REGULAR, 10, Color.BLACK);
-    		}
-    	}
-    	
-    	function getColor(color){
-    		const validColors = ["AQUA", "BLACK", "BLUE", "FUCHSIA", "GRAY", "GREEN", "LIME", "MAROON", "NAVY", "OLIVE", "ORANGE", "PURPLE", "RED", "SILVER", "TEAL", "WHITE", "YELLOW"];
-    		return color.startsWith("#") ? Color.valueOf(color) : validColors.includes(color) ? Color[color] : Color.WHITE;
-    	}
-    	
-    	function setCellBGColor(cell, color) {
-    	    cell.setCellBackgroundColor(getColor(color));
-    	}
-    	
-    	function setCellAttributes(cell, style){
-    		style = objectify(style);
-    		
-    		if(style && style.bgColor){
-    			setCellBGColor(cell, style.bgColor);
-    		}
-    		
-    		cell.setFont(setTextFont(style));
-    		
-    		if(style && style.HAlign){
-    			var validHAlign = [ "CENTER", "DEFAULT", "FILLED", "JUSTIFY", "LEFT", "RIGHT" ];
-    			if(validHAlign.includes(style.HAlign)){
-    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.HAlign]);
-    			} else {
-    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["DEFAULT"]);
-    			}
-    		}
-    		
-    		if(style && style.VAlign){
-    			var validVAlign = [ "TOP", "BOTTOM", "MIDDLE", "DEFAULT" ];
-    			if(validVAlign.includes(style.VAlign)){
-    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.VAlign]);
-    			} else {
-    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["DEFAULT"]);
-    			}
-    		}
-    	}
-    	
     	try {
-    		if(o_rows != null){
-    			// Création du document
-    			var doc = SpreadsheetDocument.newSpreadsheetDocument();
-    			for (var i = 0; i < o_rows.sheets.length; i++) {
-    				var sheet = o_rows.sheets[i];
-    				var table = (i === 0) ? doc.getSheetByIndex(0) : doc.appendSheet(sheet.name);
-    				// Nomme la feuille
-    				table.setTableName(sheet.name);
-    				
-    				// Ajoute les en-têtes
-    				if(sheet && sheet.header && sheet.header.value){
-    				    for (var h = 0; h < sheet.header.value.length; h++) {
-    						var cell = table.getCellByPosition(h, 0);
-    				        
-    				        if(sheet.header && sheet.header.style){
-    							setCellAttributes(cell, sheet.header.style);
-    						}
-    						 
-    						cell.setStringValue(sheet.header.value[h]);
-    				    }
-    			    }
-    			    
-    			    // Données avec types
-    			    for (var r = 0; r < sheet.data.length; r++) {
-    			        var ligne = sheet.data[r];
-    			        for (var c = 0; c < ligne.length; c++) {
-    			            var cellule = ligne[c];
-    			            var valeur = cellule.value;
-    			            var type = cellule.type;
-    			            var style = cellule.style;
-    			            var cell = table.getCellByPosition(c, r + 1);
-    			            
-    			            if(style){
-    							setCellAttributes(cell, style);
-    						}
-    			
-    			            // Détection et conversion des types
-    			            if (type === "number") {
-    			                cell.setDoubleValue(valeur*1);
-    			            } else if (type === "boolean") {
-    			                cell.setBooleanValue(!!valeur);
-    			            } else if (type === "date") {
-    			                var formatter = new java.text.SimpleDateFormat("yyyy-MM-dd''T''HH:mm:ss");
-                				var parsedDate = formatter.parse(valeur);
-                				var calendar = new java.util.GregorianCalendar();
-                				calendar.setTime(parsedDate);
-    			                cell.setDateTimeValue(calendar);
-    			            } else {
-    			                cell.setStringValue(String(valeur));
-    			            }
-    			        }
-    			    }
-    			}
-    			log.debug("Conversion terminée !");
+    		var rows = toPlain(typeof o_rows != "undefined" ? o_rows : null);
+    		if (rows == null || rows.sheets == null) throw "rows must be an object with a sheets array";
+    		var sheets = Array.isArray(rows.sheets) ? rows.sheets : [rows.sheets];
+    		doc = OdfSpreadsheetDocument.newSpreadsheetDocument();
+    		// Every sheet is a copy of the empty default sheet (same column widths and styles).
+    		var firstElement = doc.getTableList(false).get(0).getOdfElement();
+    		// The default sheet of odfdom is not printable: every sheet must be in the PDF export.
+    		firstElement.removeAttributeNS("urn:oasis:names:tc:opendocument:xmlns:table:1.0", "print");
+    		var blank = firstElement.cloneNode(true);
+    		var tables = [OdfTable.getInstance(firstElement)];
+    		for (var t = 1; t < sheets.length; t++) {
+    			var copy = blank.cloneNode(true);
+    			firstElement.getParentNode().insertBefore(copy, tables[t - 1].getOdfElement().getNextSibling());
+    			tables.push(OdfTable.getInstance(copy));
     		}
+    		for (var i = 0; i < sheets.length; i++) {
+    			var sheet = sheets[i] || {};
+    			var table = tables[i];
+    			table.setTableName(sheet.name ? String(sheet.name) : "Sheet" + (i + 1));
+    			var header = sheet.header || {};
+    			var titles = header.value ? (Array.isArray(header.value) ? header.value : [header.value]) : [];
+    			for (var h = 0; h < titles.length; h++) {
+    				var hc = table.getCellByPosition(h, 0);
+    				if (header.style) styleCell(hc, header.style);
+    				hc.setStringValue(titles[h] == null ? "" : String(titles[h]));
+    			}
+    			var data = sheet.data ? (Array.isArray(sheet.data) ? sheet.data : [sheet.data]) : [];
+    			for (var r = 0; r < data.length; r++) {
+    				var line = Array.isArray(data[r]) ? data[r] : [data[r]];
+    				for (var c = 0; c < line.length; c++) {
+    					var item = line[c] != null && typeof line[c] == "object" ? line[c] : { value: line[c] };
+    					var cell = table.getCellByPosition(c, r + 1);
+    					if (item.style) styleCell(cell, item.style);
+    					setValue(cell, item.value, item.type);
+    				}
+    			}
+    		}
+    		var meta = doc.getOfficeMetadata();
+    		meta.setAutomaticUpdate(false);
+    		meta.setGenerator("Convertigo lib_fill_odt_pdf (odfdom-java 0.13.0)");
+    		meta.setDate(new java.util.GregorianCalendar());
+    		var outputFile = new File(output_path);
+    		if (outputFile.getAbsoluteFile().getParentFile() != null) outputFile.getAbsoluteFile().getParentFile().mkdirs();
+    		doc.save(output_path);
     	} catch (e) {
-    		log.error("Erreur lors de la conversion : " + e);
+    		log.error("[u_create_ods] " + e);
     		_error = true;
-    		_error_code = "-1";
     		_error_msg = "ERROR: creating file";
     		_error_stack = "" + e;
     	} finally {
-    		if(doc){
-    			doc.save(output_path);
-    		}
+    		if (doc != null) doc.close();
     	}
     }'
-↓Sequence_JS [steps.SimpleStep-1754483051807]: 
-  expression: |
-    'function get_file_name(file_path){
-    	if(file_path != ""){
-    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
-    	}
-    }
-    
-    function get_full_path(file_path){
-    	if(file_path != ""){
-    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
-     		if(file_path.indexOf(".//") != -1){
-      			file_path = project_directory_path + file_path.substring(3);
-    		}
-     		else if(file_path.indexOf("./") != -1){
-      			file_path = project_directory_path + "../" + file_path.substring(2);
-    		}
-    	}
-    	return file_path;
-    }
-    
-    var output_path = get_full_path(output_filename);
-    
-    var SpreadsheetDocument = Packages.org.odftoolkit.simple.SpreadsheetDocument;
-    
-    // Create document
-    var doc = SpreadsheetDocument.newSpreadsheetDocument();
-    
-    // Sheet 1
-    var sheet1 = doc.getSheetByIndex(0);
-    sheet1.setTableName("Sheet1");
-    
-    for (var col = 0; col < 5; col++) {
-        sheet1.getCellByPosition(col, 0).setStringValue("Header " + (col + 1));
-    }
-    
-    
-    sheet1.getCellByPosition(0, 0).setStringValue("Header 1");
-    sheet1.getCellByPosition(1, 0).setStringValue("Header 2");
-    sheet1.getCellByPosition(0, 1).setStringValue("Data 1");
-    sheet1.getCellByPosition(1, 1).setStringValue("Data 2");
-    
-    // Sheet 2 (IMPORTANT: name and fill at least one cell)
-    var sheet2 = doc.appendSheet("Sheet2");
-    for (var col = 0; col < 5; col++) {
-        sheet2.getCellByPosition(col, 0).setStringValue("Header " + (col + 1));
-    }
-    
-    sheet2.getCellByPosition(0, 0).setStringValue("Sheet2 A1");
-    sheet2.getCellByPosition(1, 0).setStringValue("Sheet2 B1");
-    
-    // SAVE
-    doc.save(new java.io.File(output_path));
-    '
-  isEnabled: false
+↓jIf [steps.IfStep-1791200000063]: 
+  condition: _error == true
+  ↓Error_structure [steps.XMLErrorStep-1791200000064]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_code
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_stack
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_msg
+  ↓Return [steps.ReturnStep-1791200000065]: 
+↓Element [steps.XMLElementStep-1791200000066]: 
+  nodeName: attachment
+  ↓jAttribute [steps.AttributeStep-1791200000067]: 
+    expression: '"attachment"'
+    nodeName: type
+  ↓jAttribute1 [steps.AttributeStep-1791200000068]: 
+    expression: file_name
+    nodeName: name
+  ↓jAttribute11 [steps.AttributeStep-1791200000069]: 
+    expression: output_path
+    nodeName: local-url
+  ↓jAttribute2 [steps.AttributeStep-1791200000070]: 
+    expression: "application/vnd.oasis.opendocument.spreadsheet"
+    nodeName: content-type
 ↓output_filename [variables.RequestableVariable-1753977725391]: 
   comment: |
     'ODS output file path. 

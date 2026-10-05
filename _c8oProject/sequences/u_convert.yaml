@@ -4,6 +4,8 @@ comment: |
   'Converts a document with LibreOffice (headless) to another format: pdf, docx, xlsx, pptx, odt, ods, odp, doc, xls, ppt, rtf, txt, csv, html, epub, png, svg...
   The input can be any document LibreOffice opens (odt, ods, odp, docx, xlsx, pptx...).
   LibreOffice is resolved from the global symbol ''lib_fill_odt_pdf.soffice_path'', then the SOFFICE_PATH environment variable, then the default install paths, then ''soffice'' from the PATH.
+  Fonts from fonts_folder / font_paths are embedded in a copy of an ODF input for the conversion (TrueType fonts).
+  Optional LibreOffice pool (JODConverter, about 50 ms per conversion instead of 2 s): set the global symbol ''lib_fill_odt_pdf.office_pool_size'' to the number of LibreOffice processes to keep running (ports from ''lib_fill_odt_pdf.office_pool_port'', default 2002). 0 or empty = one LibreOffice process per conversion.
   It outputs an attachment structure: call it with the .bin requester from a wrapper sequence to trigger a download in the client browser.'
 responseTimeout: 300
 ↓convert [steps.SimpleStep-1791100000001]: 
@@ -21,6 +23,10 @@ responseTimeout: 300
      *   variable, then the default install paths, then "soffice" from the PATH.
      * - Each conversion runs in its own temporary folder (LibreOffice profile + output), so
      *   parallel conversions do not collide. The folder is always removed.
+     * - Fonts from fonts_folder / font_paths are embedded in a copy of an ODF input, so the
+     *   PDF uses them even when they are not installed on the server.
+     * - Optional pool of LibreOffice processes kept running (JODConverter), enabled with the
+     *   global symbol lib_fill_odt_pdf.office_pool_size (see officePool below).
      * ===================================================================================== */
     
     var J = JavaImporter(
@@ -154,6 +160,279 @@ responseTimeout: 300
     		}
     	}
     
+    	/* ---------- Fonts embedding ----------
+    	 * LibreOffice only renders the fonts installed on the server. Fonts given with
+    	 * fonts_folder / font_paths are embedded in a temporary copy of an ODF input (ODF 1.2
+    	 * svg:font-face-src), which LibreOffice loads at conversion time. Only the fonts the
+    	 * document declares are embedded. TrueType fonts are supported. */
+    
+    	var ODF_EXTENSIONS = { odt: true, ods: true, odp: true, odg: true, ott: true, ots: true, otp: true };
+    	var SVG_NS = "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0";
+    	var STYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+    	var XLINK_NS = "http://www.w3.org/1999/xlink";
+    
+    	// Multi-valued variable, Java array or JSON array string: flattened to strings.
+    	function valuesOf(v) {
+    		var out = [];
+    		if (v == null) return out;
+    		if (typeof v == "string" || v instanceof String || v instanceof java.lang.String) {
+    			var s = String(v).trim();
+    			if (s.charAt(0) == "[") {
+    				try {
+    					var parsed = JSON.parse(s);
+    					for (var i = 0; i < parsed.length; i++) out = out.concat(valuesOf(parsed[i]));
+    					return out;
+    				} catch (e) {}
+    			}
+    			if (s != "") out.push(s);
+    			return out;
+    		}
+    		if (v instanceof java.util.List) v = v.toArray();
+    		if (v.length != null) {
+    			for (var j = 0; j < v.length; j++) out = out.concat(valuesOf(v[j]));
+    			return out;
+    		}
+    		out.push(String(v));
+    		return out;
+    	}
+    
+    	function fontFamilyOf(file) {
+    		var name = String(file.getName()).toLowerCase();
+    		var font = null;
+    		try {
+    			var parser = name.endsWith(".otf") ? new org.apache.fontbox.ttf.OTFParser() : new org.apache.fontbox.ttf.TTFParser();
+    			font = parser.parse(new org.apache.pdfbox.io.RandomAccessReadBufferedFile(file));
+    			var family = font.getNaming() != null ? font.getNaming().getFontFamily() : null;
+    			if (family != null && String(family) != "") return String(family);
+    		} catch (e) {
+    			log.debug("[u_convert] Cannot read the font name of " + file + ": " + e);
+    		} finally {
+    			if (font != null) font.close();
+    		}
+    		return String(file.getName()).replace(/\.[^.]+$/, "").replace(/[_\-]/g, " ");
+    	}
+    
+    	function fontKey(name) {
+    		return String(name).replace(/[''"]/g, "").trim().toLowerCase();
+    	}
+    
+    	function fontsToEmbed() {
+    		var fonts = [];
+    		if (fonts_folder != null && String(fonts_folder) != "") {
+    			var dir = new File(get_full_path(fonts_folder));
+    			var files = dir.isDirectory() ? dir.listFiles() : null;
+    			if (files == null) log.warn("[u_convert] fonts_folder is not a folder: " + dir);
+    			for (var i = 0; files != null && i < files.length; i++) {
+    				if (/\.(ttf|otf)$/i.test(String(files[i].getName()))) fonts.push({ file: files[i], alias: null });
+    			}
+    		}
+    		var paths = valuesOf(font_paths);
+    		var aliases = valuesOf(font_aliases);
+    		for (var p = 0; p < paths.length; p++) {
+    			var f = new File(get_full_path(paths[p]));
+    			if (!f.isFile() || !/\.(ttf|otf)$/i.test(String(f.getName()))) {
+    				log.warn("[u_convert] Font file ignored: " + f);
+    				continue;
+    			}
+    			fonts.push({ file: f, alias: p < aliases.length ? aliases[p] : null });
+    		}
+    		return fonts;
+    	}
+    
+    	/* Returns the file to convert: the input, or a copy of it with the fonts embedded. */
+    	function embedFonts(inFile, workDir) {
+    		var fonts = fontsToEmbed();
+    		if (fonts.length == 0) return inFile;
+    		if (!ODF_EXTENSIONS[extensionOf(inFile.getName())]) {
+    			log.warn("[u_convert] Fonts can only be embedded in ODF documents, ignored for " + inFile.getName());
+    			return inFile;
+    		}
+    		var doc = Packages.org.odftoolkit.odfdom.doc.OdfDocument.loadDocument(inFile.getAbsolutePath());
+    		try {
+    			var faces = [];
+    			var doms = [doc.getContentDom(), doc.getStylesDom()];
+    			for (var d = 0; d < doms.length; d++) {
+    				var list = doms[d].getElementsByTagNameNS(STYLE_NS, "font-face");
+    				for (var i = 0; i < list.getLength(); i++) faces.push(list.item(i));
+    			}
+    			var embedded = 0;
+    			for (var f = 0; f < fonts.length; f++) {
+    				var family = fonts[f].alias || fontFamilyOf(fonts[f].file);
+    				var matching = faces.filter(function (face) {
+    					return fontKey(face.getAttributeNS(SVG_NS, "font-family")) == fontKey(family) || fontKey(face.getAttributeNS(STYLE_NS, "name")) == fontKey(family);
+    				});
+    				if (matching.length == 0) continue;
+    				var otf = /\.otf$/i.test(String(fonts[f].file.getName()));
+    				var internalPath = "Fonts/" + String(fonts[f].file.getName()).replace(/[^A-Za-z0-9._-]/g, "_");
+    				doc.getPackage().insert(Files.readAllBytes(fonts[f].file.toPath()), internalPath, otf ? "application/x-font-otf" : "application/x-font-ttf");
+    				for (var m = 0; m < matching.length; m++) {
+    					var face = matching[m];
+    					if (face.getElementsByTagNameNS(SVG_NS, "font-face-src").getLength() > 0) continue;
+    					var dom = face.getOwnerDocument();
+    					var src = dom.createElementNS(SVG_NS, "svg:font-face-src");
+    					var uri = dom.createElementNS(SVG_NS, "svg:font-face-uri");
+    					uri.setAttributeNS(XLINK_NS, "xlink:href", internalPath);
+    					uri.setAttributeNS(XLINK_NS, "xlink:type", "simple");
+    					var format = dom.createElementNS(SVG_NS, "svg:font-face-format");
+    					format.setAttributeNS(SVG_NS, "svg:string", otf ? "opentype" : "truetype");
+    					uri.appendChild(format);
+    					src.appendChild(uri);
+    					face.appendChild(src);
+    				}
+    				embedded++;
+    				log.debug("[u_convert] Font ''" + family + "'' embedded from " + fonts[f].file);
+    			}
+    			if (embedded == 0) return inFile;
+    			// Keep meta:generator (odfdom 0.13 would set an OpenOffice 2 one, see u_fill_odt).
+    			doc.getOfficeMetadata().setAutomaticUpdate(false);
+    			var copy = new File(workDir, inFile.getName());
+    			doc.save(copy.getAbsolutePath());
+    			log.info("[u_convert] " + embedded + " font(s) embedded for the conversion");
+    			return copy;
+    		} finally {
+    			doc.close();
+    		}
+    	}
+    
+    	/* ---------- One shot LibreOffice process ---------- */
+    
+    	function convertWithProcess(soffice, source, target, outDir, profileDir, logFile, timeoutSeconds) {
+    		var cmd = new ArrayList();
+    		cmd.add(jstr(soffice));
+    		cmd.add(jstr("--headless"));
+    		cmd.add(jstr("--invisible"));
+    		cmd.add(jstr("--nologo"));
+    		cmd.add(jstr("--nodefault"));
+    		cmd.add(jstr("--nolockcheck"));
+    		cmd.add(jstr("--nofirststartwizard"));
+    		cmd.add(jstr("--norestore"));
+    		cmd.add(jstr("-env:UserInstallation=" + profileDir.toPath().toUri().toString()));
+    		cmd.add(jstr("--convert-to"));
+    		cmd.add(jstr(target));
+    		cmd.add(jstr("--outdir"));
+    		cmd.add(jstr(outDir.getAbsolutePath()));
+    		cmd.add(jstr(source.getAbsolutePath()));
+    		log.info("[u_convert] Running: " + cmd.toString());
+    
+    		var pb = new ProcessBuilder(cmd);
+    		pb.redirectErrorStream(true);
+    		pb.redirectOutput(logFile);
+    		var process = null;
+    		try {
+    			process = pb.start();
+    		} catch (e) {
+    			_error_code = "-2";
+    			throw "LibreOffice can not be started with ''" + soffice + "''. Install LibreOffice (on Docker, enable the init_config auto start) or set the global symbol lib_fill_odt_pdf.soffice_path. Cause: " + e;
+    		}
+    		if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
+    			process.destroyForcibly();
+    			_error_code = "-3";
+    			throw "LibreOffice timed out after " + timeoutSeconds + "s. Output: " + readText(logFile);
+    		}
+    		var output = readText(logFile);
+    		log.debug("[u_convert] LibreOffice output: " + output);
+    		if (process.exitValue() != 0) throw "LibreOffice failed with code " + process.exitValue() + ". Output: " + output;
+    		return output;
+    	}
+    
+    	/* ---------- LibreOffice pool (JODConverter) ----------
+    	 * Optional. When the global symbol lib_fill_odt_pdf.office_pool_size (or the
+    	 * LIB_FILL_ODT_PDF_OFFICE_POOL_SIZE environment variable) is a number > 0, conversions
+    	 * use a pool of LibreOffice processes kept running between calls (JODConverter) on the
+    	 * ports starting at lib_fill_odt_pdf.office_pool_port (default 2002), instead of one
+    	 * LibreOffice start per conversion. The pool is shared by the whole engine, restarted
+    	 * when its size changes, stopped when the size is set back to 0 and when the JVM stops.
+    	 * If the pool can not convert a document, the one shot process is used. */
+    
+    	var POOL_KEY = "lib_fill_odt_pdf.office_pool";
+    
+    	function setting(symbol, env) {
+    		try {
+    			var v = com.twinsoft.convertigo.engine.Engine.theApp.databaseObjectsManager.symbolsGetValue(symbol);
+    			if (v != null && String(v).trim() != "") return String(v).trim();
+    		} catch (e) {}
+    		var e2 = java.lang.System.getenv(env);
+    		return e2 != null ? String(e2).trim() : "";
+    	}
+    
+    	function officeHomeOf(soffice) {
+    		try {
+    			var f = new File(soffice);
+    			if (!f.isFile()) return null;
+    			// .../program/soffice (Linux, Windows) or .../LibreOffice.app/Contents/MacOS/soffice
+    			var dir = f.getCanonicalFile().getParentFile();
+    			return dir != null ? dir.getParentFile() : null;
+    		} catch (e) {
+    			return null;
+    		}
+    	}
+    
+    	function stopPool(pool) {
+    		if (pool == null) return;
+    		try {
+    			java.lang.Runtime.getRuntime().removeShutdownHook(pool.hook);
+    		} catch (e) {}
+    		try {
+    			pool.manager.stop();
+    			log.info("[u_convert] LibreOffice pool stopped");
+    		} catch (e) {
+    			log.warn("[u_convert] Cannot stop the LibreOffice pool: " + e);
+    		}
+    	}
+    
+    	/* Returns the running pool for the configured size (created on first use), or null. */
+    	function officePool(soffice, timeoutSeconds) {
+    		var size = parseInt(setting("lib_fill_odt_pdf.office_pool_size", "LIB_FILL_ODT_PDF_OFFICE_POOL_SIZE"), 10);
+    		if (isNaN(size) || size < 0) size = 0;
+    		var server = context.server;
+    		var locked = new Packages.org.mozilla.javascript.Synchronizer(function () {
+    			var pool = server.get(POOL_KEY);
+    			if (pool != null && (pool.size != size || !pool.manager.isRunning())) {
+    				stopPool(pool);
+    				server.set(POOL_KEY, null);
+    				pool = null;
+    			}
+    			if (size == 0 || pool != null) return pool;
+    			var failedAt = server.get(POOL_KEY + ".failed");
+    			if (failedAt != null && new Date().getTime() - failedAt < 60000) return null;
+    			var base = parseInt(setting("lib_fill_odt_pdf.office_pool_port", "LIB_FILL_ODT_PDF_OFFICE_POOL_PORT"), 10);
+    			if (isNaN(base) || base <= 0) base = 2002;
+    			var ports = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, size);
+    			for (var i = 0; i < size; i++) ports[i] = base + i;
+    			var builder = Packages.org.jodconverter.local.office.LocalOfficeManager.builder()
+    				.portNumbers(ports)
+    				.processTimeout(new java.lang.Long(60000))
+    				.taskExecutionTimeout(new java.lang.Long(timeoutSeconds * 1000))
+    				.maxTasksPerProcess(new java.lang.Integer(200));
+    			var home = officeHomeOf(soffice);
+    			if (home != null) builder.officeHome(home);
+    			var manager = builder.build();
+    			try {
+    				manager.start();
+    			} catch (e) {
+    				log.error("[u_convert] The LibreOffice pool can not start, one shot processes are used for 1 minute: " + e);
+    				try {
+    					manager.stop();
+    				} catch (ignore) {}
+    				server.set(POOL_KEY + ".failed", new Date().getTime());
+    				return null;
+    			}
+    			var hook = new java.lang.Thread(new java.lang.Runnable({
+    				run: function () {
+    					try {
+    						manager.stop();
+    					} catch (ignore) {}
+    				}
+    			}));
+    			java.lang.Runtime.getRuntime().addShutdownHook(hook);
+    			pool = { size: size, manager: manager, converter: Packages.org.jodconverter.local.LocalConverter.make(manager), hook: hook };
+    			server.set(POOL_KEY, pool);
+    			log.info("[u_convert] LibreOffice pool started: " + size + " process(es) from port " + base);
+    			return pool;
+    		}, server);
+    		return locked();
+    	}
+    
     	var workDir = null;
     	try {
     		var inFile = new File(input_path);
@@ -175,45 +454,25 @@ responseTimeout: 300
     		profileDir.mkdirs();
     		outDir.mkdirs();
     		var logFile = new File(workDir, "soffice.log");
+    		var source = embedFonts(inFile, workDir);
     
     		var soffice = resolveSoffice();
-    		var cmd = new ArrayList();
-    		cmd.add(jstr(soffice));
-    		cmd.add(jstr("--headless"));
-    		cmd.add(jstr("--invisible"));
-    		cmd.add(jstr("--nologo"));
-    		cmd.add(jstr("--nodefault"));
-    		cmd.add(jstr("--nolockcheck"));
-    		cmd.add(jstr("--nofirststartwizard"));
-    		cmd.add(jstr("--norestore"));
-    		cmd.add(jstr("-env:UserInstallation=" + profileDir.toPath().toUri().toString()));
-    		cmd.add(jstr("--convert-to"));
-    		cmd.add(jstr(target));
-    		cmd.add(jstr("--outdir"));
-    		cmd.add(jstr(outDir.getAbsolutePath()));
-    		cmd.add(jstr(inFile.getAbsolutePath()));
-    		log.info("[u_convert] Running: " + cmd.toString());
-    
-    		var pb = new ProcessBuilder(cmd);
-    		pb.redirectErrorStream(true);
-    		pb.redirectOutput(logFile);
-    		var process = null;
-    		try {
-    			process = pb.start();
-    		} catch (e) {
-    			_error_code = "-2";
-    			throw "LibreOffice can not be started with ''" + soffice + "''. Install LibreOffice (on Docker, enable the init_config auto start) or set the global symbol lib_fill_odt_pdf.soffice_path. Cause: " + e;
+    		var baseName = String(source.getName()).replace(/\.[^.]+$/, "");
+    		var output = "";
+    		var pooled = false;
+    		// A forced LibreOffice filter ("pdf:writer_pdf_Export:...") needs the command line.
+    		var pool = target.indexOf(":") == -1 ? officePool(soffice, timeoutSeconds) : null;
+    		if (pool != null) {
+    			try {
+    				pool.converter.convert(source).to(new File(outDir, baseName + "." + targetExt)).execute();
+    				pooled = true;
+    				log.info("[u_convert] Converted by the LibreOffice pool");
+    			} catch (e) {
+    				log.warn("[u_convert] LibreOffice pool conversion failed, using a one shot process: " + e);
+    			}
     		}
-    		if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
-    			process.destroyForcibly();
-    			_error_code = "-3";
-    			throw "LibreOffice timed out after " + timeoutSeconds + "s. Output: " + readText(logFile);
-    		}
-    		var output = readText(logFile);
-    		log.debug("[u_convert] LibreOffice output: " + output);
-    		if (process.exitValue() != 0) throw "LibreOffice failed with code " + process.exitValue() + ". Output: " + output;
+    		if (!pooled) output = convertWithProcess(soffice, source, target, outDir, profileDir, logFile, timeoutSeconds);
     
-    		var baseName = String(inFile.getName()).replace(/\.[^.]+$/, "");
     		var produced = new File(outDir, baseName + "." + targetExt);
     		if (!produced.isFile()) {
     			var files = outDir.listFiles();
@@ -293,6 +552,16 @@ responseTimeout: 300
 ↓delete_at_end_of_session [variables.RequestableVariable-1791100000014]: 
   comment: Set to 'false' to keep the generated file when the HTTP session ends. Default is 'true'.
   value: true
+↓fonts_folder [variables.RequestableVariable-1791200000018]: 
+  comment: |
+    'Folder containing TrueType fonts to embed for the conversion (ODF inputs). Only the fonts used by the document are embedded. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+↓font_paths [variables.RequestableMultiValuedVariable-1791200000019]: 
+  comment: Font files to embed for the conversion (ODF inputs). Each entry is a path, or a JSON array of paths.
+↓font_aliases [variables.RequestableMultiValuedVariable-1791200000020]: 
+  comment: Font names used in the document for each font_paths entry. Defaults to the font family name of the file.
 ↓Test_Case_odt_to_pdf [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1791100000015]: 
     required: true
@@ -321,3 +590,12 @@ responseTimeout: 300
   ↓output_filename [variables.TestCaseVariable-1791100000022]: 
     required: true
     value: .//outputs/u_convert_ods.xlsx
+↓Test_Case_odt_to_pdf_fonts [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1791200000021]: 
+    required: true
+    value: .//templates/odf/test_pdf_convert.odt
+  ↓output_filename [variables.TestCaseVariable-1791200000022]: 
+    required: true
+    value: .//outputs/u_convert_fonts.pdf
+  ↓fonts_folder [variables.TestCaseVariable-1791200000023]: 
+    value: .//fonts

@@ -1,0 +1,3 @@
+# docker/Dockerfile only needs the fonts folder.
+*
+!fonts

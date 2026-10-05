@@ -3,7 +3,7 @@
   comment: ODFToolkit and PDF library
   contextTimeout: 1800
   httpSessionTimeout: 3600
-  version: 1.11.6
+  version: 2.0.0
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓autoRemoveFolder [sequences.GenericSequence]: 🗏 sequences/autoRemoveFolder.yaml
   ↓clean_outputs [sequences.GenericSequence]: 🗏 sequences/clean_outputs.yaml
@@ -27,7 +27,6 @@
   ↓u_create_ods [sequences.GenericSequence]: 🗏 sequences/u_create_ods.yaml
   ↓u_create_odt [sequences.GenericSequence]: 🗏 sequences/u_create_odt.yaml
   ↓u_export_data_to_sheet [sequences.GenericSequence]: 🗏 sequences/u_export_data_to_sheet.yaml
-  ↓u_fill_odp [sequences.GenericSequence]: 🗏 sequences/u_fill_odp.yaml
   ↓u_fill_odt [sequences.GenericSequence]: 🗏 sequences/u_fill_odt.yaml
   ↓u_fill_pdf [sequences.GenericSequence]: 🗏 sequences/u_fill_pdf.yaml
   ↓u_read_odt [sequences.GenericSequence]: 🗏 sequences/u_read_odt.yaml

@@ -1,6 +1,6 @@
 accessibility: Hidden
 authenticatedContextRequired: false
-comment: 'Demo sequence: fills .//templates/odp/template.odp with u_fill_odp, then converts the result to PPTX and PDF with u_convert.'
+comment: 'Demo sequence: fills .//templates/odp/template.odp with u_fill_odt, then converts the result to PPTX and PDF with u_convert.'
 responseTimeout: 300
 ↓build_markers [steps.SimpleStep-1791100000052]: 
   expression: |
@@ -48,7 +48,7 @@ responseTimeout: 300
   output: false
 ↓fill_odp [steps.SequenceStep-1791100000054]: 
   output: true
-  sourceSequence: lib_fill_odt_pdf.u_fill_odp
+  sourceSequence: lib_fill_odt_pdf.u_fill_odt
   ↓input_filename [variables.StepVariable-1791100000055]: 
     value: .//templates/odp/template.odp
   ↓output_filename [variables.StepVariable-1791100000056]: 

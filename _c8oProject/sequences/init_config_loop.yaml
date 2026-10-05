@@ -1,6 +1,12 @@
 autoStart: ${auto_start.init_config_loop=true}
 comment: Auto start sequence to install some required fonts for Docker Linux Platform using launch_pexec loop.
 responseTimeout: 1200
+↓set_running [steps.SequenceStep-1791200000084]: 
+  sourceSequence: lib_fill_odt_pdf.ctx_server_set
+  ↓set_name [variables.StepVariable-1791200000085]: 
+    value: init_config
+  ↓set_value [variables.StepVariable-1791200000086]: 
+    value: running
 ↓jIf [steps.IfStep-1786031000001]: 
   condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null
   ↓init_cmd_lines [steps.SimpleStep-1786031000002]: 

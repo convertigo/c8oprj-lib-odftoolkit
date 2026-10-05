@@ -1,10 +1,11 @@
 comment: |
-  Fills an ODT template file (Universal).
-  Place your template files in .//templates/odf folder.
-  It will output an attachment structure and if you call it with .bin requester it will trigger a download in the client Browser.
+  'Fills an ODT, ODS or ODP template (Universal): body, headers and footers, master pages, notes and tables.
+  Place your template files in .//templates/odf (or .//templates/odp) folder.
+  Built on odfdom-java 0.13 (no Simple API). See the markers variable for the marker types.
+  It outputs an attachment structure, the tags not found and the marker errors. If you call it with .bin requester it will trigger a download in the client Browser.'
 responseTimeout: 120
 ↓jIf [steps.IfStep-1742483763946]: 
-  condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null && context.server.get("init_config") != "done"
+  condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null && context.server.get("init_config") == "running"
   ↓Error_structure [steps.XMLErrorStep-1742483932829]: 
     code: 
       - xmlizable: 
@@ -17,7 +18,7 @@ responseTimeout: 120
         - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
         - SmartType: 
           - ↑mode: PLAIN
-          - →→: Server Font configuration is not finished yet. Please retry later...
+          - →→: Server Font configuration (init_config) is running. Please retry later...
     message: 
       - xmlizable: 
         - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
@@ -34,7 +35,7 @@ responseTimeout: 120
         - java.lang.String: 
           - ↑value: 1739978901433
         - java.lang.String: 
-          - ↑value: ./markers/array
+          - ↑value: ./markers/*[1]
   ↓jThen [steps.ThenStep-1740072516879]: 
     ↓markers [steps.JsonSourceStep-1739978922911]: 
       sourceDefinition: 
@@ -44,7 +45,7 @@ responseTimeout: 120
             - java.lang.String: 
               - ↑value: 1739978901433
             - java.lang.String: 
-              - ↑value: ./markers/array
+              - ↑value: ./markers/*[1]
       variableName: o_markers
   ↓jElse [steps.ElseStep-1740072516885]: 
     ↓markers [steps.JsonSourceStep-1740072550821]: 
@@ -60,71 +61,118 @@ responseTimeout: 120
 ↓fill_template [steps.SimpleStep-1739960996675]: 
   expression: |
     '/* =====================================================================================
-     * u_fill_odt / SimpleStep "fill_template" - EVOLUTIONS UPSTREAM 1.11.5
-     * Projet Convertigo : lib_fill_odt_pdf (upstream : convertigo/c8oprj-lib-odftoolkit)
+     * u_fill_odt / SimpleStep "fill_template"
      *
-     * Depuis le tag 1.11.5, les 3 evolutions ci-dessous font partie du code upstream.
-     * Elles ne doivent donc plus etre considerees comme des patches locaux a reappliquer.
-     * Les zones concernees sont encadrees par un bloc "UPSTREAM 1.11.5 #n" /
-     * "FIN UPSTREAM 1.11.5 #n".
+     * Fills an OpenDocument template (ODT text, ODS spreadsheet or ODP presentation) by
+     * replacing tags in the body, headers/footers, master pages, notes and tables.
+     * The engine works on the ODF XML (content.xml + styles.xml) through the ODFDOM core API
+     * (odfdom-java 0.13: OdfDocument.loadDocument, getContentDom, getStylesDom,
+     * getPackage().insert/remove, getOfficeMetadata, save) and the W3C DOM. It does not use
+     * the Simple API (org.odftoolkit.simple.*) that is not maintained anymore.
      *
-     * -------------------------------------------------------------------------------------
-     * UPSTREAM 1.11.5 #1 - Nom de table unique (au lieu de "table1" code en dur)
-     *   Emplacement : case "table" / "tableh", creation de la table + item.replaceWith()
-     *   Avant 1.11.5 : chaque tableau genere est nomme "table1". Des qu''un document
-     *   contient plusieurs tableaux (cas systematique avec un tag de type "array" qui
-     *   enchaine plusieurs tableaux), fdoc.getTableByName("table1") devient ambigu et
-     *   peut renvoyer un autre tableau que celui qui vient d''etre construit.
+     * A tag may be split across several spans by the editor: it is still found, and the
+     * replacement takes the formatting of the first character of the tag.
      *
-     * UPSTREAM 1.11.5 #2 - Support des cellules fusionnees (colspan / rowspan)
-     *   Emplacement : case "table" / "tableh", apres la boucle de remplissage
-     *   Avant 1.11.5 : aucun support de fusion. L''API Simple ODF n''accepte pas
-     *   colspan/rowspan a la creation : il faut construire la grille rectangulaire
-     *   complete, puis fusionner apres coup. Lit une nouvelle propriete "merges" du tag.
-     *   Contient 2 sous-parties (phase 1 = fusions, phase 2 = bordures) : voir commentaires.
-     *
-     * UPSTREAM 1.11.5 #3 - Propagation de "merges" dans le case "array"
-     *   Emplacement : case "array", construction de subTag
-     *   Avant 1.11.5 : subTag est reconstruit champ par champ (tag/type/value/style),
-     *   donc toute autre propriete du tag est perdue. Consequence : "merges" n''arrive
-     *   jamais au case "table" pour un tableau imbrique dans un "array" -> evolution #2
-     *   sans effet dans ce cas (qui est le cas d''usage principal).
+     * Marker types ("slides" first, then "rows" / "list", then the others, in array order):
+     *   string, paragraph (default) : text; "\n" = line break, "\t" = tab.
+     *   newline : line break.
+     *   span    : text with "style": { fontName, fontStyle (REGULAR, BOLD, ITALIC,
+     *             BOLDITALIC), fontSize, fontColor (name or #rrggbb) }.
+     *   image   : value = image path or data URI. The tag is the name of a frame, or a text
+     *             frame holding only the tag (the frame becomes the picture), or a text tag
+     *             (inline picture in text documents). Options: fit = contain (default) or
+     *             stretch, width / height (for example "4cm") for inline pictures.
+     *   table, tableh : value = 2D array. Builds a table in place of the tag ("tableh": first
+     *             row is a header). "style": { header, defaults, cells: { "row-col": {...} } }
+     *             with fontName, fontStyle, fontSize, fontColor, cellHAlign, cellVAlign,
+     *             cellBGColor. "merges": [ { row, col, rowspan, colspan } ].
+     *   tablet  : same as table, cell styles taken from the 1x3 table "table_template_name"
+     *             of "table_template_file" (header, even and odd rows).
+     *   array   : value = array of markers without tag, inserted one after the other.
+     *   list    : value = array of strings, the paragraph (or list item) is repeated.
+     *   rows    : value = 2D array, the table row holding the tag is repeated.
+     *   slides  : value = array of items (array of markers or { markers: [...] }), the slide
+     *             holding the tag is repeated and each item markers apply to its copy.
      * ===================================================================================== */
     
     var odf_api = JavaImporter(
-    	Packages.org.odftoolkit.simple.TextDocument,
-    	Packages.org.odftoolkit.simple.meta.Meta,
-    	Packages.java.util.Arrays,
-    	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
-    	org.odftoolkit.odfdom.dom.style.props,
-    	org.odftoolkit.simple.text.Span,
-    	Packages.org.odftoolkit.simple.draw.Image,
-    	Packages.org.odftoolkit.simple.table.Table,
-    	Packages.org.odftoolkit.simple.table.Cell,
-    	Packages.org.odftoolkit.simple.style.Font,
-    	Packages.org.odftoolkit.simple.style.StyleTypeDefinitions,
-    	Packages.org.odftoolkit.odfdom.type.Color,
-    	Packages.java.io.File,
-    	Packages.java.io.FileInputStream
+    	Packages.org.odftoolkit.odfdom.doc.OdfDocument,
+    	java.io.File,
+    	java.io.ByteArrayInputStream,
+    	java.nio.file.Files,
+    	java.util.ArrayList,
+    	java.util.UUID,
+    	javax.imageio.ImageIO
     );
     
-    function get_file_name(file_path) {
-    	if (file_path != "") {
-    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
-    	}
-    }
+    var _error = false;
+    var _error_code = "-1";
+    var _error_msg = "";
+    var _error_stack = "";
+    var not_found = [];
+    var marker_errors = [];
+    
+    var LOG = "[u_fill_odt] ";
+    
+    var NS = {
+    	office: "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    	style: "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
+    	text: "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+    	draw: "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+    	table: "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+    	fo: "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
+    	svg: "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+    	xlink: "http://www.w3.org/1999/xlink",
+    	xml: "http://www.w3.org/XML/1998/namespace",
+    	presentation: "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+    	calcext: "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0"
+    };
+    
+    var IMAGE_TYPES = {
+    	png: "image/png",
+    	jpg: "image/jpeg",
+    	jpeg: "image/jpeg",
+    	gif: "image/gif",
+    	bmp: "image/bmp",
+    	svg: "image/svg+xml",
+    	webp: "image/webp"
+    };
+    
+    var COLORS = {
+    	AQUA: "#00ffff", BLACK: "#000000", BLUE: "#0000ff", FUCHSIA: "#ff00ff", GRAY: "#808080",
+    	GREEN: "#008000", LIME: "#00ff00", MAROON: "#800000", NAVY: "#000080", OLIVE: "#808000",
+    	ORANGE: "#ffa500", PURPLE: "#800080", RED: "#ff0000", SILVER: "#c0c0c0", TEAL: "#008080",
+    	WHITE: "#ffffff", YELLOW: "#ffff00"
+    };
+    
+    var H_ALIGN = { CENTER: "center", JUSTIFY: "justify", FILLED: "justify", LEFT: "left", RIGHT: "right" };
+    var V_ALIGN = { TOP: "top", MIDDLE: "middle", BOTTOM: "bottom" };
+    
+    // Same defaults as the previous Simple API implementation.
+    var DEFAULT_FONT = { fontName: "Arial", fontStyle: "REGULAR", fontSize: 10, fontColor: "BLACK" };
+    var CELL_BORDER = "0.0007in solid #000000";
+    var MERGED_BORDER = "0.5pt solid #000000";
+    var CELL_PADDING = "0.0382in";
+    var CM_PER_PIXEL = 0.028;
     
     function get_full_path(file_path) {
-    	if (file_path != "") {
-    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
-    		if (file_path.indexOf(".//") != -1) {
+    	if (file_path != null && file_path != "") {
+    		file_path = String(file_path);
+    		var project_directory_path = String(context.getProjectDirectory()).replace(/\\/g, "/") + "/";
+    		if (file_path.indexOf(".//") == 0) {
     			file_path = project_directory_path + file_path.substring(3);
-    		}
-    		else if (file_path.indexOf("./") != -1) {
+    		} else if (file_path.indexOf("./") == 0) {
     			file_path = project_directory_path + "../" + file_path.substring(2);
     		}
     	}
     	return file_path;
+    }
+    
+    function get_file_name(file_path) {
+    	if (file_path != null && file_path != "") {
+    		return String(org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path)));
+    	}
+    	return "";
     }
     
     var template_path = get_full_path(input_filename);
@@ -133,459 +181,1359 @@ responseTimeout: 120
     
     with (odf_api) {
     
-    	function objectify(s) {
-    		if (typeof s == "string") {
-    			try {
-    				log.debug(''Try to parse the string as JSON...'');
-    				const obj = JSON.parse(s); // Convertir la chaîne en objet JSON
-    				// Vérifier toutes les propriétés de l''objet
-    				Object.keys(obj).forEach(key => {
-    					if (typeof obj[key] == "string") {
-    						try {
-    							log.debug("Parsing nested JSON for key: " + key);
-    							obj[key] = JSON.parse(obj[key]); // Désérialiser la chaîne imbriquée
-    						} catch (e) {
-    							log.warn("Failed to parse nested JSON for key: " + key + ". Keeping it as a string.");
-    						}
-    					}
-    				});
-    				return obj;
-    			} catch (e) {
-    				log.warn("Failed to parse JSON. Returning the string as is: " + e);
-    			}
-    		}
-    		return s; // Retourner tel quel si ce n''est pas une chaîne JSON valide
+    	var docRef = null;
+    	var uniq = 0;
+    
+    	/* ---------- Generic value helpers ---------- */
+    
+    	function isStr(v) {
+    		return typeof v == "string" || v instanceof String || v instanceof java.lang.String;
     	}
     
-    	function setTextFont(style) {
-    		try {
-    			style = objectify(style);
-    			return new Font(style && style.fontName ? style.fontName : "Arial", style && style.fontStyle ? StyleTypeDefinitions.FontStyle[style.fontStyle] : StyleTypeDefinitions.FontStyle.REGULAR, style && style.fontSize ? style.fontSize : 10, style && style.fontColor ? getColor(style.fontColor) : Color.BLACK);
-    		} catch (e) {
-    			log.warn("Setting Default Font values because: " + e);
-    			return new Font("Arial", StyleTypeDefinitions.FontStyle.REGULAR, 10, Color.BLACK);
-    		}
+    	function isArr(v) {
+    		return Array.isArray ? Array.isArray(v) : Object.prototype.toString.call(v) == "[object Array]";
     	}
     
-    	function getCellFont(style, row, column, isHeader) {
-    		style = objectify(style);
-    		if (isHeader) {
-    			var title = { fontName: style && style.header && style.header.fontName ? style.header.fontName : "Arial", fontStyle: style && style.header && style.header.fontStyle ? style.header.fontStyle : "BOLD", fontSize: style && style.header && style.header.fontSize ? style.header.fontSize : 10, fontColor: style && style.header && style.header.fontColor ? style.header.fontColor : "BLACK" };
-    			return setTextFont(title);
-    		}
-    		const key = row + "-" + column;
-    		return setTextFont(style && style.cells && style.cells[key] ? style.cells[key] : style && style.defaults ? style.defaults : {});
-    	}
-    
-    	function getColor(color) {
-    		const validColors = ["AQUA", "BLACK", "BLUE", "FUCHSIA", "GRAY", "GREEN", "LIME", "MAROON", "NAVY", "OLIVE", "ORANGE", "PURPLE", "RED", "SILVER", "TEAL", "WHITE", "YELLOW"];
-    		return color.startsWith("#") ? Color.valueOf(color) : validColors.includes(color) ? Color[color] : Color.WHITE;
-    	}
-    
-    	function setCellBGColor(cell, color) {
-    		cell.setCellBackgroundColor(getColor(color));
-    	}
-    
-    	function setCellAttributes(cell, row, column, isHeader, HAlign, VAlign, style) {
-    		// Afficher les logs pour chaque variable
-    		log.debug("cell => " + cell);
-    		log.debug("row => " + row);
-    		log.debug("column => " + column);
-    		log.debug("isHeader => " + isHeader);
-    
-    		// Si ''style'' est un objet, afficher ses propriétés
-    		if (style != null && typeof style === "object") {
-    			log.debug("style (détails) => " + JSON.stringify(style));
-    		} else {
-    			log.debug("style n''est pas un objet ou est null.");
-    		}
-    
-    		if (isHeader) {
-    			if (style && style.header && HAlign.includes(style.header.cellHAlign)) {
-    				log.debug("[header] cellHAlign: " + style.header.cellHAlign);
-    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.header.cellHAlign]);
-    			} else {
-    				log.debug("Setting Header to default HAlign: CENTER");
-    				cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType["CENTER"]);
-    			}
-    			if (style && style.header && VAlign.includes(style.header.cellVAlign)) {
-    				log.debug("[header] cellVAlign: " + style.header.cellVAlign);
-    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.header.cellVAlign]);
-    			} else {
-    				log.debug("Setting Header to default VAlign: MIDDLE");
-    				cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType["MIDDLE"]);
-    			}
-    			if (style && style.header && style.header.cellBGColor) {
-    				log.debug("[header] cellBGColor: " + style.header.cellBGColor);
-    				setCellBGColor(cell, style.header.cellBGColor);
-    			} else {
-    				log.warn("Setting Header to default BGColor: #e5e5e5");
-    				setCellBGColor(cell, "#e5e5e5");
-    			}
-    			return;
-    		}
-    		const key = row + "-" + column;
-    		log.debug("Searching Atributes for cell " + key);
-    		if (style && style.cells && style.cells[key] && HAlign.includes(style.cells[key].cellHAlign)) {
-    			log.debug("[cell] cellHAlign: " + style.cells[key].cellHAlign);
-    			cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.cells[key].cellHAlign]);
-    		} else if (style && style.defaults && HAlign.includes(style.defaults.cellHAlign)) {
-    			log.debug("[defaults] cellHAlign: " + style.defaults.cellHAlign);
-    			cell.setHorizontalAlignment(StyleTypeDefinitions.HorizontalAlignmentType[style.defaults.cellHAlign]);
-    		} else {
-    			log.debug("No valid attribute found for cellHAlign. Do nothing");
-    		}
-    
-    		if (style && style.cells && style.cells[key] && VAlign.includes(style.cells[key].cellVAlign)) {
-    			log.debug("[cell] cellVAlign: " + style.cells[key].cellVAlign);
-    			cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.cells[key].cellVAlign]);
-    		} else if (style && style.defaults && VAlign.includes(style.defaults.cellVAlign)) {
-    			log.debug("[defaults] cellVAlign: " + style.defaults.cellVAlign);
-    			cell.setVerticalAlignment(StyleTypeDefinitions.VerticalAlignmentType[style.defaults.cellVAlign]);
-    		} else {
-    			log.debug("No valid attribute found for cellVAlign. Do nothing");
-    		}
-    
-    		if (style && style.cells && style.cells[key] && style.cells[key].cellBGColor) {
-    			log.debug("[cell] cellBGColor: " + style.cells[key].cellBGColor);
-    			setCellBGColor(cell, style.cells[key].cellBGColor);
-    		} else if (style && style.defaults && style.defaults.cellBGColor) {
-    			log.debug("[defaults] cellBGColor: " + style.defaults.cellBGColor);
-    			setCellBGColor(cell, style.defaults.cellBGColor);
-    		} else {
-    			log.debug("No valid attribute found for BGColor. Do nothing");
-    		}
-    	}
-    
-    	function getCellBorder(cell, borderType) {
-    		try {
-    			border = cell.getBorder(StyleTypeDefinitions.CellBordersType[borderType]);
-    			if (border != null && border.toString().trim() != "") {
-    				return border;
-    			}
-    		} catch (e) {
-    			log.error("Error occured getting cell border ''" + borderType + "'' because " + e);
-    		}
-    		return StyleTypeDefinitions.CellBordersType.NONE
-    	}
-    
-    	function extractTableStyles(cell) {
-    		var tb_styles = {
-    			cellBGColor: cell.getCellBackgroundColor(),
-    			isTextWrapped: cell.isTextWrapped(),
-    			horizontal: cell.getParagraphByIndex(0, false).getHorizontalAlignment(),
-    			//vertical: cell.getVerticalAlignmentType(),
-    			top: getCellBorder(cell, "TOP"),
-    			bottom: getCellBorder(cell, "BOTTOM"),
-    			left: getCellBorder(cell, "LEFT"),
-    			right: getCellBorder(cell, "RIGHT"),
-    			font: cell.getParagraphByIndex(0, false).getFont()
-    		};
-    
-    		// Affiche les styles récupérés
-    		log.debug("TABLE Styles: " + JSON.stringify(tb_styles, null, 2));
-    
-    		return tb_styles;
-    	}
-    	
-    	function processTagReplacement(fdoc, tag, item)
-    	{
-    		switch (tag.type) 
-    		{
-    			case "image":
-    				item.replaceWith(new File(get_full_path(tag.value)).toURI());
-    				break;
-    			case "tablet":
-    				var doc_table_template = TextDocument.loadDocument(get_full_path(table_template_file));
-    				var table_template = doc_table_template.getTableByName(table_template_name);
-    				var tpl_rows = table_template.getRowCount();
-    				var tpl_cols = table_template.getColumnCount();
-    				var header_row_style = null;
-    				var even_row_style = null;
-    				var odd_row_style = null;
-    				if (tpl_rows == 3 && tpl_cols == 1) {
-    					header_row_style = extractTableStyles(table_template.getCellByPosition(0, 0));
-    					even_row_style = extractTableStyles(table_template.getCellByPosition(0, 1));
-    					odd_row_style = extractTableStyles(table_template.getCellByPosition(0, 2));
-    				} else {
-    					log.error("Template table must be a 1*3 table");
+    	function parseJson(v) {
+    		if (isStr(v)) {
+    			var s = String(v).trim();
+    			var c = s.charAt(0);
+    			if (c == "[" || c == "{") {
+    				try {
+    					return JSON.parse(s);
+    				} catch (e) {
+    					log.warn(LOG + "Value looks like JSON but cannot be parsed: " + e);
     				}
+    			}
+    			return String(v);
+    		}
+    		return v;
+    	}
+    
+    	function asArray(v) {
+    		v = parseJson(v);
+    		if (v == null) return [];
+    		if (isArr(v)) return v;
+    		if (v instanceof java.util.List) {
+    			var l = [];
+    			for (var i = 0; i < v.size(); i++) l.push(v.get(i));
+    			return l;
+    		}
+    		if (v instanceof java.lang.Object && v.getClass().isArray()) {
+    			var a = [];
+    			for (var j = 0; j < v.length; j++) a.push(v[j]);
+    			return a;
+    		}
+    		if (typeof v == "object" && v.array != null) return asArray(v.array);
+    		return [v];
+    	}
+    
+    	function asObject(v) {
+    		v = parseJson(v);
+    		return v != null && typeof v == "object" && !isArr(v) && !(v instanceof java.lang.Object) ? v : {};
+    	}
+    
+    	function toText(v) {
+    		if (v == null) return "";
+    		if (isStr(v) || typeof v == "number" || typeof v == "boolean" || v instanceof Number || v instanceof Boolean) return String(v);
+    		if (v instanceof java.lang.Object) return String(v.toString());
+    		return JSON.stringify(v);
+    	}
+    
+    	function toInt(v, def) {
+    		var n = parseInt(toText(v), 10);
+    		return isNaN(n) ? def : n;
+    	}
+    
+    	/* ---------- DOM helpers ---------- */
+    
+    	function isEl(n, ns, local) {
+    		return n != null && n.getNodeType() == 1 && String(n.getNamespaceURI()) == ns && String(n.getLocalName()) == local;
+    	}
+    
+    	function isParagraph(n) {
+    		return isEl(n, NS.text, "p") || isEl(n, NS.text, "h");
+    	}
+    
+    	function attr(el, ns, local) {
+    		return el != null && el.hasAttributeNS(ns, local) ? String(el.getAttributeNS(ns, local)) : "";
+    	}
+    
+    	function descendants(root, ns, local) {
+    		var out = [];
+    		if (isEl(root, ns, local)) out.push(root);
+    		var list = root.getElementsByTagNameNS(ns, local);
+    		for (var i = 0; i < list.getLength(); i++) out.push(list.item(i));
+    		return out;
+    	}
+    
+    	/* Paragraphs (text:p and text:h) in document order. */
+    	function paragraphsOf(scopes) {
+    		var out = [];
+    		for (var i = 0; i < scopes.length; i++) {
+    			if (isParagraph(scopes[i])) out.push(scopes[i]);
+    			var list = scopes[i].getElementsByTagNameNS(NS.text, "*");
+    			for (var j = 0; j < list.getLength(); j++) {
+    				if (isParagraph(list.item(j))) out.push(list.item(j));
+    			}
+    		}
+    		return out;
+    	}
+    
+    	function ancestor(node, ns, local) {
+    		var n = node.getParentNode();
+    		while (n != null && n.getNodeType() == 1) {
+    			if (isEl(n, ns, local)) return n;
+    			n = n.getParentNode();
+    		}
+    		return null;
+    	}
+    
+    	function isAttached(node) {
+    		var n = node;
+    		while (n != null) {
+    			if (n.getNodeType() == 9) return true;
+    			n = n.getParentNode();
+    		}
+    		return false;
+    	}
+    
+    	function childElements(node, ns, local) {
+    		var out = [];
+    		for (var c = node.getFirstChild(); c != null; c = c.getNextSibling()) {
+    			if (isEl(c, ns, local)) out.push(c);
+    		}
+    		return out;
+    	}
+    
+    	function insertAfter(ref, nodes) {
+    		var parent = ref.getParentNode();
+    		var next = ref.getNextSibling();
+    		for (var i = 0; i < nodes.length; i++) parent.insertBefore(nodes[i], next);
+    	}
+    
+    	function bodyKind() {
+    		var body = docRef.getContentDom().getElementsByTagNameNS(NS.office, "body");
+    		if (body.getLength() > 0) {
+    			for (var c = body.item(0).getFirstChild(); c != null; c = c.getNextSibling()) {
+    				if (c.getNodeType() == 1) return String(c.getLocalName());
+    			}
+    		}
+    		return "";
+    	}
+    
+    	/* ---------- Paragraph text model ----------
+    	 * A paragraph text is the concatenation of its text nodes, nested spans included.
+    	 * text:s / text:tab / text:line-break count as one separator char that can not match
+    	 * a tag. Nested paragraphs, frames, notes and annotations are not part of the text. */
+    
+    	var SEP = "\u0000";
+    
+    	function collectSegments(node, segs) {
+    		for (var c = node.getFirstChild(); c != null; c = c.getNextSibling()) {
+    			var t = c.getNodeType();
+    			if (t == 3 || t == 4) {
+    				segs.push({ node: c, text: String(c.getData()) });
+    			} else if (t == 1) {
+    				if (isParagraph(c) || isEl(c, NS.draw, "frame") || isEl(c, NS.text, "note") || isEl(c, NS.office, "annotation")) continue;
+    				if (isEl(c, NS.text, "s") || isEl(c, NS.text, "tab") || isEl(c, NS.text, "line-break")) {
+    					segs.push({ node: null, element: c, text: SEP });
+    					continue;
+    				}
+    				collectSegments(c, segs);
+    			}
+    		}
+    		return segs;
+    	}
+    
+    	function paragraphText(p) {
+    		var segs = collectSegments(p, []);
+    		var s = "";
+    		for (var i = 0; i < segs.length; i++) s += segs[i].text;
+    		return s;
+    	}
+    
+    	/* Text of every paragraph of a frame (odfdom 0.13 returns "" for getTextContent() on
+    	 * non paragraph elements, so the DOM text is never read through it). */
+    	function frameText(frame) {
+    		var paragraphs = paragraphsOf([frame]);
+    		var s = "";
+    		for (var i = 0; i < paragraphs.length; i++) s += paragraphText(paragraphs[i]).replace(/\u0000/g, " ");
+    		return s;
+    	}
+    
+    	function containsTag(p, tag) {
+    		return paragraphText(p).indexOf(tag) != -1;
+    	}
+    
+    	function withTag(scopes, tag) {
+    		return paragraphsOf(scopes).filter(function (p) {
+    			return containsTag(p, tag);
+    		});
+    	}
+    
+    	/* Builds the ODF nodes for a text value: "\n" -> text:line-break, "\t" -> text:tab,
+    	 * runs of spaces -> text:s. Returns { nodes, length } where length is the size of the
+    	 * inserted content in the paragraph text model. */
+    	function textNodes(doc, value) {
+    		var nodes = [];
+    		var length = 0;
+    		var lines = toText(value).replace(/\r\n?/g, "\n").split("\n");
+    		for (var l = 0; l < lines.length; l++) {
+    			if (l > 0) {
+    				nodes.push(doc.createElementNS(NS.text, "text:line-break"));
+    				length++;
+    			}
+    			var chunks = lines[l].split("\t");
+    			for (var c = 0; c < chunks.length; c++) {
+    				if (c > 0) {
+    					nodes.push(doc.createElementNS(NS.text, "text:tab"));
+    					length++;
+    				}
+    				var s = chunks[c];
+    				var re = / {2,}/g;
+    				var last = 0;
+    				var m;
+    				while ((m = re.exec(s)) != null) {
+    					nodes.push(doc.createTextNode(s.substring(last, m.index + 1)));
+    					length += m.index + 1 - last;
+    					var sp = doc.createElementNS(NS.text, "text:s");
+    					if (m[0].length > 2) sp.setAttributeNS(NS.text, "text:c", String(m[0].length - 1));
+    					nodes.push(sp);
+    					length++;
+    					last = m.index + m[0].length;
+    				}
+    				if (last < s.length) {
+    					nodes.push(doc.createTextNode(s.substring(last)));
+    					length += s.length - last;
+    				}
+    			}
+    		}
+    		return { nodes: nodes, length: length };
+    	}
+    
+    	/* Replaces the occurrences of tag in paragraph p (at most "max" when given). The tag
+    	 * may be split across several spans: the replacement takes the formatting of the
+    	 * first character of the tag. builder(doc) returns { nodes, length }. */
+    	function replaceInParagraph(p, tag, builder, max) {
+    		var count = 0;
+    		var from = 0;
+    		var doc = p.getOwnerDocument();
+    		while (max == null || count < max) {
+    			var segs = collectSegments(p, []);
+    			var full = "";
+    			for (var i = 0; i < segs.length; i++) {
+    				segs[i].start = full.length;
+    				full += segs[i].text;
+    			}
+    			var idx = full.indexOf(tag, from);
+    			if (idx == -1) break;
+    			var end = idx + tag.length;
+    			var a = null;
+    			var b = null;
+    			var middle = [];
+    			for (var k = 0; k < segs.length; k++) {
+    				var sg = segs[k];
+    				var sgEnd = sg.start + sg.text.length;
+    				if (a == null && idx >= sg.start && idx < sgEnd) a = sg;
+    				if (a != null && end > sg.start && end <= sgEnd) {
+    					b = sg;
+    					break;
+    				}
+    				if (a != null && sg !== a) middle.push(sg);
+    			}
+    			var prefix = a.text.substring(0, idx - a.start);
+    			var suffix = b.text.substring(end - b.start);
+    			var anchor = a.node;
+    			if (a === b) {
+    				anchor.setData(prefix);
+    				if (suffix != "") insertAfter(anchor, [doc.createTextNode(suffix)]);
+    			} else {
+    				anchor.setData(prefix);
+    				for (var mi = 0; mi < middle.length; mi++) {
+    					if (middle[mi].node != null) middle[mi].node.setData("");
+    				}
+    				b.node.setData(suffix);
+    			}
+    			var built = builder(doc);
+    			insertAfter(anchor, built.nodes);
+    			removeIfEmpty(anchor);
+    			for (var ei = 0; ei < middle.length; ei++) {
+    				if (middle[ei].node != null) removeIfEmpty(middle[ei].node);
+    			}
+    			if (b !== a) removeIfEmpty(b.node);
+    			count++;
+    			from = idx + built.length;
+    		}
+    		return count;
+    	}
+    
+    	/* Removes an emptied text node and the spans left without content. */
+    	function removeIfEmpty(textNode) {
+    		if (String(textNode.getData()) != "" || textNode.getParentNode() == null) return;
+    		var parent = textNode.getParentNode();
+    		parent.removeChild(textNode);
+    		while (isEl(parent, NS.text, "span") && parent.getFirstChild() == null) {
+    			var up = parent.getParentNode();
+    			up.removeChild(parent);
+    			parent = up;
+    		}
+    	}
+    
+    	function replaceText(scopes, tag, value) {
+    		var count = 0;
+    		var paragraphs = withTag(scopes, tag);
+    		for (var i = 0; i < paragraphs.length; i++) {
+    			count += replaceInParagraph(paragraphs[i], tag, function (doc) {
+    				return textNodes(doc, value);
+    			});
+    		}
+    		return count;
+    	}
+    
+    	/* Sets the whole text of a paragraph, keeping the formatting of its first text run. */
+    	function setParagraphText(p, value) {
+    		var doc = p.getOwnerDocument();
+    		var segs = collectSegments(p, []);
+    		var first = null;
+    		var emptied = [];
+    		for (var i = 0; i < segs.length; i++) {
+    			if (segs[i].node == null) {
+    				segs[i].element.getParentNode().removeChild(segs[i].element);
+    			} else if (first == null) {
+    				first = segs[i].node;
+    			} else {
+    				segs[i].node.setData("");
+    				emptied.push(segs[i].node);
+    			}
+    		}
+    		var built = textNodes(doc, value);
+    		if (first != null) {
+    			first.setData("");
+    			insertAfter(first, built.nodes);
+    			if (built.nodes.length > 0) removeIfEmpty(first);
+    			for (var e = 0; e < emptied.length; e++) removeIfEmpty(emptied[e]);
+    		} else {
+    			var host = p;
+    			var spans = p.getElementsByTagNameNS(NS.text, "span");
+    			if (spans.getLength() > 0) host = spans.item(0);
+    			for (var n = 0; n < built.nodes.length; n++) host.appendChild(built.nodes[n]);
+    		}
+    	}
+    
+    	/* ---------- Paragraph split (to insert a block such as a table in place of a tag) ---------- */
+    
+    	function isEmptyParagraph(p) {
+    		var segs = collectSegments(p, []);
+    		for (var i = 0; i < segs.length; i++) {
+    			if (segs[i].node != null && String(segs[i].text).trim() != "") return false;
+    		}
+    		return descendants(p, NS.draw, "frame").length == 0;
+    	}
+    
+    	function removeIds(root) {
+    		var all = [root];
+    		var list = root.getElementsByTagName("*");
+    		for (var i = 0; i < list.getLength(); i++) all.push(list.item(i));
+    		for (var j = 0; j < all.length; j++) {
+    			all[j].removeAttributeNS(NS.xml, "id");
+    			all[j].removeAttributeNS(NS.text, "id");
+    		}
+    	}
+    
+    	/* Splits p at the marker element: p keeps what precedes it, the returned copy (inserted
+    	 * after p, or null when empty) gets what follows it. The marker is removed. */
+    	function splitParagraphAt(p, marker) {
+    		var name = attr(marker, NS.text, "name");
+    		var copy = p.cloneNode(true);
+    		var copyMarker = null;
+    		var marks = copy.getElementsByTagNameNS(NS.text, "bookmark");
+    		for (var i = 0; i < marks.getLength(); i++) {
+    			if (attr(marks.item(i), NS.text, "name") == name) copyMarker = marks.item(i);
+    		}
+    		for (var n = marker; n !== p; n = n.getParentNode()) {
+    			while (n.getNextSibling() != null) n.getParentNode().removeChild(n.getNextSibling());
+    		}
+    		marker.getParentNode().removeChild(marker);
+    		for (var m = copyMarker; m !== copy; m = m.getParentNode()) {
+    			while (m.getPreviousSibling() != null) m.getParentNode().removeChild(m.getPreviousSibling());
+    		}
+    		copyMarker.getParentNode().removeChild(copyMarker);
+    		if (isEmptyParagraph(copy)) return null;
+    		removeIds(copy);
+    		insertAfter(p, [copy]);
+    		return copy;
+    	}
+    
+    	/* Replaces each occurrence of tag in p by the block element returned by makeBlock()
+    	 * (a table): the paragraph is split around the tag and the block goes in between. */
+    	function replaceTagWithBlock(p, tag, makeBlock) {
+    		var count = 0;
+    		while (p != null && containsTag(p, tag)) {
+    			var marker = null;
+    			replaceInParagraph(p, tag, function (doc) {
+    				marker = doc.createElementNS(NS.text, "text:bookmark");
+    				marker.setAttributeNS(NS.text, "text:name", "c8o_split_" + (++uniq));
+    				return { nodes: [marker], length: 0 };
+    			}, 1);
+    			var rest = splitParagraphAt(p, marker);
+    			var block = makeBlock();
+    			if (block != null) {
+    				// Tables can not be children of list items: they go after the list.
+    				var ref = p;
+    				while (isEl(ref.getParentNode(), NS.text, "list-item") || isEl(ref.getParentNode(), NS.text, "list") || isEl(ref.getParentNode(), NS.text, "list-header")) ref = ref.getParentNode();
+    				insertAfter(ref, [block]);
+    			}
+    			count++;
+    			p = rest;
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- Styles ---------- */
+    
+    	var styleCache = {};
+    	var styleCounter = 0;
+    
+    	function officeChild(dom, local, before) {
+    		var root = dom.getDocumentElement();
+    		var found = childElements(root, NS.office, local);
+    		if (found.length > 0) return found[0];
+    		var el = dom.createElementNS(NS.office, "office:" + local);
+    		var ref = null;
+    		for (var c = root.getFirstChild(); c != null && ref == null; c = c.getNextSibling()) {
+    			for (var i = 0; i < before.length; i++) {
+    				if (isEl(c, NS.office, before[i])) ref = c;
+    			}
+    		}
+    		root.insertBefore(el, ref);
+    		return el;
+    	}
+    
+    	function automaticStyles(dom) {
+    		return officeChild(dom, "automatic-styles", ["master-styles", "body"]);
+    	}
+    
+    	function styleNameUsed(name) {
+    		var doms = [docRef.getContentDom(), docRef.getStylesDom()];
+    		for (var d = 0; d < doms.length; d++) {
+    			var list = doms[d].getElementsByTagNameNS(NS.style, "style");
+    			for (var i = 0; i < list.getLength(); i++) {
+    				if (attr(list.item(i), NS.style, "name") == name) return true;
+    			}
+    		}
+    		return false;
+    	}
+    
+    	function ensureFontFace(dom, name, family) {
+    		var decls = officeChild(dom, "font-face-decls", ["styles", "automatic-styles", "master-styles", "body"]);
+    		var faces = childElements(decls, NS.style, "font-face");
+    		for (var i = 0; i < faces.length; i++) {
+    			if (attr(faces[i], NS.style, "name") == name) return name;
+    		}
+    		var face = dom.createElementNS(NS.style, "style:font-face");
+    		face.setAttributeNS(NS.style, "style:name", name);
+    		family = family || (name.indexOf(" ") != -1 ? "''" + name + "''" : name);
+    		face.setAttributeNS(NS.svg, "svg:font-family", family);
+    		decls.appendChild(face);
+    		return name;
+    	}
+    
+    	var PROPERTY_ORDER = ["table-properties", "table-column-properties", "table-row-properties", "table-cell-properties", "graphic-properties", "paragraph-properties", "text-properties"];
+    
+    	/* Returns the name of an automatic style with these properties, created once per DOM.
+    	 * props = { "text-properties": { "fo:color": "#ff0000" }, ... } */
+    	function autoStyle(dom, family, props, prefix) {
+    		var key = String(dom.getDocumentElement().getLocalName()) + "|" + family + "|" + JSON.stringify(props);
+    		if (styleCache[key]) return styleCache[key];
+    		var name;
+    		do {
+    			name = prefix + (++styleCounter);
+    		} while (styleNameUsed(name));
+    		var st = dom.createElementNS(NS.style, "style:style");
+    		st.setAttributeNS(NS.style, "style:name", name);
+    		st.setAttributeNS(NS.style, "style:family", family);
+    		for (var i = 0; i < PROPERTY_ORDER.length; i++) {
+    			var values = props[PROPERTY_ORDER[i]];
+    			if (values == null) continue;
+    			var pe = dom.createElementNS(NS.style, "style:" + PROPERTY_ORDER[i]);
+    			for (var qname in values) {
+    				pe.setAttributeNS(NS[qname.split(":")[0]], qname, values[qname]);
+    			}
+    			st.appendChild(pe);
+    		}
+    		automaticStyles(dom).appendChild(st);
+    		styleCache[key] = name;
+    		return name;
+    	}
+    
+    	function colorHex(color) {
+    		var s = toText(color).trim();
+    		if (/^#[0-9a-f]{6}$/i.test(s)) return s.toLowerCase();
+    		if (/^#[0-9a-f]{3}$/i.test(s)) return ("#" + s.charAt(1) + s.charAt(1) + s.charAt(2) + s.charAt(2) + s.charAt(3) + s.charAt(3)).toLowerCase();
+    		if (COLORS[s.toUpperCase()]) return COLORS[s.toUpperCase()];
+    		log.warn(LOG + "Unknown color ''" + s + "'', using WHITE");
+    		return COLORS.WHITE;
+    	}
+    
+    	/* Text properties of a font definition { fontName, fontStyle, fontSize, fontColor }. */
+    	function textProperties(dom, font) {
+    		var p = {};
+    		if (font.fontName) p["style:font-name"] = ensureFontFace(dom, toText(font.fontName));
+    		var size = parseFloat(toText(font.fontSize));
+    		if (!isNaN(size) && size > 0) p["fo:font-size"] = size + "pt";
+    		var fontStyle = toText(font.fontStyle).toUpperCase();
+    		if (fontStyle.indexOf("BOLD") != -1) p["fo:font-weight"] = "bold";
+    		if (fontStyle.indexOf("ITALIC") != -1) p["fo:font-style"] = "italic";
+    		if (font.fontColor) p["fo:color"] = colorHex(font.fontColor);
+    		return p;
+    	}
+    
+    	/* Font definition: every attribute of "style" or its default (whole object, as before). */
+    	function fontOf(style, defaults) {
+    		style = asObject(style);
+    		return {
+    			fontName: style.fontName ? style.fontName : defaults.fontName,
+    			fontStyle: style.fontStyle ? style.fontStyle : defaults.fontStyle,
+    			fontSize: style.fontSize ? style.fontSize : defaults.fontSize,
+    			fontColor: style.fontColor ? style.fontColor : defaults.fontColor
+    		};
+    	}
+    
+    	/* ---------- span / newline ---------- */
+    
+    	function spanBuilder(value, style) {
+    		return function (dom) {
+    			var span = dom.createElementNS(NS.text, "text:span");
+    			span.setAttributeNS(NS.text, "text:style-name", autoStyle(dom, "text", { "text-properties": textProperties(dom, fontOf(style, DEFAULT_FONT)) }, "c8oT"));
+    			var built = textNodes(dom, value);
+    			for (var i = 0; i < built.nodes.length; i++) span.appendChild(built.nodes[i]);
+    			return { nodes: [span], length: built.length };
+    		};
+    	}
+    
+    	function processWithBuilder(scopes, tag, builder) {
+    		var count = 0;
+    		var paragraphs = withTag(scopes, tag);
+    		for (var i = 0; i < paragraphs.length; i++) count += replaceInParagraph(paragraphs[i], tag, builder);
+    		return count;
+    	}
+    
+    	/* ---------- list ---------- */
+    
+    	function processList(scopes, marker) {
+    		var values = asArray(marker.value);
+    		var count = 0;
+    		var targets = withTag(scopes, marker.tag);
+    		for (var i = 0; i < targets.length; i++) {
+    			var p = targets[i];
+    			if (!isAttached(p)) continue;
+    			var unit = isEl(p.getParentNode(), NS.text, "list-item") ? p.getParentNode() : p;
+    			var parent = unit.getParentNode();
+    			for (var v = 0; v < values.length; v++) {
+    				var copy = unit.cloneNode(true);
+    				removeIds(copy);
+    				parent.insertBefore(copy, unit);
+    				replaceText([copy], marker.tag, values[v]);
+    			}
+    			parent.removeChild(unit);
+    			if (isEl(parent, NS.text, "list") && childElements(parent, NS.text, "list-item").length == 0) {
+    				parent.getParentNode().removeChild(parent);
+    			}
+    			count++;
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- rows ---------- */
+    
+    	function setCellValue(cell, value, modelParagraph) {
+    		var paragraphs = childElements(cell, NS.text, "p").concat(childElements(cell, NS.text, "h"));
+    		var p;
+    		if (paragraphs.length == 0) {
+    			p = modelParagraph.cloneNode(true);
+    			cell.appendChild(p);
+    		} else {
+    			p = paragraphs[0];
+    			for (var i = 1; i < paragraphs.length; i++) cell.removeChild(paragraphs[i]);
+    		}
+    		setParagraphText(p, value);
+    		// Spreadsheet cells also carry a typed value that LibreOffice displays first.
+    		if (cell.hasAttributeNS(NS.office, "value-type")) {
+    			var numeric = typeof value == "number" || (isStr(value) && /^-?[0-9]+([.][0-9]+)?$/.test(String(value)));
+    			var vt = attr(cell, NS.office, "value-type");
+    			var keepNumeric = numeric && (vt == "float" || vt == "percentage" || vt == "currency");
+    			var newType = keepNumeric ? vt : "string";
+    			cell.setAttributeNS(NS.office, "office:value-type", newType);
+    			if (keepNumeric) {
+    				cell.setAttributeNS(NS.office, "office:value", String(value));
+    			} else {
+    				cell.removeAttributeNS(NS.office, "value");
+    			}
+    			if (cell.hasAttributeNS(NS.calcext, "value-type")) cell.setAttributeNS(NS.calcext, "calcext:value-type", newType);
+    		}
+    	}
+    
+    	/* Spreadsheets compress identical adjacent cells with table:number-columns-repeated.
+    	 * Splits them so that the first "needed" columns are individual cells. */
+    	function expandRepeatedCells(row, needed) {
+    		var pos = 0;
+    		var cell = row.getFirstChild();
+    		while (cell != null && pos < needed) {
+    			var next = cell.getNextSibling();
+    			if (isEl(cell, NS.table, "table-cell") || isEl(cell, NS.table, "covered-table-cell")) {
+    				var repeat = toInt(attr(cell, NS.table, "number-columns-repeated"), 1);
+    				if (repeat > 1) {
+    					var individual = Math.min(repeat, needed - pos);
+    					cell.removeAttributeNS(NS.table, "number-columns-repeated");
+    					for (var k = 1; k < individual; k++) row.insertBefore(cell.cloneNode(true), next);
+    					if (repeat > individual) {
+    						var rest = cell.cloneNode(true);
+    						rest.setAttributeNS(NS.table, "table:number-columns-repeated", String(repeat - individual));
+    						row.insertBefore(rest, next);
+    					}
+    					pos += individual;
+    				} else {
+    					pos++;
+    				}
+    			}
+    			cell = next;
+    		}
+    	}
+    
+    	function processRows(scopes, marker) {
+    		var rows = asArray(marker.value);
+    		var count = 0;
+    		var targets = withTag(scopes, marker.tag);
+    		for (var i = 0; i < targets.length; i++) {
+    			var p = targets[i];
+    			if (!isAttached(p)) continue;
+    			var row = ancestor(p, NS.table, "table-row");
+    			if (row == null) {
+    				log.warn(LOG + "rows tag ''" + marker.tag + "'' is not inside a table row, tag removed");
+    				replaceText([p], marker.tag, "");
+    				continue;
+    			}
+    			var parent = row.getParentNode();
+    			for (var r = 0; r < rows.length; r++) {
+    				var values = asArray(rows[r]);
+    				var copy = row.cloneNode(true);
+    				copy.removeAttributeNS(NS.table, "number-rows-repeated");
+    				removeIds(copy);
+    				parent.insertBefore(copy, row);
+    				expandRepeatedCells(copy, values.length);
+    				var c = 0;
+    				for (var cell = copy.getFirstChild(); cell != null; cell = cell.getNextSibling()) {
+    					if (isEl(cell, NS.table, "table-cell")) {
+    						if (c < values.length) setCellValue(cell, values[c], p);
+    						c++;
+    					} else if (isEl(cell, NS.table, "covered-table-cell")) {
+    						c++;
+    					}
+    				}
+    				replaceText([copy], marker.tag, "");
+    			}
+    			parent.removeChild(row);
+    			// Impress stores a picture preview of the table that becomes stale once modified.
+    			var frame = ancestor(parent, NS.draw, "frame");
+    			if (frame != null) {
+    				var previews = childElements(frame, NS.draw, "image");
+    				for (var pv = 0; pv < previews.length; pv++) frame.removeChild(previews[pv]);
+    			}
+    			count++;
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- table, tableh, tablet ---------- */
+    
+    	function toCm(s) {
+    		var l = parseLength(s);
+    		if (l == null) return NaN;
+    		var f = { cm: 1, mm: 0.1, "in": 2.54, pt: 2.54 / 72, pc: 2.54 / 6, px: CM_PER_PIXEL }[l.unit];
+    		return f ? l.value * f : NaN;
+    	}
+    
+    	var textWidthCm = null;
+    
+    	/* Width of the text area of the default page layout (page width minus margins). */
+    	function textAreaWidth() {
+    		if (textWidthCm != null) return textWidthCm;
+    		textWidthCm = 17;
+    		var root = docRef.getStylesDom().getDocumentElement();
+    		var masters = descendants(root, NS.style, "master-page");
+    		var layoutName = masters.length > 0 ? attr(masters[0], NS.style, "page-layout-name") : "";
+    		for (var m = 0; m < masters.length; m++) {
+    			if (attr(masters[m], NS.style, "name") == "Standard") layoutName = attr(masters[m], NS.style, "page-layout-name");
+    		}
+    		var layouts = descendants(root, NS.style, "page-layout");
+    		for (var l = 0; l < layouts.length; l++) {
+    			if (attr(layouts[l], NS.style, "name") != layoutName) continue;
+    			var props = childElements(layouts[l], NS.style, "page-layout-properties");
+    			if (props.length == 0) continue;
+    			var w = toCm(attr(props[0], NS.fo, "page-width")) - (toCm(attr(props[0], NS.fo, "margin-left")) || 0) - (toCm(attr(props[0], NS.fo, "margin-right")) || 0);
+    			if (w > 0) textWidthCm = w;
+    		}
+    		return textWidthCm;
+    	}
+    
+    	function findStyle(doms, family, name) {
+    		for (var d = 0; d < doms.length; d++) {
+    			var list = doms[d].getElementsByTagNameNS(NS.style, "style");
+    			for (var i = 0; i < list.getLength(); i++) {
+    				var st = list.item(i);
+    				if (attr(st, NS.style, "name") == name && attr(st, NS.style, "family") == family) return st;
+    			}
+    		}
+    		return null;
+    	}
+    
+    	/* Effective value of a style property, following parent styles then the default style. */
+    	function resolveStyleProperty(doc, family, name, propLocal, ns, local) {
+    		var doms = [doc.getContentDom(), doc.getStylesDom()];
+    		var guard = 0;
+    		while (name != null && name != "" && guard++ < 20) {
+    			var st = findStyle(doms, family, name);
+    			if (st == null) break;
+    			var pe = childElements(st, NS.style, propLocal);
+    			if (pe.length > 0 && attr(pe[0], ns, local) != "") return attr(pe[0], ns, local);
+    			name = attr(st, NS.style, "parent-style-name");
+    		}
+    		var defaults = descendants(doc.getStylesDom().getDocumentElement(), NS.style, "default-style");
+    		for (var i = 0; i < defaults.length; i++) {
+    			if (attr(defaults[i], NS.style, "family") != family) continue;
+    			var dp = childElements(defaults[i], NS.style, propLocal);
+    			if (dp.length > 0 && attr(dp[0], ns, local) != "") return attr(dp[0], ns, local);
+    		}
+    		return null;
+    	}
+    
+    	var TEXT_ATTRIBUTES = [["style", "font-name"], ["fo", "font-size"], ["fo", "font-weight"], ["fo", "font-style"], ["fo", "color"]];
+    
+    	/* Background, alignment and font of the first cell of a template table row. */
+    	function templateCellStyle(tdoc, cell, dom) {
+    		var info = { text: {} };
+    		info.bg = resolveStyleProperty(tdoc, "table-cell", attr(cell, NS.table, "style-name"), "table-cell-properties", NS.fo, "background-color");
+    		var p = paragraphsOf([cell])[0];
+    		var pStyle = p ? attr(p, NS.text, "style-name") : "";
+    		info.align = resolveStyleProperty(tdoc, "paragraph", pStyle, "paragraph-properties", NS.fo, "text-align");
+    		var spans = p ? p.getElementsByTagNameNS(NS.text, "span") : null;
+    		var spanStyle = spans != null && spans.getLength() > 0 ? attr(spans.item(0), NS.text, "style-name") : "";
+    		for (var i = 0; i < TEXT_ATTRIBUTES.length; i++) {
+    			var ns = NS[TEXT_ATTRIBUTES[i][0]];
+    			var local = TEXT_ATTRIBUTES[i][1];
+    			var v = spanStyle != "" ? resolveStyleProperty(tdoc, "text", spanStyle, "text-properties", ns, local) : null;
+    			if (v == null) v = resolveStyleProperty(tdoc, "paragraph", pStyle, "text-properties", ns, local);
+    			if (v == null) continue;
+    			if (local == "font-name") {
+    				var family = null;
+    				var faces = descendants(tdoc.getContentDom().getDocumentElement(), NS.style, "font-face").concat(descendants(tdoc.getStylesDom().getDocumentElement(), NS.style, "font-face"));
+    				for (var f = 0; f < faces.length; f++) {
+    					if (attr(faces[f], NS.style, "name") == v) family = attr(faces[f], NS.svg, "font-family");
+    				}
+    				v = ensureFontFace(dom, v, family);
+    			}
+    			info.text[TEXT_ATTRIBUTES[i][0] + ":" + local] = v;
+    		}
+    		return info;
+    	}
+    
+    	function loadTableTemplate(dom) {
+    		var path = get_full_path(typeof table_template_file != "undefined" ? table_template_file : null);
+    		var name = typeof table_template_name != "undefined" && table_template_name != null ? String(table_template_name) : "";
+    		if (path == null || path == "" || name == "") throw "tablet needs the table_template_file and table_template_name variables";
+    		if (!new File(path).isFile()) throw "Table template file not found: " + path;
+    		var tdoc = OdfDocument.loadDocument(path);
+    		try {
+    			var tables = descendants(tdoc.getContentDom().getDocumentElement(), NS.table, "table").filter(function (t) {
+    				return attr(t, NS.table, "name") == name;
+    			});
+    			if (tables.length == 0) throw "Table ''" + name + "'' not found in " + path;
+    			var rows = descendants(tables[0], NS.table, "table-row").filter(function (r) {
+    				return ancestor(r, NS.table, "table") === tables[0];
+    			});
+    			var cells = rows.length > 0 ? childElements(rows[0], NS.table, "table-cell") : [];
+    			if (rows.length != 3 || cells.length != 1 || toInt(attr(cells[0], NS.table, "number-columns-repeated"), 1) != 1) throw "Template table must be a 1*3 table";
+    			return [0, 1, 2].map(function (i) {
+    				return templateCellStyle(tdoc, childElements(rows[i], NS.table, "table-cell")[0], dom);
+    			});
+    		} finally {
+    			tdoc.close();
+    		}
+    	}
+    
+    	function bordersOf(r, c, rows, cols, rs, cs, merged) {
+    		if (merged) return { "fo:border": MERGED_BORDER };
+    		var top = r == 0;
+    		var right = c + cs - 1 == cols - 1;
+    		if (top && right) return { "fo:border": CELL_BORDER };
+    		return {
+    			"fo:border-bottom": CELL_BORDER,
+    			"fo:border-left": CELL_BORDER,
+    			"fo:border-right": right ? CELL_BORDER : "none",
+    			"fo:border-top": top ? CELL_BORDER : "none"
+    		};
+    	}
+    
+    	/* Cell style of the table and tableh types (same rules as the previous engine). */
+    	function cellStyleProps(dom, style, r, c, isHeader) {
+    		var props = { "table-cell-properties": {}, "paragraph-properties": null, "text-properties": null };
+    		var tcp = props["table-cell-properties"];
+    		var font;
+    		if (isHeader) {
+    			var head = asObject(style.header);
+    			props["paragraph-properties"] = { "fo:text-align": H_ALIGN[toText(head.cellHAlign)] || "center" };
+    			tcp["style:vertical-align"] = V_ALIGN[toText(head.cellVAlign)] || "middle";
+    			tcp["fo:background-color"] = head.cellBGColor ? colorHex(head.cellBGColor) : "#e5e5e5";
+    			font = { fontName: head.fontName || "Arial", fontStyle: head.fontStyle || "BOLD", fontSize: head.fontSize || 10, fontColor: head.fontColor || "BLACK" };
+    		} else {
+    			var cells = asObject(style.cells);
+    			var cellStyle = cells[r + "-" + c] ? asObject(cells[r + "-" + c]) : null;
+    			var defaults = style.defaults ? asObject(style.defaults) : null;
+    			var pick = function (property, map) {
+    				if (cellStyle != null && (map == null || map[toText(cellStyle[property])])) return cellStyle[property];
+    				if (defaults != null && (map == null || map[toText(defaults[property])])) return defaults[property];
+    				return null;
+    			};
+    			var h = pick("cellHAlign", H_ALIGN);
+    			if (h != null) props["paragraph-properties"] = { "fo:text-align": H_ALIGN[toText(h)] };
+    			var v = pick("cellVAlign", V_ALIGN);
+    			if (v != null) tcp["style:vertical-align"] = V_ALIGN[toText(v)];
+    			var bg = (cellStyle != null && cellStyle.cellBGColor) ? cellStyle.cellBGColor : (defaults != null && defaults.cellBGColor ? defaults.cellBGColor : null);
+    			if (bg != null) tcp["fo:background-color"] = colorHex(bg);
+    			font = fontOf(cellStyle != null ? cellStyle : (defaults != null ? defaults : {}), DEFAULT_FONT);
+    		}
+    		props["text-properties"] = textProperties(dom, font);
+    		return props;
+    	}
+    
+    	function formatLength(v, unit) {
+    		return (Math.round(v * 1000) / 1000) + unit;
+    	}
+    
+    	function buildTable(dom, marker, kind, template) {
+    		var values = asArray(marker.value).map(function (row) {
+    			return asArray(row);
+    		});
+    		var rows = values.length;
+    		var cols = 0;
+    		for (var i = 0; i < rows; i++) cols = Math.max(cols, values[i].length);
+    		if (rows == 0 || cols == 0) {
+    			log.warn(LOG + "table tag ''" + marker.tag + "'' has no data, tag removed");
+    			return null;
+    		}
+    		var style = asObject(marker.style);
+    		var width = textAreaWidth();
+    		var breakBefore = toText(typeof break_before != "undefined" ? break_before : "");
+    		if (breakBefore != "auto" && breakBefore != "column" && breakBefore != "page") breakBefore = "page";
+    
+    		// Merged areas: anchor "row-col" -> spans, covered "row-col" -> true.
+    		var anchors = {};
+    		var covered = {};
+    		var merges = asArray(marker.merges);
+    		for (var m = 0; m < merges.length; m++) {
+    			var mg = asObject(merges[m]);
+    			var mr = toInt(mg.row, -1);
+    			var mc = toInt(mg.col, -1);
+    			var rs = Math.max(1, toInt(mg.rowspan, 1));
+    			var cs = Math.max(1, toInt(mg.colspan, 1));
+    			if (mr < 0 || mc < 0 || mr + rs > rows || mc + cs > cols || (rs == 1 && cs == 1) || covered[mr + "-" + mc]) {
+    				log.error(LOG + "Merge ignored row=" + mg.row + " col=" + mg.col + " rowspan=" + mg.rowspan + " colspan=" + mg.colspan);
+    				continue;
+    			}
+    			anchors[mr + "-" + mc] = { rs: rs, cs: cs };
+    			for (var rr = mr; rr < mr + rs; rr++) {
+    				for (var cc = mc; cc < mc + cs; cc++) {
+    					if (rr != mr || cc != mc) covered[rr + "-" + cc] = true;
+    				}
+    			}
+    		}
+    
+    		var table = dom.createElementNS(NS.table, "table:table");
+    		table.setAttributeNS(NS.table, "table:name", "table_" + new Date().getTime() + "_" + Math.floor(Math.random() * 100000));
+    		table.setAttributeNS(NS.table, "table:style-name", autoStyle(dom, "table", { "table-properties": { "style:width": formatLength(width, "cm"), "table:align": "margins", "fo:break-before": breakBefore, "fo:keep-with-next": "auto" } }, "c8oTbl"));
+    		var column = dom.createElementNS(NS.table, "table:table-column");
+    		column.setAttributeNS(NS.table, "table:style-name", autoStyle(dom, "table-column", { "table-column-properties": { "style:column-width": formatLength(width / cols, "cm"), "style:rel-column-width": Math.floor(65535 / cols) + "*" } }, "c8oCol"));
+    		if (cols > 1) column.setAttributeNS(NS.table, "table:number-columns-repeated", String(cols));
+    		table.appendChild(column);
+    
+    		for (var r = 0; r < rows; r++) {
+    			var row = dom.createElementNS(NS.table, "table:table-row");
+    			for (var c = 0; c < cols; c++) {
+    				var key = r + "-" + c;
+    				var value = c < values[r].length ? values[r][c] : "";
+    				var cell = dom.createElementNS(NS.table, covered[key] ? "table:covered-table-cell" : "table:table-cell");
+    				if (!covered[key]) {
+    					var anchor = anchors[key];
+    					var props;
+    					if (kind == "tablet") {
+    						var t = template[r == 0 ? 0 : (r % 2 === 0 ? 1 : 2)];
+    						props = { "table-cell-properties": {}, "paragraph-properties": t.align ? { "fo:text-align": t.align } : null, "text-properties": t.text };
+    						if (t.bg) props["table-cell-properties"]["fo:background-color"] = t.bg;
+    					} else {
+    						props = cellStyleProps(dom, style, r, c, kind == "tableh" && r == 0);
+    					}
+    					var borders = bordersOf(r, c, rows, cols, anchor ? anchor.rs : 1, anchor ? anchor.cs : 1, anchor != null);
+    					for (var b in borders) props["table-cell-properties"][b] = borders[b];
+    					props["table-cell-properties"]["fo:padding"] = CELL_PADDING;
+    					cell.setAttributeNS(NS.table, "table:style-name", autoStyle(dom, "table-cell", props, "c8oCell"));
+    					cell.setAttributeNS(NS.office, "office:value-type", "string");
+    					if (anchor) {
+    						if (anchor.cs > 1) cell.setAttributeNS(NS.table, "table:number-columns-spanned", String(anchor.cs));
+    						if (anchor.rs > 1) cell.setAttributeNS(NS.table, "table:number-rows-spanned", String(anchor.rs));
+    					}
+    				}
+    				var p = dom.createElementNS(NS.text, "text:p");
+    				var built = textNodes(dom, value);
+    				for (var n = 0; n < built.nodes.length; n++) p.appendChild(built.nodes[n]);
+    				cell.appendChild(p);
+    				row.appendChild(cell);
+    			}
+    			table.appendChild(row);
+    		}
+    		return table;
+    	}
+    
+    	function processTable(scopes, marker, kind) {
+    		var count = 0;
+    		var targets = withTag(scopes, marker.tag);
+    		if (targets.length == 0) return 0;
+    		var kindOfBody = bodyKind();
+    		var template = null;
+    		for (var i = 0; i < targets.length; i++) {
+    			var p = targets[i];
+    			if (!isAttached(p)) continue;
+    			if ((kindOfBody == "presentation" || kindOfBody == "drawing") && ancestor(p, NS.draw, "text-box") != null) {
+    				marker_errors.push(marker.tag + ": tables can not be inserted in a slide text box, use a table with a rows tag");
+    				replaceText([p], marker.tag, "");
+    				continue;
+    			}
+    			var dom = p.getOwnerDocument();
+    			if (kind == "tablet" && template == null) template = loadTableTemplate(dom);
+    			count += replaceTagWithBlock(p, marker.tag, function () {
+    				return buildTable(dom, marker, kind, template);
+    			});
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- image ---------- */
+    
+    	var imageCache = {};
+    	var imageIndex = 0;
+    
+    	function loadImage(value, tag) {
+    		var src = toText(value);
+    		if (imageCache[src]) return imageCache[src];
+    		var bytes = null;
+    		var ext = null;
+    		var m = /^data:image\/([a-z0-9.+-]+);base64,(.*)$/i.exec(src);
+    		if (m) {
+    			ext = m[1].toLowerCase().replace("svg+xml", "svg").replace("jpeg", "jpg");
+    			bytes = java.util.Base64.getMimeDecoder().decode(m[2]);
+    		} else {
+    			var path = get_full_path(src);
+    			ext = String(path).replace(/^.*\./, "").toLowerCase();
+    			if (!IMAGE_TYPES[ext]) throw "Unsupported image type for tag ''" + tag + "'': " + path;
+    			var file = new File(path);
+    			if (!file.isFile()) throw "Image not found for tag ''" + tag + "'': " + path;
+    			bytes = Files.readAllBytes(file.toPath());
+    		}
+    		if (!IMAGE_TYPES[ext]) throw "Unsupported image type for tag ''" + tag + "'': " + ext;
+    		var width = 0;
+    		var height = 0;
+    		try {
+    			var img = ImageIO.read(new ByteArrayInputStream(bytes));
+    			if (img != null) {
+    				width = img.getWidth();
+    				height = img.getHeight();
+    			}
+    		} catch (e) {
+    			log.debug(LOG + "Cannot read image size: " + e);
+    		}
+    		var internalPath = "Pictures/c8o_" + String(UUID.randomUUID().toString()).replace(/-/g, "") + "." + ext;
+    		docRef.getPackage().insert(bytes, internalPath, IMAGE_TYPES[ext]);
+    		var info = { href: internalPath, mime: IMAGE_TYPES[ext], width: width, height: height };
+    		imageCache[src] = info;
+    		return info;
+    	}
+    
+    	function newImageElement(dom, info) {
+    		var img = dom.createElementNS(NS.draw, "draw:image");
+    		img.setAttributeNS(NS.xlink, "xlink:href", info.href);
+    		img.setAttributeNS(NS.xlink, "xlink:type", "simple");
+    		img.setAttributeNS(NS.xlink, "xlink:show", "embed");
+    		img.setAttributeNS(NS.xlink, "xlink:actuate", "onLoad");
+    		img.setAttributeNS(NS.draw, "draw:mime-type", info.mime);
+    		return img;
+    	}
+    
+    	function parseLength(s) {
+    		var m = /^\s*(-?[0-9]*\.?[0-9]+)\s*([a-z%]*)\s*$/i.exec(toText(s));
+    		return m ? { value: parseFloat(m[1]), unit: m[2].toLowerCase() } : null;
+    	}
+    
+    	/* Resizes the frame so the image keeps its ratio inside the original box (centered). */
+    	function fitFrame(frame, info, fit) {
+    		if (fit == "stretch" || !info.width || !info.height) return;
+    		var w = parseLength(frame.getAttributeNS(NS.svg, "width"));
+    		var h = parseLength(frame.getAttributeNS(NS.svg, "height"));
+    		if (w == null || h == null || w.unit != h.unit || w.value <= 0 || h.value <= 0) return;
+    		var ratio = info.width / info.height;
+    		var nw = w.value;
+    		var nh = h.value;
+    		if (ratio > w.value / h.value) {
+    			nh = w.value / ratio;
+    		} else {
+    			nw = h.value * ratio;
+    		}
+    		frame.setAttributeNS(NS.svg, "svg:width", formatLength(nw, w.unit));
+    		frame.setAttributeNS(NS.svg, "svg:height", formatLength(nh, h.unit));
+    		var x = parseLength(frame.getAttributeNS(NS.svg, "x"));
+    		var y = parseLength(frame.getAttributeNS(NS.svg, "y"));
+    		if (x != null && x.unit == w.unit) frame.setAttributeNS(NS.svg, "svg:x", formatLength(x.value + (w.value - nw) / 2, w.unit));
+    		if (y != null && y.unit == h.unit) frame.setAttributeNS(NS.svg, "svg:y", formatLength(y.value + (h.value - nh) / 2, h.unit));
+    	}
+    
+    	function setFrameImage(frame, info, fit) {
+    		var dom = frame.getOwnerDocument();
+    		var images = childElements(frame, NS.draw, "image");
+    		var boxes = childElements(frame, NS.draw, "text-box");
+    		for (var i = 0; i < images.length; i++) frame.removeChild(images[i]);
+    		for (var j = 0; j < boxes.length; j++) frame.removeChild(boxes[j]);
+    		frame.insertBefore(newImageElement(dom, info), frame.getFirstChild());
+    		frame.removeAttributeNS(NS.presentation, "placeholder");
+    		if (attr(frame, NS.presentation, "class") != "") frame.setAttributeNS(NS.presentation, "presentation:class", "graphic");
+    		fitFrame(frame, info, fit);
+    	}
+    
+    	function inlineImageBuilder(marker, info) {
+    		return function (dom) {
+    			var w = parseLength(marker.width);
+    			var h = parseLength(marker.height);
+    			var ratio = info.width && info.height ? info.width / info.height : 1;
+    			if (w == null && h == null) w = { value: info.width ? info.width * CM_PER_PIXEL : 4, unit: "cm" };
+    			if (h == null) h = { value: w.value / ratio, unit: w.unit };
+    			if (w == null) w = { value: h.value * ratio, unit: h.unit };
+    			var frame = dom.createElementNS(NS.draw, "draw:frame");
+    			frame.setAttributeNS(NS.draw, "draw:style-name", autoStyle(dom, "graphic", { "graphic-properties": { "style:vertical-pos": "top", "style:vertical-rel": "baseline" } }, "c8oFr"));
+    			frame.setAttributeNS(NS.draw, "draw:name", "c8o_image_" + (++imageIndex));
+    			frame.setAttributeNS(NS.text, "text:anchor-type", "as-char");
+    			frame.setAttributeNS(NS.svg, "svg:width", formatLength(w.value, w.unit));
+    			frame.setAttributeNS(NS.svg, "svg:height", formatLength(h.value, h.unit));
+    			frame.setAttributeNS(NS.draw, "draw:z-index", "0");
+    			frame.appendChild(newImageElement(dom, info));
+    			return { nodes: [frame], length: 0 };
+    		};
+    	}
+    
+    	function processImage(scopes, marker) {
+    		var count = 0;
+    		var fit = marker.fit ? toText(marker.fit) : "contain";
+    		var info = null;
+    		// 1. Frames named after the tag (picture placeholders or text frames).
+    		for (var s = 0; s < scopes.length; s++) {
+    			var frames = descendants(scopes[s], NS.draw, "frame");
+    			for (var f = 0; f < frames.length; f++) {
+    				if (attr(frames[f], NS.draw, "name") == marker.tag) {
+    					if (info == null) info = loadImage(marker.value, marker.tag);
+    					setFrameImage(frames[f], info, fit);
+    					count++;
+    				}
+    			}
+    		}
+    		// 2. Text placeholders.
+    		var targets = withTag(scopes, marker.tag);
+    		var textDocument = bodyKind() == "text";
+    		for (var i = 0; i < targets.length; i++) {
+    			var p = targets[i];
+    			if (!isAttached(p) || !containsTag(p, marker.tag)) continue;
+    			if (info == null) info = loadImage(marker.value, marker.tag);
+    			var box = ancestor(p, NS.draw, "text-box");
+    			var frame = box != null ? box.getParentNode() : null;
+    			if (frame != null && isEl(frame, NS.draw, "frame") && frameText(frame).trim() == marker.tag) {
+    				setFrameImage(frame, info, fit);
+    				count++;
+    			} else if (textDocument) {
+    				count += replaceInParagraph(p, marker.tag, inlineImageBuilder(marker, info));
+    			} else {
+    				log.warn(LOG + "image tag ''" + marker.tag + "'' must be alone in its text frame (or be a frame name), tag removed");
+    				replaceText([p], marker.tag, "");
+    			}
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- slides ---------- */
+    
+    	function renameIds(root, suffix) {
+    		var map = {};
+    		var all = [root];
+    		var list = root.getElementsByTagName("*");
+    		for (var i = 0; i < list.getLength(); i++) all.push(list.item(i));
+    		var idAttrs = [[NS.xml, "id", "xml:id"], [NS.draw, "id", "draw:id"]];
+    		for (var e = 0; e < all.length; e++) {
+    			for (var a = 0; a < idAttrs.length; a++) {
+    				if (all[e].hasAttributeNS(idAttrs[a][0], idAttrs[a][1])) {
+    					var oldId = String(all[e].getAttributeNS(idAttrs[a][0], idAttrs[a][1]));
+    					map[oldId] = oldId + suffix;
+    					all[e].setAttributeNS(idAttrs[a][0], idAttrs[a][2], oldId + suffix);
+    				}
+    			}
+    		}
+    		for (var e2 = 0; e2 < all.length; e2++) {
+    			var attrs = all[e2].getAttributes();
+    			for (var k = 0; k < attrs.getLength(); k++) {
+    				var at = attrs.item(k);
+    				var v = String(at.getValue());
+    				if (map.hasOwnProperty(v) && String(at.getLocalName()) != "id") at.setValue(map[v]);
+    			}
+    		}
+    	}
+    
+    	function processSlides(scopes, marker) {
+    		var items = asArray(marker.value);
+    		var count = 0;
+    		var pages = [];
+    		for (var s = 0; s < scopes.length; s++) {
+    			var candidates = descendants(scopes[s], NS.draw, "page");
+    			for (var c = 0; c < candidates.length; c++) {
+    				if (withTag([candidates[c]], marker.tag).length > 0) pages.push(candidates[c]);
+    			}
+    		}
+    		var usedNames = {};
+    		var allPages = docRef.getContentDom().getElementsByTagNameNS(NS.draw, "page");
+    		for (var u = 0; u < allPages.getLength(); u++) usedNames[attr(allPages.item(u), NS.draw, "name")] = true;
+    		for (var i = 0; i < pages.length; i++) {
+    			var page = pages[i];
+    			var parent = page.getParentNode();
+    			var baseName = attr(page, NS.draw, "name") || "Slide";
+    			for (var it = 0; it < items.length; it++) {
+    				var item = parseJson(items[it]);
+    				var itemMarkers = item != null && !isArr(item) && item.markers != null ? item.markers : item;
+    				var copy = page.cloneNode(true);
+    				parent.insertBefore(copy, page);
+    				renameIds(copy, "_c8o" + i + "_" + it);
+    				var name = baseName + " " + (it + 1);
+    				var n = 1;
+    				while (usedNames[name]) name = baseName + " " + (it + 1) + "_" + (n++);
+    				usedNames[name] = true;
+    				copy.setAttributeNS(NS.draw, "draw:name", name);
+    				var thumbs = copy.getElementsByTagNameNS(NS.draw, "page-thumbnail");
+    				for (var t = 0; t < thumbs.getLength(); t++) thumbs.item(t).removeAttributeNS(NS.draw, "page-number");
+    				replaceText([copy], marker.tag, "");
+    				processMarkers([copy], asArray(itemMarkers), false);
+    			}
+    			parent.removeChild(page);
+    			count++;
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- array ---------- */
+    
+    	/* Each occurrence of the tag becomes a sequence of unique temporary tags, then every
+    	 * item is processed on its own temporary tag. The search is restarted after each
+    	 * occurrence because a table item splits the paragraph. */
+    	function processArray(scopes, marker) {
+    		var items = asArray(marker.value);
+    		var count = 0;
+    		var targets;
+    		while ((targets = withTag(scopes, marker.tag)).length > 0 && count < 1000) {
+    			var temps = [];
+    			for (var j = 0; j < items.length; j++) temps.push("##C8O_ARRAY_" + (++uniq) + "##");
+    			replaceInParagraph(targets[0], marker.tag, function (doc) {
+    				return textNodes(doc, temps.join(""));
+    			}, 1);
+    			for (var k = 0; k < items.length; k++) {
+    				var it = asObject(items[k]);
+    				processOne(scopes, { tag: temps[k], type: toText(it.type || "string"), value: it.value, style: it.style, merges: it.merges, fit: it.fit, width: it.width, height: it.height });
+    			}
+    			count++;
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- Dispatcher ---------- */
+    
+    	function markerRank(m) {
+    		var t = toText(m.type || "string");
+    		if (t == "slides") return 0;
+    		if (t == "rows" || t == "list") return 1;
+    		return 2;
+    	}
+    
+    	function processOne(scopes, marker) {
+    		switch (marker.type) {
+    			case "slides":
+    				return processSlides(scopes, marker);
+    			case "rows":
+    				return processRows(scopes, marker);
+    			case "list":
+    				return processList(scopes, marker);
+    			case "image":
+    				return processImage(scopes, marker);
     			case "table":
     			case "tableh":
-    				var values = tag.value;
-    				var rows = values.length;
-    				var cols = values[0].length;
-    				var hasRowHeader = tag.type == "tableh";
-    				var hasTableTemplate = tag.type == "tablet";
-    				var isHeader;
-    				const validHAlign = ["CENTER", "DEFAULT", "FILLED", "JUSTIFY", "LEFT", "RIGHT"];
-    				const validVAlign = ["TOP", "BOTTOM", "MIDDLE", "DEFAULT"];
-    				log.debug("Rows: " + rows);
-    				log.debug("Cols: " + cols);
-    				log.debug("Has row header? " + hasRowHeader);
-    				log.debug("Has table template? " + hasTableTemplate);
-    				if (rows > 0 && cols > 0) {
-    					table1 = Table.newTable(fdoc, rows, cols);
-    
-    					// ===== UPSTREAM 1.11.5 #1 : nom de table unique =====
-    					// AVANT 1.11.5 : table1.setTableName("table1");
-    					//
-    					// POURQUOI : le nom "table1" est code en dur. Or un meme document peut
-    					// contenir plusieurs tableaux : c''est systematique avec un tag de type
-    					// "array", qui rappelle ce meme bloc "case table" pour chaque tableau
-    					// rencontre. Deux tableaux nommes "table1" dans le document rendent
-    					// fdoc.getTableByName("table1") (plus bas) ambigu : il peut renvoyer le
-    					// premier tableau trouve au lieu de celui qui vient d''etre construit,
-    					// ce qui insere/style le mauvais tableau selon l''ordre de traitement.
-    					var uniqueTableName = "table_" + new Date().getTime() + "_" + Math.floor(Math.random() * 100000);
-    					table1.setTableName(uniqueTableName);
-    					// ===== FIN UPSTREAM 1.11.5 #1 =====
-    
-    					for (var r = 0; r < rows; r++) {
-    						for (var c = 0; c < cols; c++) {
-    							var cell = table1.getCellByPosition(c, r);
-    							log.debug("row #" + r);
-    							log.debug("col #" + c);
-    							log.debug("val: " + values[r][c]);
-    							if (!hasTableTemplate) {
-    								isHeader = r == 0 && hasRowHeader ? true : false;
-    								setCellAttributes(cell, r, c, isHeader, validHAlign, validVAlign, tag.style);
-    								cell.setFont(getCellFont(tag.style, r, c, isHeader));
-    							} else {
-    								if (r == 0) {
-    									row_style = header_row_style;
-    								} else if (r % 2 === 0) {
-    									row_style = even_row_style;
-    								} else {
-    									row_style = odd_row_style;
-    								}
-    								cell.setCellBackgroundColor(row_style.cellBGColor);
-    								cell.setFont(row_style.font);
-    								cell.setHorizontalAlignment(row_style.horizontal);
-    							}
-    							cell.setStringValue(values[r][c]);
-    						}
-    					}
-    
-    					// ===== UPSTREAM 1.11.5 #2 : fusion des cellules (colspan/rowspan) =====
-    					// AVANT 1.11.5 : ce bloc n''existe pas du tout (aucun support de fusion).
-    					//
-    					// POURQUOI : le format de tag JSON ne permet pas d''exprimer colspan/rowspan,
-    					// et l''API Simple ODF ne permet pas de creer une table avec des cellules
-    					// fusionnees. La seule voie possible est donc :
-    					//   1) construire la grille rectangulaire complete (fait ci-dessus),
-    					//   2) appliquer les fusions apres coup (ci-dessous).
-    					//
-    					// NOUVELLE PROPRIETE DE TAG ATTENDUE : "merges", tableau d''objets
-    					//   { row: <int>, col: <int>, rowspan: <int>, colspan: <int> }
-    					//   ou row/col sont les coordonnees 0-based de la cellule d''ancrage
-    					//   (haut-gauche) de la zone a fusionner. Propriete optionnelle : si
-    					//   absente, le comportement est identique a 1.11.4.
-    					if (tag.merges && tag.merges.length > 0) {
-    						log.debug("Applying " + tag.merges.length + " merge(s)");
-    
-    						// ---- Phase 1 : application des fusions ----
-    						// NB : getCellRangeByPosition prend (startCol, startRow, endCol, endRow),
-    						// soit colonne PUIS ligne, coherent avec getCellByPosition(c, r) utilise
-    						// plus haut. Le try/catch est individuel pour qu''une fusion invalide
-    						// (coordonnees hors grille) n''interrompe pas les autres.
-    						for (var mi = 0; mi < tag.merges.length; mi++) {
-    							var mg = tag.merges[mi];
-    							if (mg.rowspan > 1 || mg.colspan > 1) {
-    								var endCol = mg.col + mg.colspan - 1;
-    								var endRow = mg.row + mg.rowspan - 1;
-    								log.debug("Merging cols " + mg.col + "-" + endCol + ", rows " + mg.row + "-" + endRow);
-    								try {
-    									table1.getCellRangeByPosition(mg.col, mg.row, endCol, endRow).merge();
-    								} catch (e) {
-    									log.error("Merge failed row=" + mg.row + " col=" + mg.col + ": " + e);
-    								}
-    							}
-    						}
-    
-    						// ---- Phase 2 : bordures des cellules fusionnees ----
-    						// PROBLEME TRAITE ICI : apres merge(), les cellules absorbees deviennent
-    						// des <table:covered-table-cell> et ne dessinent plus rien. Seul le style
-    						// de la cellule d''ancrage subsiste, et il ne couvre que la largeur/hauteur
-    						// d''une cellule : la zone fusionnee apparait donc "ouverte" (bordure
-    						// manquante a droite et/ou en bas).
-    						//
-    						// DEUX PIEGES rencontres et contournes ici, dans cet ordre :
-    						//
-    						//  (a) INSTANCE DETACHEE. merge() reecrit la structure de la ligne. Un
-    						//      objet Cell obtenu depuis l''ancienne instance "table1" apres la
-    						//      fusion peut pointer un element hors de l''arbre du document :
-    						//      l''ecriture reussit sans exception mais n''a AUCUN effet dans le
-    						//      fichier final. D''ou la relecture d''une instance fraiche de la
-    						//      table via fdoc.getTableByName(), et une phase 2 separee de la
-    						//      phase 1 (toutes les fusions doivent etre faites avant).
-    						//
-    						//  (b) RACCOURCI fo:border INEFFICACE. Ecrire le raccourci 4 cotes
-    						//      (OdfTableCellProperties.Border) ne produit rien de visible : les
-    						//      styles crees par Table.newTable() portent deja les attributs par
-    						//      cote (fo:border-left/right/top/bottom) et, par la spec ODF, les
-    						//      attributs par cote L''EMPORTENT sur le raccourci. Il faut donc
-    						//      ecrire explicitement les 4 cotes, comme ci-dessous.
-    						//      (Meme constat avec l''API haut niveau Cell.setBorders(ALL_FOUR, ...)
-    						//      qui reste sans effet sur une cellule fusionnee.)
-    						var freshTable = fdoc.getTableByName(uniqueTableName);
-    						for (var mj = 0; mj < tag.merges.length; mj++) {
-    							var mg2 = tag.merges[mj];
-    							if (mg2.rowspan > 1 || mg2.colspan > 1) {
-    								try {
-    									var anchorEl = freshTable.getCellByPosition(mg2.col, mg2.row).getOdfElement();
-    									// NB : "Unqiue" est une faute de frappe presente dans l''API
-    									// odfdom elle-meme (getOrCreateUnqiueAutomaticStyle) : a
-    									// ecrire telle quelle, ce n''est pas une coquille locale.
-    									var anchorStyle = anchorEl.getOrCreateUnqiueAutomaticStyle();
-    									anchorStyle.setProperty(OdfTableCellProperties.BorderTop, "0.5pt solid #000000");
-    									anchorStyle.setProperty(OdfTableCellProperties.BorderBottom, "0.5pt solid #000000");
-    									anchorStyle.setProperty(OdfTableCellProperties.BorderLeft, "0.5pt solid #000000");
-    									anchorStyle.setProperty(OdfTableCellProperties.BorderRight, "0.5pt solid #000000");
-    									log.debug("Border set on anchor " + mg2.row + "-" + mg2.col
-    										+ " | style=" + anchorEl.getStyleName()
-    										+ " | spanned-cols=" + anchorEl.getTableNumberColumnsSpannedAttribute()
-    										+ " | readback-right=" + anchorStyle.getProperty(OdfTableCellProperties.BorderRight));
-    								} catch (e) {
-    									log.error("Border on anchor " + mg2.row + "-" + mg2.col + " failed: " + e);
-    								}
-    							}
-    						}
-    					} else {
-    						log.debug("No merges to apply for this table");
-    					}
-    					// ===== FIN UPSTREAM 1.11.5 #2 =====
-    
-    					var odfTable = table1.getOdfElement();
-    					var odfTableStyle = odfTable.getAutomaticStyle();
-    					odfTableStyle.setProperty(OdfTableProperties.BreakBefore, ((break_before && break_before != "") ? break_before : "page"));
-    					//odfTableStyle.setProperty(OdfTableProperties.BreakAfter, "page");
-    					odfTableStyle.setProperty(OdfTableProperties.KeepWithNext, "false");
-    					// UPSTREAM 1.11.5 #1 (suite) : avant 1.11.5 = fdoc.getTableByName("table1")
-    					item.replaceWith(fdoc.getTableByName(uniqueTableName));
-    					table1.remove();
-    				}
-    				break;
-    			case "span":
-    				var span = Span.newSpan(item);
-    				var styleHandler = span.getStyleHandler();
-    				styleHandler.getTextPropertiesForWrite().setFont(setTextFont(tag.style));
-    				span.setTextContent(tag.value);
-    				break;
+    			case "tablet":
+    				return processTable(scopes, marker, marker.type);
     			case "array":
-    				var arrayValues = tag.value;			    
-    				var tempMarkers = [];
-    				    
-    			    for (var j = 0; j < arrayValues.length; j++) {
-    			        tempMarkers.push("##ARRAY_" + j + "_" + new Date().getTime() + "##");
-    			    }
-    			    item.replaceWith(tempMarkers.join(""));
-    			    
-    			    for (var j = 0; j < arrayValues.length; j++) {
-    			        var subTag = {
-    			            tag: tempMarkers[j],
-    			            type: arrayValues[j].type,
-    			            value: arrayValues[j].value,
-    			            style: arrayValues[j].style,
-    			            // ===== UPSTREAM 1.11.5 #3 : propagation de "merges" =====
-    			            // AVANT 1.11.5 : cette ligne n''existe pas (subTag s''arrete a "style").
-    			            //
-    			            // POURQUOI : subTag est reconstruit champ par champ, donc TOUTE
-    			            // propriete du sous-tag autre que tag/type/value/style est perdue
-    			            // avant l''appel recursif a processTagReplacement(). Pour un tableau
-    			            // imbrique dans un tag de type "array" (cas d''usage principal :
-    			            // contenu riche melangeant texte et tableaux sous un seul marqueur),
-    			            // tag.merges arrivait donc toujours a undefined dans le case "table"
-    			            // -> l''evolution #2 restait sans effet, sans aucune erreur visible.
-    			            //
-    			            // Une copie generique des proprietes serait plus robuste pour de
-    			            // futures extensions, mais la copie explicite est retenue ici car
-    			            // l''acces par propriete (arrayValues[j].xxx) est deja prouve
-    			            // fonctionnel dans ce code, contrairement a un for...in dont le
-    			            // comportement depend de la nature exacte de l''objet cote Rhino.
-    			            merges: arrayValues[j].merges
-    			            // ===== FIN UPSTREAM 1.11.5 #3 =====
-    			        };
-    			        var sub_nav = new TextNavigation(
-    			            java.util.regex.Pattern.quote(tempMarkers[j]), fdoc
-    			        );
-    			        while (sub_nav.hasNext()) {
-    			            var subItem = sub_nav.nextSelection();
-    			            processTagReplacement(fdoc, subTag, subItem);
-    			        }
-    			    }
-    				break;	
+    				return processArray(scopes, marker);
+    			case "span":
+    				return processWithBuilder(scopes, marker.tag, spanBuilder(marker.value, marker.style));
     			case "newline":
-    			    item.replaceWith("\n");
-    			    break;
-    			case "paragraph":
-    			case "string":
+    				return processWithBuilder(scopes, marker.tag, function (dom) {
+    					return { nodes: [dom.createElementNS(NS.text, "text:line-break")], length: 1 };
+    				});
     			default:
-    				item.replaceWith(tag.value);
+    				return replaceText(scopes, marker.tag, marker.value);
     		}
     	}
     
-    	function replace_text(fdoc, tags) {
-    		for (var i = 0; i < tags.length; i++) {
-    			log.debug("tag: " + tags[i].tag);
-    			log.debug("tag type: " + tags[i].type);
-    			log.debug("tag value: " + tags[i].value);
-    			var txt_nav = null;
-    			txt_nav = new TextNavigation(java.util.regex.Pattern.quote(tags[i].tag), fdoc);
-    			while (txt_nav.hasNext()) {
-    				item = txt_nav.nextSelection();
-    				log.debug("item Text: " + item.getText());
-    				log.debug("item Index: " + item.getIndex());
-    				processTagReplacement(fdoc, tags[i], item);
+    	function processMarkers(scopes, markers, topLevel) {
+    		var ordered = [];
+    		for (var i = 0; i < markers.length; i++) {
+    			var m = asObject(markers[i]);
+    			if (m.tag == null || toText(m.tag) == "") {
+    				log.warn(LOG + "Marker #" + i + " ignored: missing ''tag''");
+    				continue;
+    			}
+    			ordered.push({ marker: m, index: i });
+    		}
+    		ordered.sort(function (x, y) {
+    			return markerRank(x.marker) - markerRank(y.marker) || x.index - y.index;
+    		});
+    		for (var o = 0; o < ordered.length; o++) {
+    			var src = ordered[o].marker;
+    			var marker = { tag: toText(src.tag), type: toText(src.type || "string"), value: src.value, style: src.style, merges: src.merges, fit: src.fit, width: src.width, height: src.height };
+    			var count = 0;
+    			try {
+    				count = processOne(scopes, marker);
+    			} catch (e) {
+    				count = -1;
+    				marker_errors.push(marker.tag + ": " + e);
+    				log.error(LOG + "tag ''" + marker.tag + "'' (" + marker.type + ") failed: " + e);
+    				// As before, a tag that can not be replaced does not stay in the document.
+    				try {
+    					replaceText(scopes, marker.tag, "");
+    				} catch (ignore) {}
+    			}
+    			log.debug(LOG + "tag ''" + marker.tag + "'' (" + marker.type + "): " + count + " replacement(s)");
+    			if (topLevel && count == 0) not_found.push(marker.tag);
+    		}
+    	}
+    
+    	/* ---------- Package cleanup ---------- */
+    
+    	function collectHrefs(doc) {
+    		var hrefs = {};
+    		var doms = [doc.getContentDom(), doc.getStylesDom()];
+    		for (var d = 0; d < doms.length; d++) {
+    			var list = doms[d].getElementsByTagName("*");
+    			for (var i = 0; i < list.getLength(); i++) {
+    				var href = attr(list.item(i), NS.xlink, "href");
+    				if (href != "") hrefs[href.replace(/^\.\//, "")] = true;
+    			}
+    		}
+    		return hrefs;
+    	}
+    
+    	/* Removes the pictures that were used by the template but are not referenced anymore
+    	 * (replaced placeholders, stale table previews). Other package entries are kept. */
+    	function removeOrphanPictures(doc, before) {
+    		var after = collectHrefs(doc);
+    		var paths = doc.getPackage().getFilePaths().toArray();
+    		for (var i = 0; i < paths.length; i++) {
+    			var path = String(paths[i]);
+    			if (path.indexOf("Pictures/") == 0 && before[path] && !after[path]) {
+    				doc.getPackage().remove(path);
+    				log.debug(LOG + "Removed unused picture " + path);
     			}
     		}
     	}
     
-    	try {
-    		var document = null;
-    		if (o_markers != null) {
-    			document = TextDocument.loadDocument(template_path);
-    			replace_text(document, o_markers);
+    	/* ---------- Metadata ---------- */
+    
+    	function applyMetadata(doc) {
+    		var meta = doc.getOfficeMetadata();
+    		// odfdom 0.13 replaces meta:generator with an OpenOffice 2 one on save, which makes
+    		// LibreOffice apply legacy import rules (lost bullets...): keep the template one.
+    		meta.setAutomaticUpdate(false);
+    		meta.setDate(new java.util.GregorianCalendar());
+    		if (meta_title != null) meta.setTitle(meta_title);
+    		if (meta_subject != null) meta.setSubject(meta_subject);
+    		if (meta_description != null) meta.setDescription(meta_description);
+    		if (meta_initial_creator != null) meta.setInitialCreator(meta_initial_creator);
+    		if (meta_keywords != null) {
+    			var keywords = new ArrayList();
+    			var kw = asArray(meta_keywords);
+    			for (var i = 0; i < kw.length; i++) keywords.add(toText(kw[i]));
+    			meta.setKeywords(keywords);
     		}
-    	} catch (e) {
-    		log.warn("ERROR: " + e);
-    	} finally {
-    		if (document) {
-    			var meta = document.getOfficeMetadata();
-    			if (meta_title != null) meta.setTitle(meta_title);
-    			if (meta_subject != null) meta.setSubject(meta_subject);
-    			if (meta_keywords != null) meta.setKeywords(Arrays.asList(meta_keywords));
-    			//if(meta_creator != null) meta.setCreator(meta_creator);
-    			if (meta_initial_creator != null) meta.setInitialCreator(meta_initial_creator);
-    			if (meta_description != null) meta.setDescription(meta_description);
-    			if (meta_creation_date != null && meta_creation_date != "") {
-    				var new_creation_date = null;
-    				if (meta_creation_date == "now") {
-    					new_creation_date = java.util.GregorianCalendar();
-    				} else {
-    					try {
-    						// Convertir une date ISO 8601 fournie en GregorianCalendar
-    						var formatter = new java.text.SimpleDateFormat("yyyy-MM-dd''T''HH:mm:ss");
-    						var parsedDate = formatter.parse(meta_creation_date);
-    						var calendar = new java.util.GregorianCalendar();
-    						calendar.setTime(parsedDate);
-    						new_creation_date = calendar;
-    					} catch (e) {
-    						log.error("ERROR: Can not parse date: " + meta_creation_date);
-    						log.error("ERROR DETAILS: " + e);
-    					}
+    		if (meta_creation_date != null && meta_creation_date != "") {
+    			try {
+    				var calendar = new java.util.GregorianCalendar();
+    				if (String(meta_creation_date) != "now") {
+    					var formatter = new java.text.SimpleDateFormat("yyyy-MM-dd''T''HH:mm:ss");
+    					calendar.setTime(formatter.parse(String(meta_creation_date)));
     				}
-    				if(new_creation_date != null) meta.setCreationDate(new_creation_date);
+    				meta.setCreationDate(calendar);
+    			} catch (e) {
+    				log.error(LOG + "Can not parse meta_creation_date ''" + meta_creation_date + "'': " + e);
     			}
-    
-    			document.save(output_path);
-    			
-    			// Delete the generated file when the HTTP session ends
-    			var outputFile = new File(output_path);
-    			context.addFileToDeleteAtEndOfSession(outputFile);
     		}
+    	}
+    
+    	/* ---------- Main ---------- */
+    
+    	var document = null;
+    	try {
+    		var templateFile = new File(template_path);
+    		if (!templateFile.isFile()) throw "Template file not found: " + template_path;
+    		var markers = asArray(typeof o_markers != "undefined" ? o_markers : null);
+    		document = OdfDocument.loadDocument(template_path);
+    		docRef = document;
+    		var scopes = [document.getContentDom().getDocumentElement(), document.getStylesDom().getDocumentElement()];
+    		var initialHrefs = collectHrefs(document);
+    		processMarkers(scopes, markers, true);
+    		removeOrphanPictures(document, initialHrefs);
+    		applyMetadata(document);
+    		var outputFile = new File(output_path);
+    		if (outputFile.getAbsoluteFile().getParentFile() != null) outputFile.getAbsoluteFile().getParentFile().mkdirs();
+    		document.save(output_path);
+    		if (String(delete_at_end_of_session) != "false") context.addFileToDeleteAtEndOfSession(outputFile);
+    		if (not_found.length > 0) log.warn(LOG + "Tags not found in template: " + not_found.join(", "));
+    	} catch (e) {
+    		log.error(LOG + "Error filling ''" + template_path + "'': " + e);
+    		_error = true;
+    		_error_msg = "ERROR: filling template ''" + template_path + "''";
+    		_error_stack = "" + e;
+    	} finally {
+    		if (document != null) document.close();
     	}
     }'
+↓jIfError [steps.IfStep-1791200000001]: 
+  condition: _error == true
+  ↓Error_structure [steps.XMLErrorStep-1791200000002]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_code
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_stack
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_msg
+  ↓Return [steps.ReturnStep-1791200000003]: 
 ↓Element [steps.XMLElementStep-1739960996678]: 
   nodeName: attachment
   ↓jAttribute [steps.AttributeStep-1739960996681]: 
@@ -600,6 +1548,12 @@ responseTimeout: 120
   ↓jAttribute2 [steps.AttributeStep-1739960996690]: 
     expression: '"application/octet-stream"'
     nodeName: content-type
+↓not_found [steps.ElementStep-1791200000004]: 
+  expression: not_found.join(",")
+  nodeName: not_found
+↓marker_errors [steps.ElementStep-1791200000005]: 
+  expression: marker_errors.join("\n")
+  nodeName: marker_errors
 ↓output_filename [variables.RequestableVariable-1739960996705]: 
   comment: |
     'ODT output file path. 
@@ -616,16 +1570,19 @@ responseTimeout: 120
   required: true
 ↓markers [variables.RequestableVariable-1739961089380]: 
   comment: |
-    'Structured array as follow : 
-    
-    [
-    	{
-    		"tag": "&lt;tag name in template file to replace with ''value'' key&gt;",
-    		"type": "&lt;tag type. ''image'', ''string'', ''span'' (font styles), ''table'' and ''tableh'' (title row) supported&gt;",
-    		"style": "&lt;Font styles for span or table cells. Look at demo_u_fill_odt for syntax&gt;"
-    		"value": "&lt;replacement string or image absolute path&gt;"
-    	}
-    ]>'
+    'Array of markers, as a JSON string or a structured variable: 
+    [ { "tag": "{name}", "type": "string", "value": "...", "style": {...} }, ... ] 
+    Types: 
+    - string / paragraph (default): text, \n = line break, \t = tab. 
+    - newline: line break. 
+    - span: text with style { fontName, fontStyle (REGULAR, BOLD, ITALIC, BOLDITALIC), fontSize, fontColor }. 
+    - image: value = image path or data URI. Tag = frame name, text frame holding only the tag, or text tag (inline picture). Options: fit (contain, stretch), width, height. 
+    - table / tableh (first row is a header) / tablet (styles from table_template_file): value = 2D array, style { header, defaults, cells: { "row-col": {...} } } with fontName, fontStyle, fontSize, fontColor, cellHAlign, cellVAlign, cellBGColor, merges [ { row, col, rowspan, colspan } ]. 
+    - array: value = array of markers without tag, inserted one after the other. 
+    - list: value = array of strings, the paragraph or list item holding the tag is repeated. 
+    - rows: value = 2D array, the table row holding the tag is repeated. 
+    - slides: value = array of items (array of markers, or object with a markers array), the slide holding the tag is repeated. 
+    Look at demo_u_fill_odt, demo_u_fill_table_odt and demo_u_fill_odp for examples.'
 ↓table_template_file [variables.RequestableVariable-1743417375236]: 
   comment: Path of the ODT file containing a table to use as a template.
 ↓table_template_name [variables.RequestableVariable-1743417393721]: 
@@ -645,6 +1602,9 @@ responseTimeout: 120
   comment: Defines the Description metadata in the ODT Document. If null, does not change it. If empty, removes it.
 ↓meta_creation_date [variables.RequestableVariable-1773249217927]: 
   comment: 'Defines the Creation Date metadata in the ODT Document. ISO 8601 date format: yyy-MM-dd''T''HH:mm:ss. If null or empty, does not change it.'
+↓delete_at_end_of_session [variables.RequestableVariable-1791200000006]: 
+  comment: Set to 'false' to keep the generated file when the HTTP session ends. Default is 'true'.
+  value: true
 ↓Test_Case_marker_array [core.TestCase]: 
   ↓markers [variables.TestCaseVariable-1782379173158]: 
     value:  [{"tag":"__c8o_date","type":"string","value":"February 25, 2025"},{"tag":"__c8o_objet","type":"span","value":"Resignation Letter","style":{"fontName":"Arial","fontStyle":"ITALIC","fontSize":"12","fontColor":"RED"}},{"tag":"__c8o_texte","type":"array","value":[{"type":"span","value":"Resignation Letter","style":{"fontName":"Arial","fontStyle":"ITALIC","fontSize":"12","fontColor":"RED"}},{"type":"span","value":" ","style":{}},{"type":"newline"},{"tag":"__c8o_date","type":"string","value":"February 25, 2025"},{"tag":"__c8o_texte","type":"string","value":"Dear Sir, Madam, Miss,\r\n\r\nI am writing to inform you of my decision to resign from my position as a computer scientist at your company, effective from 04/05/2025.\r\n\r\nThis decision was not easy to make, and I would like to express my gratitude for the opportunities and professional experience I have gained at Convertigo. I have enjoyed working with a talented and passionate team, and I am thankful for the stimulating projects I have been able to contribute to.\r\n\r\nI am committed to respecting my notice period of 3 months and ensuring a smooth transition to facilitate the continuity of my responsibilities. I remain available to train my successor and provide all necessary information to ensure a successful handover.\r\n\r\nThank you for your understanding and attention to this request. Please accept, Dear Sir/Madam/Miss, my best regards.\r\n\r\nSincerely,\r\n\r\nSarah Palin"},{"tag":"{tableau_ens}","type":"tableh","style":{"header":{"fontName":"Arial","fontStyle":"BOLD","fontSize":"12","fontColor":"WHITE","cellBGColor":"#729fcf"},"defaults":{"fontName":"Times New Roman","fontStyle":"REGULAR","fontSize":"10","fontColor":"BLACK","cellVAlign":"MIDDLE"},"cells":{"1-2":{"fontName":"Arial","fontStyle":"BOLDITALIC","fontSize":"10","fontColor":"#ff0000","cellHAlign":"CENTER","cellBGColor":"YELLOW"},"2-3":{"fontName":"Arial","fontStyle":"BOLDITALIC","fontSize":"10","fontColor":"RED","cellHAlign":"CENTER","cellBGColor":"#ffff00"},"3-4":{"fontName":"Arial","fontStyle":"BOLDITALIC","fontSize":"10","fontColor":"RED","cellHAlign":"CENTER","cellBGColor":"#ffff00"},"4-5":{"fontName":"Arial","fontStyle":"BOLDITALIC","fontSize":"10","fontColor":"RED","cellHAlign":"CENTER","cellBGColor":"#ffff00"}}},"value":[["Section","Numéro de parcelle","Est situé en zone de préemption ENS","N'est pas situé en zone de préemption ENS","Est partiellement situé en zone de préemption ENS","Parcelle inconnue"],["Section01","Parcelle01","non","oui","oui","oui"],["Section02","Parcelle02","oui","non","oui","oui"],["Section03","Parcelle03","oui","oui","non","oui"],["Section04","Parcelle04","oui","oui","oui","non"]]}]},{"tag":"__c8o_signature","type":"image","value":".//templates/sarah_signature_sample.png"}]
@@ -711,3 +1671,34 @@ responseTimeout: 120
     value: .//templates/odf/template_certificat_ens.odt
   ↓markers [variables.TestCaseVariable-1740505823653]: 
     value: '[ { "tag": "{date_reception_ens}", "type": "string", "value": "25 Février 2025" }, { "tag": "{ref_usager}", "type": "string", "value": "#123-456" }, { "tag": "{nom_commune}", "type": "string", "value": "Boissy-Sous-Saint-Yon" }, { "tag": "{tableau_ens}", "type": "tableh", "value": [["Section", "Numéro de parcelle", "Est situé en zone de préemption ENS", "N''est pas situé en zone de préemption ENS", "Est partiellement situé en zone de préemption ENS", "Parcelle inconnue"], ["Section01", "Parcelle01", "oui", "oui", "oui", "oui"], ["Section02", "Parcelle01", "non", "non", "non", "non"], ["Section03", "Parcelle03", "non", "non", "non", "non"], ["Section04", "Parcelle04", "non", "non", "non", "non"]] }, { "tag": "{signature_ens}", "type": "image", "value": ".//templates/sarah_signature_sample.png" } ]'
+↓Test_Case_marker_merges [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1791200000007]: 
+    required: true
+    value: .//outputs/test_merges.odt
+  ↓input_filename [variables.TestCaseVariable-1791200000008]: 
+    required: true
+    value: .//templates/odf/template_certificat_ens.odt
+  ↓markers [variables.TestCaseVariable-1791200000009]: 
+    value: '[{"tag": "{tableau_ens}", "type": "tableh", "value": [["Section", "Numero", "Zone A", "Zone B", "Zone C", "Inconnue"], ["S01", "P01", "oui", "non", "oui", "non"], ["S02", "P02", "non", "oui", "non", "oui"], ["S03", "P03", "oui", "oui", "non", "non"]], "merges": [{"row": 1, "col": 0, "rowspan": 2, "colspan": 1}, {"row": 0, "col": 4, "rowspan": 1, "colspan": 2}], "style": {"header": {"fontName": "Arial", "fontStyle": "BOLD", "fontSize": "12", "fontColor": "WHITE", "cellBGColor": "#729fcf"}, "defaults": {"fontName": "Times New Roman", "fontSize": "10", "cellVAlign": "MIDDLE"}}}, {"tag": "{date_reception_ens}", "value": "5 octobre 2026"}, {"tag": "{ref_usager}", "value": "#123"}, {"tag": "{nom_commune}", "value": "Paris"}, {"tag": "{signature_ens}", "type": "image", "value": ".//templates/sarah_signature_sample.png"}]'
+↓Test_Case_marker_tablet [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1791200000010]: 
+    required: true
+    value: .//outputs/test_tablet.odt
+  ↓input_filename [variables.TestCaseVariable-1791200000011]: 
+    required: true
+    value: .//templates/odf/template_certificat_ens.odt
+  ↓markers [variables.TestCaseVariable-1791200000012]: 
+    value: '[{"tag": "{tableau_ens}", "type": "tablet", "value": [["Section", "Numero", "Zone A", "Zone B", "Zone C", "Inconnue"], ["S01", "P01", "oui", "non", "oui", "non"], ["S02", "P02", "non", "oui", "non", "oui"], ["S03", "P03", "oui", "oui", "non", "non"]]}, {"tag": "{nom_commune}", "value": "Paris"}]'
+  ↓table_template_file [variables.TestCaseVariable-1791200000013]: 
+    value: .//templates/odf/template_table.odt
+  ↓table_template_name [variables.TestCaseVariable-1791200000014]: 
+    value: Tableau1
+↓Test_Case_odp [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1791200000015]: 
+    required: true
+    value: .//outputs/test_odp.odp
+  ↓input_filename [variables.TestCaseVariable-1791200000016]: 
+    required: true
+    value: .//templates/odp/template.odp
+  ↓markers [variables.TestCaseVariable-1791200000017]: 
+    value: '[{"tag": "{titre}", "value": "Rapport trimestriel"}, {"tag": "{sous_titre}", "value": "T3 2026\nDirection commerciale"}, {"tag": "logo", "type": "image", "value": ".//templates/odp/sample_logo.png"}, {"tag": "{note_orateur}", "value": "Insister sur la croissance."}, {"tag": "{points}", "type": "list", "value": ["Chiffre d''affaires +12 %", "Trois nouveaux clients"]}, {"tag": "{date}", "value": "5 octobre 2026"}, {"tag": "{titre_tableau}", "value": "Ventes par produit"}, {"tag": "{lignes}", "type": "rows", "value": [["Convertigo Low Code", "12", "24 000 EUR"], ["C8oForms", "30", "18 500 EUR"]]}, {"tag": "{produits}", "type": "slides", "value": [[{"tag": "{produit_nom}", "value": "Convertigo Low Code"}, {"tag": "{produit_description}", "value": "Plateforme low code."}, {"tag": "{produit_photo}", "type": "image", "value": ".//templates/odp/sample_photo_1.png"}], [{"tag": "{produit_nom}", "value": "C8oForms"}, {"tag": "{produit_description}", "value": "Formulaires no code."}, {"tag": "{produit_photo}", "type": "image", "value": ".//templates/odp/sample_photo_2.png"}]]}, {"tag": "{pied_de_page}", "value": "Convertigo - Confidentiel"}]'

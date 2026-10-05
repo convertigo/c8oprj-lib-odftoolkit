@@ -1,59 +1,80 @@
 comment: |
   Fills an ODT template file (Deprecated).
   Place your template files in .//templates/odf folder.
-↓fill_template [steps.SimpleStep-1669224611519]: 
+↓prepare [steps.SimpleStep-1669224611519]: 
   expression: |
-    'var odf_api = JavaImporter(
-    	Packages.org.odftoolkit.simple.TextDocument,
-    	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
-    	Packages.org.odftoolkit.simple.draw.Image,
-    	Packages.java.io.File
-    );
+    '/* =====================================================================================
+     * fill_odt (deprecated) / SimpleStep "prepare"
+     *
+     * Kept for compatibility: builds the u_fill_odt markers of the fixed __c8o_date,
+     * __c8o_objet, __c8o_texte and __c8o_signature tags. Use u_fill_odt instead.
+     * ===================================================================================== */
     
-    var project_path = (''''+context.getProjectDirectory()).replace(new RegExp(/\\/g), ''/'');
-    var template_path = project_path + "/templates/odf/"+input_filename+".odt";
-    var output_path = project_path + "/outputs/"+output_filename+".odt";
+    var project_path = String(context.getProjectDirectory()).replace(/\\/g, "/");
+    var template_path = project_path + "/templates/odf/" + input_filename + ".odt";
+    var output_path = project_path + "/outputs/" + output_filename + ".odt";
     
-    with(odf_api){
-    	
-    	function replace_text(fdoc, pattern, new_text){
-    		var txt_nav = null;
-    		txt_nav = new TextNavigation(pattern, fdoc);
-    		while (txt_nav.hasNext()) {
-    			item = txt_nav.nextSelection();
-    			log.warn(item.getText());
-    			log.warn(item.getIndex());
-    			item.replaceWith(new_text);
-    		}
-    	}
-    	
-    	var document = TextDocument.loadDocument(template_path);
-    	replace_text(document, "__c8o_date", date);
-    	replace_text(document, "__c8o_objet", objet);
-    	replace_text(document, "__c8o_texte", texte);
-    	replace_text(document, "__c8o_signature", new File(signature).toURI());
-    	//replace_text(document, "__c8o_signature", Image.newImage(document.getParagraphByIndex(1, false),new File(signature).toURI()));
-    	document.save(output_path);
-    	
-    	
-    	// Delete the generated file when the HTTP session ends
-    	var outputFile = new File(output_path);
-    	context.addFileToDeleteAtEndOfSession(outputFile);
-    }'
-↓Element [steps.XMLElementStep-1669218417383]: 
-  nodeName: attachment
-  ↓jAttribute [steps.AttributeStep-1669218417386]: 
-    expression: '"attachment"'
-    nodeName: type
-  ↓jAttribute1 [steps.AttributeStep-1669218417389]: 
-    expression: output_filename + ".odt"
-    nodeName: name
-  ↓jAttribute11 [steps.AttributeStep-1669218417392]: 
-    expression: output_path
-    nodeName: local-url
-  ↓jAttribute2 [steps.AttributeStep-1669218417395]: 
-    expression: '"application/octet-stream"'
-    nodeName: content-type
+    function text(v) {
+    	return v == null ? "" : String(v);
+    }
+    
+    var fill_markers = JSON.stringify([
+    	{ tag: "__c8o_date", type: "string", value: text(date) },
+    	{ tag: "__c8o_objet", type: "string", value: text(objet) },
+    	{ tag: "__c8o_texte", type: "string", value: text(texte) },
+    	{ tag: "__c8o_signature", type: "image", value: text(signature) }
+    ]);
+    log.warn("[fill_odt] This sequence is deprecated, use u_fill_odt");'
+↓template_path [steps.ElementStep-1791200000055]: 
+  expression: template_path
+  nodeName: template_path
+  output: false
+↓output_path [steps.ElementStep-1791200000056]: 
+  expression: output_path
+  nodeName: output_path
+  output: false
+↓fill_markers [steps.ElementStep-1791200000057]: 
+  expression: fill_markers
+  nodeName: markers
+  output: false
+↓fill [steps.SequenceStep-1791200000058]: 
+  sourceSequence: lib_fill_odt_pdf.u_fill_odt
+  ↓input_filename [variables.StepVariable-1791200000059]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1791200000055
+          - java.lang.String: 
+            - ↑value: ./text()
+  ↓output_filename [variables.StepVariable-1791200000060]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1791200000056
+          - java.lang.String: 
+            - ↑value: ./text()
+  ↓markers [variables.StepVariable-1791200000061]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1791200000057
+          - java.lang.String: 
+            - ↑value: ./text()
+↓Copy [steps.XMLCopyStep-1791200000062]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1791200000058
+        - java.lang.String: 
+          - ↑value: ./document/*
 ↓date [variables.RequestableVariable-1669197724582]: 
   comment: Date
   value: 

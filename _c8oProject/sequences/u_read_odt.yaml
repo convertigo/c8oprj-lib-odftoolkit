@@ -1,4 +1,4 @@
-comment: Dev sequence to read a table from a Text Document.
+comment: Dev sequence to read the first cell of a table from a Text Document (odfdom 0.13 table API).
 responseTimeout: 120
 ↓inputVars [steps.InputVariablesStep-1740317603613]: 
 ↓IfExistThenElse [steps.IfExistThenElseStep-1740317603616]: 
@@ -9,7 +9,7 @@ responseTimeout: 120
         - java.lang.String: 
           - ↑value: 1740317603613
         - java.lang.String: 
-          - ↑value: ./markers/array
+          - ↑value: ./markers/*[1]
   ↓jThen [steps.ThenStep-1740317603619]: 
     ↓markers [steps.JsonSourceStep-1740317603622]: 
       sourceDefinition: 
@@ -19,7 +19,7 @@ responseTimeout: 120
             - java.lang.String: 
               - ↑value: 1740317603613
             - java.lang.String: 
-              - ↑value: ./markers/array
+              - ↑value: ./markers/*[1]
       variableName: o_markers
   ↓jElse [steps.ElseStep-1740317603625]: 
     ↓markers [steps.JsonSourceStep-1740317603628]: 
@@ -32,34 +32,38 @@ responseTimeout: 120
             - java.lang.String: 
               - ↑value: ./markers/text()
       variableName: o_markers
-↓create_odt [steps.SimpleStep-1740317603631]: 
+↓read_table [steps.SimpleStep-1740317603631]: 
   expression: |
-    'var odf_api = JavaImporter(
-    	Packages.org.odftoolkit.simple.TextDocument,
-    	Packages.org.odftoolkit.simple.common.navigation.TextNavigation,
-    	Packages.org.odftoolkit.simple.draw.Image,
-    	Packages.org.odftoolkit.simple.table.Table,
-    	Packages.org.odftoolkit.simple.table.Cell,
-    	Packages.org.odftoolkit.simple.style.Font,
-    	Packages.org.odftoolkit.simple.style.StyleTypeDefinitions,
-    	Packages.org.odftoolkit.odfdom.type.Color,
-    	Packages.java.io.File
+    '/* =====================================================================================
+     * u_read_odt / SimpleStep "read_table"
+     *
+     * Dev sequence: reads the first cell of a table of a text document with the odfdom 0.13
+     * table API (style name, value, background color, format string).
+     * ===================================================================================== */
+    
+    var odf_api = JavaImporter(
+    	Packages.org.odftoolkit.odfdom.doc.OdfDocument,
+    	java.io.File
     );
     
-    function get_file_name(file_path){
-    	if(file_path != ""){
-    		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
-    	}
-    }
+    var _error = false;
+    var _error_code = "-1";
+    var _error_msg = "";
+    var _error_stack = "";
+    var cell_style = "";
+    var cell_value = "";
+    var cell_bgcolor = "";
+    var cell_format = "";
+    var read_table = "";
     
-    function get_full_path(file_path){
-    	if(file_path != ""){
-    		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
-     		if(file_path.indexOf(".//") != -1){
-      			file_path = project_directory_path + file_path.substring(3);
-    		}
-     		else if(file_path.indexOf("./") != -1){
-      			file_path = project_directory_path + "../" + file_path.substring(3);;
+    function get_full_path(file_path) {
+    	if (file_path != null && file_path != "") {
+    		file_path = String(file_path);
+    		var project_directory_path = String(context.getProjectDirectory()).replace(/\\/g, "/") + "/";
+    		if (file_path.indexOf(".//") == 0) {
+    			file_path = project_directory_path + file_path.substring(3);
+    		} else if (file_path.indexOf("./") == 0) {
+    			file_path = project_directory_path + "../" + file_path.substring(2);
     		}
     	}
     	return file_path;
@@ -67,29 +71,74 @@ responseTimeout: 120
     
     var output_path = get_full_path(output_filename);
     
-    with(odf_api){
-    		
-    	var document = TextDocument.loadDocument(output_path);
-    	var table1 = document.getTableByName("table1");
-    	log.warn(''table: '' + table1);
-    	if(table1){
-    		var cell=table1.getCellByPosition(0, 0);
-    		var styleC = cell.getStyleName();
-    		var strval = cell.getStringValue();
-    		var colorC = cell.getCellBackgroundColor();
-    		log.warn("cell style: " + styleC);
-    		log.warn("cell value: " + strval);
-    		log.warn("cell bgColor: " + colorC);
-    		
-    		//var font = new Font("Arial", StyleTypeDefinitions.FontStyle.ITALIC, 12, Color.RED);
-    		//cell.setFont(font);
-    				
-    		var cellFormatStr=cell.getFormatString();		
-    		log.warn("cell format: " + cellFormatStr);
-    		
-    		//document.save(output_path);
+    with (odf_api) {
+    	var document = null;
+    	try {
+    		if (!new File(output_path).isFile()) throw "File not found: " + output_path;
+    		document = OdfDocument.loadDocument(output_path);
+    		var name = table_name != null && String(table_name) != "" ? String(table_name) : "table1";
+    		var table = document.getTableByName(name);
+    		if (table == null) {
+    			// Tables built by u_fill_odt have generated names: fall back to the first table.
+    			var tables = document.getTableList(false);
+    			table = tables.size() > 0 ? tables.get(0) : null;
+    		}
+    		if (table == null) throw "No table in " + output_path;
+    		read_table = String(table.getTableName());
+    		var cell = table.getCellByPosition(0, 0);
+    		cell_style = String(cell.getStyleName() || "");
+    		cell_value = String(cell.getStringValue() || "");
+    		cell_bgcolor = String(cell.getCellBackgroundColorString() || "");
+    		cell_format = String(cell.getFormatString() || "");
+    		log.info("[u_read_odt] table ''" + read_table + "'' cell A1: style=" + cell_style + " value=" + cell_value + " bgColor=" + cell_bgcolor + " format=" + cell_format);
+    	} catch (e) {
+    		log.error("[u_read_odt] " + e);
+    		_error = true;
+    		_error_msg = "ERROR: reading ''" + output_path + "''";
+    		_error_stack = "" + e;
+    	} finally {
+    		if (document != null) document.close();
     	}
     }'
+↓jIf [steps.IfStep-1791200000071]: 
+  condition: _error == true
+  ↓Error_structure [steps.XMLErrorStep-1791200000072]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_code
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_stack
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_msg
+  ↓Return [steps.ReturnStep-1791200000073]: 
+↓cell [steps.XMLElementStep-1791200000074]: 
+  nodeName: cell
+  ↓table [steps.AttributeStep-1791200000075]: 
+    expression: read_table
+    nodeName: table
+  ↓style [steps.AttributeStep-1791200000076]: 
+    expression: cell_style
+    nodeName: style
+  ↓bgColor [steps.AttributeStep-1791200000077]: 
+    expression: cell_bgcolor
+    nodeName: bgColor
+  ↓format [steps.AttributeStep-1791200000078]: 
+    expression: cell_format
+    nodeName: format
+  ↓value [steps.AttributeStep-1791200000079]: 
+    expression: cell_value
+    nodeName: value
 ↓output_filename [variables.RequestableVariable-1740317603634]: 
   comment: |
     'Output ODT file name (without extension). 
@@ -106,9 +155,12 @@ responseTimeout: 120
     		"value": "&lt;replacement string or image absolute path&gt;"
     	}
     ]>'
+↓table_name [variables.RequestableVariable-1791200000080]: 
+  comment: Name of the table to read. Defaults to table1, then to the first table of the document.
+  value: table1
 ↓Test_Case [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1740317603641]: 
     required: true
-    value: table
+    value: .//outputs/test_ens.odt
   ↓markers [variables.TestCaseVariable-1740317603644]: 
     value: '[{"tag": "table1", "type": "table", "value": [["rouge", "pomme", "chat", "Paris"], ["bleu", "banane", "chien", "Londres"], ["vert", "orange", "lion", "New York"], ["jaune", "raisin", "tigre", "Tokyo"], ["violet", "mangue", "éléphant", "Sydney"], ["orange", "kiwi", "loup", "Rome"], ["rose", "fraise", "renard", "Berlin"], ["marron", "poire", "ours", "Moscou"], ["noir", "cerise", "zèbre", "Madrid"], ["blanc", "ananas", "girafe", "Vancouver"]]}]'

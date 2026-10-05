@@ -10,9 +10,11 @@ For more technical informations : [documentation](./project.md)
 
 - [Installation](#installation)
 - [Sequences](#sequences)
+    - [autoRemoveFolder](#autoremovefolder)
     - [clean_outputs](#clean_outputs)
     - [ctx_server_set](#ctx_server_set)
     - [demo_export_data_to_sheet](#demo_export_data_to_sheet)
+    - [demo_u_fill_odp](#demo_u_fill_odp)
     - [demo_u_fill_odt](#demo_u_fill_odt)
     - [demo_u_fill_pdf](#demo_u_fill_pdf)
     - [demo_u_fill_table_odt](#demo_u_fill_table_odt)
@@ -26,6 +28,7 @@ For more technical informations : [documentation](./project.md)
     - [metadata_pdf](#metadata_pdf)
     - [odt2pdf](#odt2pdf)
     - [soffice_odt2pdf](#soffice_odt2pdf)
+    - [u_convert](#u_convert)
     - [u_create_ods](#u_create_ods)
     - [u_create_odt](#u_create_odt)
     - [u_export_data_to_sheet](#u_export_data_to_sheet)
@@ -58,6 +61,8 @@ For more technical informations : [documentation](./project.md)
 
 
 ## Sequences
+
+### autoRemoveFolder
 
 ### clean_outputs
 
@@ -101,6 +106,10 @@ Set Name/Value in server
 ### demo_export_data_to_sheet
 
 Demo sequence to create a spreadhseet filled with data.
+
+### demo_u_fill_odp
+
+Demo sequence: fills .//templates/odp/template.odp with u_fill_odt, then converts the result to PPTX and PDF with u_convert.
 
 ### demo_u_fill_odt
 
@@ -312,7 +321,7 @@ Can be an absolute path or a relative Convertigo path:
 
 ### odt2pdf
 
-Convert an ODT file to a PDF file
+Convert an ODT file to a PDF file with LibreOffice (u_convert). Fonts from fonts_folder or font_paths are embedded for the conversion.
 
 **variables**
 
@@ -345,7 +354,7 @@ Can be an absolute path or a relative Convertigo path:
 
 ### soffice_odt2pdf
 
-Convert an ODT file to a PDF file using LibreOffice
+Convert an ODT file to a PDF file using LibreOffice (u_convert). The soffice_path variable is ignored, set the global symbol lib_fill_odt_pdf.soffice_path instead.
 
 **variables**
 
@@ -366,13 +375,63 @@ Can be an absolute path or a relative Convertigo path:
 "./" is relative to the workspace path.</td>
 </tr>
 <tr>
-<td>soffice_path</td><td>LibreOffice 'soffice' absolute path. Default is 'soffice'</td>
+<td>soffice_path</td><td>Ignored (security): the LibreOffice executable comes from the global symbol lib_fill_odt_pdf.soffice_path, the SOFFICE_PATH environment variable or the default install paths.</td>
+</tr>
+</table>
+
+### u_convert
+
+Converts a document with LibreOffice (headless) to another format: pdf, docx, xlsx, pptx, odt, ods, odp, doc, xls, ppt, rtf, txt, csv, html, epub, png, svg...
+The input can be any document LibreOffice opens (odt, ods, odp, docx, xlsx, pptx...).
+LibreOffice is resolved from the global symbol 'lib_fill_odt_pdf.soffice_path', then the SOFFICE_PATH environment variable, then the default install paths, then 'soffice' from the PATH.
+Fonts from fonts_folder / font_paths are embedded in a copy of an ODF input for the conversion (TrueType fonts).
+Optional LibreOffice pool (JODConverter, about 50 ms per conversion instead of 2 s): set the global symbol 'lib_fill_odt_pdf.office_pool_size' to the number of LibreOffice processes to keep running (ports from 'lib_fill_odt_pdf.office_pool_port', default 2002). 0 or empty = one LibreOffice process per conversion.
+It outputs an attachment structure: call it with the .bin requester from a wrapper sequence to trigger a download in the client browser.
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>delete_at_end_of_session</td><td>Set to 'false' to keep the generated file when the HTTP session ends. Default is 'true'.</td>
+</tr>
+<tr>
+<td>font_aliases</td><td>Font names used in the document for each font_paths entry. Defaults to the font family name of the file.</td>
+</tr>
+<tr>
+<td>font_paths</td><td>Font files to embed for the conversion (ODF inputs). Each entry is a path, or a JSON array of paths.</td>
+</tr>
+<tr>
+<td>fonts_folder</td><td>Folder containing TrueType fonts to embed for the conversion (ODF inputs). Only the fonts used by the document are embedded. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>input_filename</td><td>Input document path (odt, ods, odp, docx, xlsx, pptx...). 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>output_filename</td><td>Output document path. Its extension defines the target format when 'target_format' is empty. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>target_format</td><td>Optional target format, for example 'pdf', 'docx', 'xlsx', 'pptx', 'odt'. Defaults to the output file extension. A LibreOffice filter can be forced, for example pdf:writer_pdf_Export:{"SelectPdfVersion":{"type":"long","value":"2"}} for PDF/A-2.</td>
+</tr>
+<tr>
+<td>timeout</td><td>Maximum conversion time in seconds. Default is 120.</td>
 </tr>
 </table>
 
 ### u_create_ods
 
-Create a new Calc document fr om a structured JSON.
+Create a new Calc document from a structured JSON (odfdom 0.13 table API). It outputs an attachment structure.
 
 **variables**
 
@@ -423,7 +482,7 @@ Can be an absolute path or a relative Convertigo path:
 
 ### u_create_odt
 
-Create a new Text document with a table. Works the same as u_fill_odt sequence.
+Create a new Text document from the markers (one block per marker, in order) with u_fill_odt. Same marker types as u_fill_odt.
 
 **variables**
 
@@ -524,9 +583,10 @@ Can be an absolute path or a relative Convertigo path:
 
 ### u_fill_odt
 
-Fills an ODT template file (Universal).
-Place your template files in .//templates/odf folder.
-It will output an attachment structure and if you call it with .bin requester it will trigger a download in the client Browser.
+Fills an ODT, ODS or ODP template (Universal): body, headers and footers, master pages, notes and tables.
+Place your template files in .//templates/odf (or .//templates/odp) folder.
+Built on odfdom-java 0.13 (no Simple API). See the markers variable for the marker types.
+It outputs an attachment structure, the tags not found and the marker errors. If you call it with .bin requester it will trigger a download in the client Browser.
 
 **variables**
 
@@ -538,22 +598,28 @@ It will output an attachment structure and if you call it with .bin requester it
 <td>break_before</td><td>Define the BreakBefore table style property. Can be 'auto', 'column' or 'page'. Default is set to 'page'.</td>
 </tr>
 <tr>
+<td>delete_at_end_of_session</td><td>Set to 'false' to keep the generated file when the HTTP session ends. Default is 'true'.</td>
+</tr>
+<tr>
 <td>input_filename</td><td>ODT input template file name to fill. 
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 
 "./" is relative to the workspace path.</td>
 </tr>
 <tr>
-<td>markers</td><td>Structured array as follow : 
-
-[
-	{
-		"tag": "&lt;tag name in template file to replace with 'value' key&gt;",
-		"type": "&lt;tag type. 'image', 'string', 'span' (font styles), 'table' and 'tableh' (title row) supported&gt;",
-		"style": "&lt;Font styles for span or table cells. Look at demo_u_fill_odt for syntax&gt;"
-		"value": "&lt;replacement string or image absolute path&gt;"
-	}
-]></td>
+<td>markers</td><td>Array of markers, as a JSON string or a structured variable: 
+[ { "tag": "{name}", "type": "string", "value": "...", "style": {...} }, ... ] 
+Types: 
+- string / paragraph (default): text, \n = line break, \t = tab. 
+- newline: line break. 
+- span: text with style { fontName, fontStyle (REGULAR, BOLD, ITALIC, BOLDITALIC), fontSize, fontColor }. 
+- image: value = image path or data URI. Tag = frame name, text frame holding only the tag, or text tag (inline picture). Options: fit (contain, stretch), width, height. 
+- table / tableh (first row is a header) / tablet (styles from table_template_file): value = 2D array, style { header, defaults, cells: { "row-col": {...} } } with fontName, fontStyle, fontSize, fontColor, cellHAlign, cellVAlign, cellBGColor, merges [ { row, col, rowspan, colspan } ]. 
+- array: value = array of markers without tag, inserted one after the other. 
+- list: value = array of strings, the paragraph or list item holding the tag is repeated. 
+- rows: value = 2D array, the table row holding the tag is repeated. 
+- slides: value = array of items (array of markers, or object with a markers array), the slide holding the tag is repeated. 
+Look at demo_u_fill_odt, demo_u_fill_table_odt and demo_u_fill_odp for examples.</td>
 </tr>
 <tr>
 <td>meta_creation_date</td><td>Defines the Creation Date metadata in the ODT Document. ISO 8601 date format: yyy-MM-dd'T'HH:mm:ss. If null or empty, does not change it.</td>
@@ -626,7 +692,7 @@ Can be an absolute path or a relative Convertigo path:
 
 ### u_read_odt
 
-Dev sequence to read a table from a Text Document.
+Dev sequence to read the first cell of a table from a Text Document (odfdom 0.13 table API).
 
 **variables**
 
@@ -648,6 +714,9 @@ Dev sequence to read a table from a Text Document.
 <tr>
 <td>output_filename</td><td>Output ODT file name (without extension). 
 '.odt' is automatically added to filename to be opened by Ms Word or LibreOffice.</td>
+</tr>
+<tr>
+<td>table_name</td><td>Name of the table to read. Defaults to table1, then to the first table of the document.</td>
 </tr>
 </table>
 

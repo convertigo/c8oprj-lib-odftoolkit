@@ -1,6 +1,12 @@
 autoStart: ${auto_start.init_config=false}
-comment: Auto start sequence to install some required fonts for Docker Linux Platform.
+comment: Auto start sequence to install LibreOffice and the fonts on the Docker Linux Platform. Not needed with an image built from docker/Dockerfile. While it runs, u_fill_odt and u_create_odt answer the -4 error.
 responseTimeout: 1200
+↓set_running [steps.SequenceStep-1791200000081]: 
+  sourceSequence: lib_fill_odt_pdf.ctx_server_set
+  ↓set_name [variables.StepVariable-1791200000082]: 
+    value: init_config
+  ↓set_value [variables.StepVariable-1791200000083]: 
+    value: running
 ↓jIf [steps.IfStep-1742482606623]: 
   condition: java.lang.System.getenv("CONVERTIGO_VERSION") != null
   ↓Process_execute13 [steps.ProcessExecStep-1786023151302]: 
