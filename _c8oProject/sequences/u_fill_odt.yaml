@@ -1,7 +1,7 @@
 comment: |
-  'Fills an ODT, ODS or ODP template (Universal): body, headers and footers, master pages, notes and tables.
-  Place your template files in .//templates/odf (or .//templates/odp) folder.
-  Built on odfdom-java 0.13 (no Simple API). See the markers variable for the marker types.
+  'Fills a document template (Universal): OpenDocument (ODT, ODS, ODP) or designed with Word, PowerPoint or Excel (docx, pptx, xlsx and their dotx, potx, xltx, docm, pptm, xlsm variants).
+  Body, headers and footers, master pages, notes and tables are filled. Place your template files in .//templates/odf, .//templates/odp or .//templates/office folder.
+  OpenDocument templates are filled with odfdom-java 0.13 (no Simple API), Office templates by u_fill_ooxml (direct edit of the Office XML, the formatting of the template is kept). See the markers variable for the marker types.
   It outputs an attachment structure, the tags not found and the marker errors. If you call it with .bin requester it will trigger a download in the client Browser.'
 responseTimeout: 120
 ↓jIf [steps.IfStep-1742483763946]: 
@@ -58,6 +58,36 @@ responseTimeout: 120
             - java.lang.String: 
               - ↑value: ./markers/text()
       variableName: o_markers
+↓jIfOffice [steps.IfStep-1791400000031]: 
+  comment: 'Templates designed with Word, PowerPoint or Excel are filled by u_fill_ooxml. Its variables have no source: they take the value of the u_fill_odt variable of the same name.'
+  condition: /\.(docx|docm|dotx|dotm|pptx|pptm|potx|potm|xlsx|xlsm|xltx|xltm)$/i.test(String(input_filename))
+  ↓office_markers [steps.SimpleStep-1791400000032]: 
+    expression: 'markers = typeof o_markers == "undefined" || o_markers == null ? null : JSON.stringify(o_markers);'
+  ↓fill_office [steps.SequenceStep-1791400000033]: 
+    sourceSequence: lib_fill_odt_pdf.u_fill_ooxml
+    ↓output_filename [variables.StepVariable-1791400000034]: 
+    ↓input_filename [variables.StepVariable-1791400000035]: 
+    ↓markers [variables.StepVariable-1791400000036]: 
+    ↓table_template_file [variables.StepVariable-1791400000037]: 
+    ↓table_template_name [variables.StepVariable-1791400000038]: 
+    ↓break_before [variables.StepVariable-1791400000039]: 
+    ↓meta_title [variables.StepVariable-1791400000040]: 
+    ↓meta_subject [variables.StepVariable-1791400000041]: 
+    ↓meta_keywords [variables.StepMultiValuedVariable-1791400000042]: 
+    ↓meta_initial_creator [variables.StepVariable-1791400000043]: 
+    ↓meta_description [variables.StepVariable-1791400000044]: 
+    ↓meta_creation_date [variables.StepVariable-1791400000045]: 
+    ↓delete_at_end_of_session [variables.StepVariable-1791400000046]: 
+  ↓Copy [steps.XMLCopyStep-1791400000047]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1791400000033
+          - java.lang.String: 
+            - ↑value: ./document/*
+  ↓Return [steps.ReturnStep-1791400000048]: 
 ↓fill_template [steps.SimpleStep-1739960996675]: 
   expression: |
     '/* =====================================================================================
@@ -1556,14 +1586,14 @@ responseTimeout: 120
   nodeName: marker_errors
 ↓output_filename [variables.RequestableVariable-1739960996705]: 
   comment: |
-    'ODT output file path. 
+    'Output file path, in the format of the template (a dotx, potx or xltx template can be saved as docx, pptx or xlsx). 
     Can be an absolute path or a relative Convertigo path: 
     ".//" is relative to the project''s path. 
     "./" is relative to the workspace path.'
   required: true
 ↓input_filename [variables.RequestableVariable-1739960996708]: 
   comment: |
-    'ODT input template file name to fill. 
+    'Template file to fill: OpenDocument (odt, ods, odp) or designed with Word, PowerPoint or Excel (docx, pptx, xlsx, and the dotx, potx, xltx, docm, pptm, xlsm variants). 
     Can be an absolute path or a relative Convertigo path: 
     ".//" is relative to the project''s path. 
     "./" is relative to the workspace path.'
@@ -1576,35 +1606,70 @@ responseTimeout: 120
     - string / paragraph (default): text, \n = line break, \t = tab. 
     - newline: line break. 
     - span: text with style { fontName, fontStyle (REGULAR, BOLD, ITALIC, BOLDITALIC), fontSize, fontColor }. 
-    - image: value = image path or data URI. Tag = frame name, text frame holding only the tag, or text tag (inline picture). Options: fit (contain, stretch), width, height. 
-    - table / tableh (first row is a header) / tablet (styles from table_template_file): value = 2D array, style { header, defaults, cells: { "row-col": {...} } } with fontName, fontStyle, fontSize, fontColor, cellHAlign, cellVAlign, cellBGColor, merges [ { row, col, rowspan, colspan } ]. 
+    - image: value = image path or data URI. Tag = frame or picture name (Office: Alt text title or name), text frame holding only the tag, or text tag (inline picture; Excel: picture anchored on the cell). Options: fit (contain, stretch), width, height. 
+    - table / tableh (first row is a header) / tablet (styles from table_template_file): value = 2D array, style { header, defaults, cells: { "row-col": {...} } } with fontName, fontStyle, fontSize, fontColor, cellHAlign, cellVAlign, cellBGColor, merges [ { row, col, rowspan, colspan } ]. Excel: same as rows. PowerPoint: use rows. 
     - array: value = array of markers without tag, inserted one after the other. 
-    - list: value = array of strings, the paragraph or list item holding the tag is repeated. 
-    - rows: value = 2D array, the table row holding the tag is repeated. 
-    - slides: value = array of items (array of markers, or object with a markers array), the slide holding the tag is repeated. 
-    Look at demo_u_fill_odt, demo_u_fill_table_odt and demo_u_fill_odp for examples.'
+    - list: value = array of strings, the paragraph or list item holding the tag is repeated (Excel: one row per value). 
+    - rows: value = 2D array, the table row holding the tag is repeated. Excel: the sheet row holding the tag is repeated, the rows below are shifted and formulas, merged cells, tables and charts are updated. 
+    - slides: value = array of items (array of markers, or object with a markers array), the slide holding the tag is repeated (ODP, PPTX). 
+    Look at demo_u_fill_odt, demo_u_fill_table_odt, demo_u_fill_odp and demo_u_fill_office for examples.'
 ↓table_template_file [variables.RequestableVariable-1743417375236]: 
-  comment: Path of the ODT file containing a table to use as a template.
+  comment: 'Path of the file containing a table to use as a template for the tablet markers: an ODT file for an OpenDocument template, a DOCX file for a Word template.'
 ↓table_template_name [variables.RequestableVariable-1743417393721]: 
-  comment: Name of the template table.
+  comment: 'Name of the template table (Word: Alt text title of the table). Defaults to the only table of the file.'
 ↓break_before [variables.RequestableVariable-1770026149173]: 
-  comment: Define the BreakBefore table style property. Can be 'auto', 'column' or 'page'. Default is set to 'page'.
+  comment: Define the BreakBefore table style property of the table, tableh and tablet markers. Can be 'auto', 'column' or 'page'. Default is set to 'page'.
   value: page
 ↓meta_title [variables.RequestableVariable-1773158303826]: 
-  comment: Defines the Title metadata in the ODT Document. If null, does not change it. If empty, removes it.
+  comment: Defines the Title metadata of the document. If null, does not change it. If empty, removes it.
 ↓meta_subject [variables.RequestableVariable-1773158787765]: 
-  comment: Defines the Subject metadata in the ODT Document. If null, does not change it. If empty, removes it.
+  comment: Defines the Subject metadata of the document. If null, does not change it. If empty, removes it.
 ↓meta_keywords [variables.RequestableMultiValuedVariable-1773159783472]: 
-  comment: Defines the Keywords metadata in the ODT Document. Multi-valued variable. Each entry is a keyword. If null, does not change it. If empty, removes it.
+  comment: Defines the Keywords metadata of the document. Multi-valued variable. Each entry is a keyword. If null, does not change it. If empty, removes it.
 ↓meta_initial_creator [variables.RequestableVariable-1773160205035]: 
-  comment: Defines the Creator metadata in the ODT Document. If null, does not change it. If empty, removes it.
+  comment: Defines the Creator metadata of the document. If null, does not change it. If empty, removes it.
 ↓meta_description [variables.RequestableVariable-1773244152838]: 
-  comment: Defines the Description metadata in the ODT Document. If null, does not change it. If empty, removes it.
+  comment: Defines the Description metadata of the document. If null, does not change it. If empty, removes it.
 ↓meta_creation_date [variables.RequestableVariable-1773249217927]: 
-  comment: 'Defines the Creation Date metadata in the ODT Document. ISO 8601 date format: yyy-MM-dd''T''HH:mm:ss. If null or empty, does not change it.'
+  comment: 'Defines the Creation Date metadata of the document. ISO 8601 date format: yyyy-MM-dd''T''HH:mm:ss, or ''now''. If null or empty, does not change it.'
 ↓delete_at_end_of_session [variables.RequestableVariable-1791200000006]: 
   comment: Set to 'false' to keep the generated file when the HTTP session ends. Default is 'true'.
   value: true
+↓Test_Case_docx [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1791400000049]: 
+    required: true
+    value: .//outputs/test_office.docx
+  ↓input_filename [variables.TestCaseVariable-1791400000050]: 
+    required: true
+    value: .//templates/office/template.docx
+  ↓markers [variables.TestCaseVariable-1791400000051]: 
+    value: '[{"tag": "__c8o_date", "type": "string", "value": "February 25, 2025"}, {"tag": "__c8o_objet", "type": "span", "value": "Resignation Letter", "style": {"fontName": "Arial", "fontStyle": "ITALIC", "fontSize": "12", "fontColor": "RED"}}, {"tag": "__c8o_texte", "type": "array", "value": [{"type": "span", "value": "Resignation Letter", "style": {"fontName": "Arial", "fontStyle": "ITALIC", "fontSize": "12", "fontColor": "RED"}}, {"type": "span", "value": " ", "style": {}}, {"type": "newline"}, {"tag": "__c8o_date", "type": "string", "value": "February 25, 2025"}, {"tag": "__c8o_texte", "type": "string", "value": "Dear Sir, Madam, Miss,\r\n\r\nI am writing to inform you of my decision to resign from my position as a computer scientist at your company, effective from 04/05/2025.\r\n\r\nThis decision was not easy to make, and I would like to express my gratitude for the opportunities and professional experience I have gained at Convertigo. I have enjoyed working with a talented and passionate team, and I am thankful for the stimulating projects I have been able to contribute to.\r\n\r\nI am committed to respecting my notice period of 3 months and ensuring a smooth transition to facilitate the continuity of my responsibilities. I remain available to train my successor and provide all necessary information to ensure a successful handover.\r\n\r\nThank you for your understanding and attention to this request. Please accept, Dear Sir/Madam/Miss, my best regards.\r\n\r\nSincerely,\r\n\r\nSarah Palin"}, {"tag": "{tableau_ens}", "type": "tableh", "style": {"header": {"fontName": "Arial", "fontStyle": "BOLD", "fontSize": "12", "fontColor": "WHITE", "cellBGColor": "#729fcf"}, "defaults": {"fontName": "Times New Roman", "fontStyle": "REGULAR", "fontSize": "10", "fontColor": "BLACK", "cellVAlign": "MIDDLE"}, "cells": {"1-2": {"fontName": "Arial", "fontStyle": "BOLDITALIC", "fontSize": "10", "fontColor": "#ff0000", "cellHAlign": "CENTER", "cellBGColor": "YELLOW"}, "2-3": {"fontName": "Arial", "fontStyle": "BOLDITALIC", "fontSize": "10", "fontColor": "RED", "cellHAlign": "CENTER", "cellBGColor": "#ffff00"}, "3-4": {"fontName": "Arial", "fontStyle": "BOLDITALIC", "fontSize": "10", "fontColor": "RED", "cellHAlign": "CENTER", "cellBGColor": "#ffff00"}, "4-5": {"fontName": "Arial", "fontStyle": "BOLDITALIC", "fontSize": "10", "fontColor": "RED", "cellHAlign": "CENTER", "cellBGColor": "#ffff00"}}}, "value": [["Section", "Numéro de parcelle", "Est situé en zone de préemption ENS", "N''est pas situé en zone de préemption ENS", "Est partiellement situé en zone de préemption ENS", "Parcelle inconnue"], ["Section01", "Parcelle01", "non", "oui", "oui", "oui"], ["Section02", "Parcelle02", "oui", "non", "oui", "oui"], ["Section03", "Parcelle03", "oui", "oui", "non", "oui"], ["Section04", "Parcelle04", "oui", "oui", "oui", "non"]]}]}, {"tag": "__c8o_signature", "type": "image", "value": ".//templates/sarah_signature_sample.png"}]'
+  ↓meta_title [variables.TestCaseVariable-1791400000052]: 
+    value: Resignation Letter
+↓Test_Case_docx_merges [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1791400000053]: 
+    required: true
+    value: .//outputs/test_office_ens.docx
+  ↓input_filename [variables.TestCaseVariable-1791400000054]: 
+    required: true
+    value: .//templates/office/template_certificat_ens.docx
+  ↓markers [variables.TestCaseVariable-1791400000055]: 
+    value: '[{"tag": "{tableau_ens}", "type": "tableh", "value": [["Section", "Numero", "Zone A", "Zone B", "Zone C", "Inconnue"], ["S01", "P01", "oui", "non", "oui", "non"], ["S02", "P02", "non", "oui", "non", "oui"], ["S03", "P03", "oui", "oui", "non", "non"]], "merges": [{"row": 1, "col": 0, "rowspan": 2, "colspan": 1}, {"row": 0, "col": 4, "rowspan": 1, "colspan": 2}], "style": {"header": {"fontName": "Arial", "fontStyle": "BOLD", "fontSize": "12", "fontColor": "WHITE", "cellBGColor": "#729fcf"}, "defaults": {"fontName": "Times New Roman", "fontSize": "10", "cellVAlign": "MIDDLE"}}}, {"tag": "{date_reception_ens}", "value": "5 octobre 2026"}, {"tag": "{ref_usager}", "value": "#123"}, {"tag": "{nom_commune}", "value": "Paris"}, {"tag": "{signature_ens}", "type": "image", "value": ".//templates/sarah_signature_sample.png"}]'
+↓Test_Case_docx_rows [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1791400000056]: 
+    required: true
+    value: .//outputs/test_office_rows.docx
+  ↓input_filename [variables.TestCaseVariable-1791400000057]: 
+    required: true
+    value: .//templates/office/template_rows.docx
+  ↓markers [variables.TestCaseVariable-1791400000058]: 
+    value: '[{"tag": "{tableau_ens}", "type": "tablet", "value": [["Section", "Numero", "Zone"], ["S01", "P01", "oui"], ["S02", "P02", "non"], ["S03", "P03", "oui"]]}, {"tag": "{points}", "type": "list", "value": ["Premier point", "Deuxieme point"]}, {"tag": "{lignes}", "type": "rows", "value": [["Low Code", "24 000 EUR"], ["Forms", "18 500 EUR"]]}, {"tag": "{nom_commune}", "type": "span", "value": "Paris", "style": {"fontName": "Arial", "fontStyle": "BOLDITALIC", "fontSize": 14, "fontColor": "#c00000"}}]'
+  ↓table_template_file [variables.TestCaseVariable-1791400000059]: 
+    value: .//templates/office/template_table.docx
+  ↓table_template_name [variables.TestCaseVariable-1791400000060]: 
+    value: Tableau1
+  ↓break_before [variables.TestCaseVariable-1791400000061]: 
+    value: auto
 ↓Test_Case_marker_array [core.TestCase]: 
   ↓markers [variables.TestCaseVariable-1782379173158]: 
     value:  [{"tag":"__c8o_date","type":"string","value":"February 25, 2025"},{"tag":"__c8o_objet","type":"span","value":"Resignation Letter","style":{"fontName":"Arial","fontStyle":"ITALIC","fontSize":"12","fontColor":"RED"}},{"tag":"__c8o_texte","type":"array","value":[{"type":"span","value":"Resignation Letter","style":{"fontName":"Arial","fontStyle":"ITALIC","fontSize":"12","fontColor":"RED"}},{"type":"span","value":" ","style":{}},{"type":"newline"},{"tag":"__c8o_date","type":"string","value":"February 25, 2025"},{"tag":"__c8o_texte","type":"string","value":"Dear Sir, Madam, Miss,\r\n\r\nI am writing to inform you of my decision to resign from my position as a computer scientist at your company, effective from 04/05/2025.\r\n\r\nThis decision was not easy to make, and I would like to express my gratitude for the opportunities and professional experience I have gained at Convertigo. I have enjoyed working with a talented and passionate team, and I am thankful for the stimulating projects I have been able to contribute to.\r\n\r\nI am committed to respecting my notice period of 3 months and ensuring a smooth transition to facilitate the continuity of my responsibilities. I remain available to train my successor and provide all necessary information to ensure a successful handover.\r\n\r\nThank you for your understanding and attention to this request. Please accept, Dear Sir/Madam/Miss, my best regards.\r\n\r\nSincerely,\r\n\r\nSarah Palin"},{"tag":"{tableau_ens}","type":"tableh","style":{"header":{"fontName":"Arial","fontStyle":"BOLD","fontSize":"12","fontColor":"WHITE","cellBGColor":"#729fcf"},"defaults":{"fontName":"Times New Roman","fontStyle":"REGULAR","fontSize":"10","fontColor":"BLACK","cellVAlign":"MIDDLE"},"cells":{"1-2":{"fontName":"Arial","fontStyle":"BOLDITALIC","fontSize":"10","fontColor":"#ff0000","cellHAlign":"CENTER","cellBGColor":"YELLOW"},"2-3":{"fontName":"Arial","fontStyle":"BOLDITALIC","fontSize":"10","fontColor":"RED","cellHAlign":"CENTER","cellBGColor":"#ffff00"},"3-4":{"fontName":"Arial","fontStyle":"BOLDITALIC","fontSize":"10","fontColor":"RED","cellHAlign":"CENTER","cellBGColor":"#ffff00"},"4-5":{"fontName":"Arial","fontStyle":"BOLDITALIC","fontSize":"10","fontColor":"RED","cellHAlign":"CENTER","cellBGColor":"#ffff00"}}},"value":[["Section","Numéro de parcelle","Est situé en zone de préemption ENS","N'est pas situé en zone de préemption ENS","Est partiellement situé en zone de préemption ENS","Parcelle inconnue"],["Section01","Parcelle01","non","oui","oui","oui"],["Section02","Parcelle02","oui","non","oui","oui"],["Section03","Parcelle03","oui","oui","non","oui"],["Section04","Parcelle04","oui","oui","oui","non"]]}]},{"tag":"__c8o_signature","type":"image","value":".//templates/sarah_signature_sample.png"}]
@@ -1623,6 +1688,15 @@ responseTimeout: 120
     value: .//templates/odf/template.odt
   ↓markers [variables.TestCaseVariable-1739973840649]: 
     value: '[ { "tag": "__c8o_date", "type": "string", "value": "February 25, 2025" }, { "tag": "__c8o_objet", "type": "string", "value": "Resignation Letter" }, { "tag": "__c8o_texte", "type": "string", "value": "Dear Sir,\nDear Madam,\nDear Miss" }, { "tag": "__c8o_signature", "type": "image", "value": "C:/Convertigo/Studio 8.3.2/workspace/.metadata/.plugins/com.twinsoft.convertigo.studio/git/c8oprj-lib-odftoolkit_master/templates/sarah_signature_sample.png" } ]'
+↓Test_Case_marker_merges [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1791200000007]: 
+    required: true
+    value: .//outputs/test_merges.odt
+  ↓input_filename [variables.TestCaseVariable-1791200000008]: 
+    required: true
+    value: .//templates/odf/template_certificat_ens.odt
+  ↓markers [variables.TestCaseVariable-1791200000009]: 
+    value: '[{"tag": "{tableau_ens}", "type": "tableh", "value": [["Section", "Numero", "Zone A", "Zone B", "Zone C", "Inconnue"], ["S01", "P01", "oui", "non", "oui", "non"], ["S02", "P02", "non", "oui", "non", "oui"], ["S03", "P03", "oui", "oui", "non", "non"]], "merges": [{"row": 1, "col": 0, "rowspan": 2, "colspan": 1}, {"row": 0, "col": 4, "rowspan": 1, "colspan": 2}], "style": {"header": {"fontName": "Arial", "fontStyle": "BOLD", "fontSize": "12", "fontColor": "WHITE", "cellBGColor": "#729fcf"}, "defaults": {"fontName": "Times New Roman", "fontSize": "10", "cellVAlign": "MIDDLE"}}}, {"tag": "{date_reception_ens}", "value": "5 octobre 2026"}, {"tag": "{ref_usager}", "value": "#123"}, {"tag": "{nom_commune}", "value": "Paris"}, {"tag": "{signature_ens}", "type": "image", "value": ".//templates/sarah_signature_sample.png"}]'
 ↓Test_Case_marker_span [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1742552007563]: 
     required: true
@@ -1671,15 +1745,6 @@ responseTimeout: 120
     value: .//templates/odf/template_certificat_ens.odt
   ↓markers [variables.TestCaseVariable-1740505823653]: 
     value: '[ { "tag": "{date_reception_ens}", "type": "string", "value": "25 Février 2025" }, { "tag": "{ref_usager}", "type": "string", "value": "#123-456" }, { "tag": "{nom_commune}", "type": "string", "value": "Boissy-Sous-Saint-Yon" }, { "tag": "{tableau_ens}", "type": "tableh", "value": [["Section", "Numéro de parcelle", "Est situé en zone de préemption ENS", "N''est pas situé en zone de préemption ENS", "Est partiellement situé en zone de préemption ENS", "Parcelle inconnue"], ["Section01", "Parcelle01", "oui", "oui", "oui", "oui"], ["Section02", "Parcelle01", "non", "non", "non", "non"], ["Section03", "Parcelle03", "non", "non", "non", "non"], ["Section04", "Parcelle04", "non", "non", "non", "non"]] }, { "tag": "{signature_ens}", "type": "image", "value": ".//templates/sarah_signature_sample.png" } ]'
-↓Test_Case_marker_merges [core.TestCase]: 
-  ↓output_filename [variables.TestCaseVariable-1791200000007]: 
-    required: true
-    value: .//outputs/test_merges.odt
-  ↓input_filename [variables.TestCaseVariable-1791200000008]: 
-    required: true
-    value: .//templates/odf/template_certificat_ens.odt
-  ↓markers [variables.TestCaseVariable-1791200000009]: 
-    value: '[{"tag": "{tableau_ens}", "type": "tableh", "value": [["Section", "Numero", "Zone A", "Zone B", "Zone C", "Inconnue"], ["S01", "P01", "oui", "non", "oui", "non"], ["S02", "P02", "non", "oui", "non", "oui"], ["S03", "P03", "oui", "oui", "non", "non"]], "merges": [{"row": 1, "col": 0, "rowspan": 2, "colspan": 1}, {"row": 0, "col": 4, "rowspan": 1, "colspan": 2}], "style": {"header": {"fontName": "Arial", "fontStyle": "BOLD", "fontSize": "12", "fontColor": "WHITE", "cellBGColor": "#729fcf"}, "defaults": {"fontName": "Times New Roman", "fontSize": "10", "cellVAlign": "MIDDLE"}}}, {"tag": "{date_reception_ens}", "value": "5 octobre 2026"}, {"tag": "{ref_usager}", "value": "#123"}, {"tag": "{nom_commune}", "value": "Paris"}, {"tag": "{signature_ens}", "type": "image", "value": ".//templates/sarah_signature_sample.png"}]'
 ↓Test_Case_marker_tablet [core.TestCase]: 
   ↓output_filename [variables.TestCaseVariable-1791200000010]: 
     required: true
@@ -1702,3 +1767,21 @@ responseTimeout: 120
     value: .//templates/odp/template.odp
   ↓markers [variables.TestCaseVariable-1791200000017]: 
     value: '[{"tag": "{titre}", "value": "Rapport trimestriel"}, {"tag": "{sous_titre}", "value": "T3 2026\nDirection commerciale"}, {"tag": "logo", "type": "image", "value": ".//templates/odp/sample_logo.png"}, {"tag": "{note_orateur}", "value": "Insister sur la croissance."}, {"tag": "{points}", "type": "list", "value": ["Chiffre d''affaires +12 %", "Trois nouveaux clients"]}, {"tag": "{date}", "value": "5 octobre 2026"}, {"tag": "{titre_tableau}", "value": "Ventes par produit"}, {"tag": "{lignes}", "type": "rows", "value": [["Convertigo Low Code", "12", "24 000 EUR"], ["C8oForms", "30", "18 500 EUR"]]}, {"tag": "{produits}", "type": "slides", "value": [[{"tag": "{produit_nom}", "value": "Convertigo Low Code"}, {"tag": "{produit_description}", "value": "Plateforme low code."}, {"tag": "{produit_photo}", "type": "image", "value": ".//templates/odp/sample_photo_1.png"}], [{"tag": "{produit_nom}", "value": "C8oForms"}, {"tag": "{produit_description}", "value": "Formulaires no code."}, {"tag": "{produit_photo}", "type": "image", "value": ".//templates/odp/sample_photo_2.png"}]]}, {"tag": "{pied_de_page}", "value": "Convertigo - Confidentiel"}]'
+↓Test_Case_pptx [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1791400000062]: 
+    required: true
+    value: .//outputs/test_office.pptx
+  ↓input_filename [variables.TestCaseVariable-1791400000063]: 
+    required: true
+    value: .//templates/office/template.pptx
+  ↓markers [variables.TestCaseVariable-1791400000064]: 
+    value: '[{"tag": "{titre}", "value": "Rapport trimestriel"}, {"tag": "{sous_titre}", "value": "T3 2026\nDirection commerciale"}, {"tag": "logo", "type": "image", "value": ".//templates/odp/sample_logo.png"}, {"tag": "{note_orateur}", "value": "Insister sur la croissance."}, {"tag": "{points}", "type": "list", "value": ["Chiffre d''affaires +12 %", "Trois nouveaux clients"]}, {"tag": "{date}", "value": "5 octobre 2026"}, {"tag": "{titre_tableau}", "value": "Ventes par produit"}, {"tag": "{lignes}", "type": "rows", "value": [["Convertigo Low Code", "12", "24 000 EUR"], ["C8oForms", "30", "18 500 EUR"]]}, {"tag": "{produits}", "type": "slides", "value": [[{"tag": "{produit_nom}", "value": "Convertigo Low Code"}, {"tag": "{produit_description}", "value": "Plateforme low code."}, {"tag": "{produit_photo}", "type": "image", "value": ".//templates/odp/sample_photo_1.png"}], [{"tag": "{produit_nom}", "value": "C8oForms"}, {"tag": "{produit_description}", "value": "Formulaires no code."}, {"tag": "{produit_photo}", "type": "image", "value": ".//templates/odp/sample_photo_2.png"}]]}, {"tag": "{pied_de_page}", "value": "Convertigo - Confidentiel"}]'
+↓Test_Case_xlsx [core.TestCase]: 
+  ↓output_filename [variables.TestCaseVariable-1791400000065]: 
+    required: true
+    value: .//outputs/test_office.xlsx
+  ↓input_filename [variables.TestCaseVariable-1791400000066]: 
+    required: true
+    value: .//templates/office/template.xlsx
+  ↓markers [variables.TestCaseVariable-1791400000067]: 
+    value: '[{"tag": "{titre}", "value": "Ventes T3"}, {"tag": "{date}", "value": "05/10/2026"}, {"tag": "{client}", "type": "span", "value": "ACME", "style": {"fontStyle": "BOLD", "fontColor": "RED"}}, {"tag": "{lignes}", "type": "rows", "value": [["Low Code", 12, 2000], ["Forms", 30, 600], ["Support", 1, 6000]]}, {"tag": "{logo}", "type": "image", "value": ".//templates/odp/sample_logo.png", "width": "4cm"}]'

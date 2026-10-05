@@ -277,7 +277,7 @@ comment: Create a new Calc document from a structured JSON (odfdom 0.13 table AP
     expression: output_path
     nodeName: local-url
   ↓jAttribute2 [steps.AttributeStep-1791200000070]: 
-    expression: "application/vnd.oasis.opendocument.spreadsheet"
+    expression: '"application/vnd.oasis.opendocument.spreadsheet"'
     nodeName: content-type
 ↓output_filename [variables.RequestableVariable-1753977725391]: 
   comment: |

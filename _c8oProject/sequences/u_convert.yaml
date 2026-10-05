@@ -1,5 +1,4 @@
 accessibility: Private
-authenticatedContextRequired: false
 comment: |
   'Converts a document with LibreOffice (headless) to another format: pdf, docx, xlsx, pptx, odt, ods, odp, doc, xls, ppt, rtf, txt, csv, html, epub, png, svg...
   The input can be any document LibreOffice opens (odt, ods, odp, docx, xlsx, pptx...).
@@ -545,7 +544,7 @@ responseTimeout: 300
     "./" is relative to the workspace path.'
   required: true
 ↓target_format [variables.RequestableVariable-1791100000012]: 
-  comment: 'Optional target format, for example ''pdf'', ''docx'', ''xlsx'', ''pptx'', ''odt''. Defaults to the output file extension. A LibreOffice filter can be forced, for example pdf:writer_pdf_Export:{"SelectPdfVersion":{"type":"long","value":"2"}} for PDF/A-2.'
+  comment: Optional target format, for example 'pdf', 'docx', 'xlsx', 'pptx', 'odt'. Defaults to the output file extension. A LibreOffice filter can be forced, for example pdf:writer_pdf_Export:{"SelectPdfVersion":{"type":"long","value":"2"}} for PDF/A-2.
 ↓timeout [variables.RequestableVariable-1791100000013]: 
   comment: Maximum conversion time in seconds. Default is 120.
   value: 120
@@ -562,20 +561,6 @@ responseTimeout: 300
   comment: Font files to embed for the conversion (ODF inputs). Each entry is a path, or a JSON array of paths.
 ↓font_aliases [variables.RequestableMultiValuedVariable-1791200000020]: 
   comment: Font names used in the document for each font_paths entry. Defaults to the font family name of the file.
-↓Test_Case_odt_to_pdf [core.TestCase]: 
-  ↓input_filename [variables.TestCaseVariable-1791100000015]: 
-    required: true
-    value: .//templates/odf/template.odt
-  ↓output_filename [variables.TestCaseVariable-1791100000016]: 
-    required: true
-    value: .//outputs/u_convert_odt.pdf
-↓Test_Case_odt_to_docx [core.TestCase]: 
-  ↓input_filename [variables.TestCaseVariable-1791100000017]: 
-    required: true
-    value: .//templates/odf/template.odt
-  ↓output_filename [variables.TestCaseVariable-1791100000018]: 
-    required: true
-    value: .//outputs/u_convert_odt.docx
 ↓Test_Case_odp_to_pptx [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1791100000019]: 
     required: true
@@ -590,6 +575,20 @@ responseTimeout: 300
   ↓output_filename [variables.TestCaseVariable-1791100000022]: 
     required: true
     value: .//outputs/u_convert_ods.xlsx
+↓Test_Case_odt_to_docx [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1791100000017]: 
+    required: true
+    value: .//templates/odf/template.odt
+  ↓output_filename [variables.TestCaseVariable-1791100000018]: 
+    required: true
+    value: .//outputs/u_convert_odt.docx
+↓Test_Case_odt_to_pdf [core.TestCase]: 
+  ↓input_filename [variables.TestCaseVariable-1791100000015]: 
+    required: true
+    value: .//templates/odf/template.odt
+  ↓output_filename [variables.TestCaseVariable-1791100000016]: 
+    required: true
+    value: .//outputs/u_convert_odt.pdf
 ↓Test_Case_odt_to_pdf_fonts [core.TestCase]: 
   ↓input_filename [variables.TestCaseVariable-1791200000021]: 
     required: true

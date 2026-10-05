@@ -1,0 +1,169 @@
+accessibility: Hidden
+comment: 'Demo sequence: fills the Word, PowerPoint and Excel templates of .//templates/office with u_fill_odt, then converts the results to PDF with u_convert.'
+responseTimeout: 300
+↓build_markers [steps.SimpleStep-1791400000068]: 
+  expression: |
+    '// Markers of the templates of .//templates/office (one entry per tag of each template).
+    var today = String(new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.util.Date()));
+    var word_markers = [
+    	{ tag: "__c8o_date", value: today },
+    	{ tag: "__c8o_objet", type: "span", value: "Resignation Letter", style: { fontName: "Arial", fontStyle: "ITALIC", fontSize: "12", fontColor: "RED" } },
+    	{ tag: "__c8o_texte", value: "Dear Sir, Madam,\n\nI am writing to inform you of my decision to resign from my position, effective from 04/05/2025.\n\nThank you for the opportunities I have been given.\n\nSincerely,\n\nSarah Palin" },
+    	{ tag: "__c8o_signature", type: "image", value: ".//templates/sarah_signature_sample.png" }
+    ];
+    var powerpoint_markers = [
+    	{ tag: "{titre}", value: "Rapport trimestriel" },
+    	{ tag: "{sous_titre}", value: "T3 2026\nDirection commerciale" },
+    	{ tag: "logo", type: "image", value: ".//templates/odp/sample_logo.png" },
+    	{ tag: "{note_orateur}", value: "Insister sur la croissance du trimestre." },
+    	{ tag: "{points}", type: "list", value: ["Chiffre d''affaires +12 %", "Trois nouveaux clients", "Lancement de l''offre Cloud"] },
+    	{ tag: "{date}", value: today },
+    	{ tag: "{titre_tableau}", value: "Ventes par produit" },
+    	{ tag: "{lignes}", type: "rows", value: [
+    		["Convertigo Low Code", "12", "24 000 EUR"],
+    		["C8oForms", "30", "18 500 EUR"],
+    		["Support", "-", "6 000 EUR"]
+    	] },
+    	{ tag: "{produits}", type: "slides", value: [
+    		[
+    			{ tag: "{produit_nom}", value: "Convertigo Low Code" },
+    			{ tag: "{produit_description}", value: "Plateforme de developpement d''applications mobiles et web." },
+    			{ tag: "{produit_photo}", type: "image", value: ".//templates/odp/sample_photo_1.png" }
+    		],
+    		[
+    			{ tag: "{produit_nom}", value: "C8oForms" },
+    			{ tag: "{produit_description}", value: "Formulaires no code connectes a vos donnees." },
+    			{ tag: "{produit_photo}", type: "image", value: ".//templates/odp/sample_photo_2.png" }
+    		]
+    	] },
+    	{ tag: "{pied_de_page}", value: "Convertigo - Demo lib_fill_odt_pdf" }
+    ];
+    // Excel: numbers stay numbers, the Total column and the SUM below the rows are formulas of the template.
+    var excel_markers = [
+    	{ tag: "{titre}", value: "Ventes T3" },
+    	{ tag: "{date}", value: today },
+    	{ tag: "{client}", type: "span", value: "ACME", style: { fontStyle: "BOLD", fontColor: "RED" } },
+    	{ tag: "{lignes}", type: "rows", value: [
+    		["Convertigo Low Code", 12, 2000],
+    		["C8oForms", 30, 600],
+    		["Support", 1, 6000]
+    	] },
+    	{ tag: "{logo}", type: "image", value: ".//templates/odp/sample_logo.png", width: "4cm" }
+    ];'
+↓word_markers [steps.JsonToXmlStep-1791400000069]: 
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: word_markers
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: array
+  output: false
+↓fill_docx [steps.SequenceStep-1791400000070]: 
+  output: true
+  sourceSequence: lib_fill_odt_pdf.u_fill_odt
+  ↓input_filename [variables.StepVariable-1791400000071]: 
+    value: .//templates/office/template.docx
+  ↓output_filename [variables.StepVariable-1791400000072]: 
+    value: .//outputs/demo_u_fill_office.docx
+  ↓markers [variables.StepVariable-1791400000073]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1791400000069
+          - java.lang.String: 
+            - ↑value: .
+  ↓meta_title [variables.StepVariable-1791400000074]: 
+    value: Resignation Letter
+↓docx_to_pdf [steps.SequenceStep-1791400000075]: 
+  output: true
+  sourceSequence: lib_fill_odt_pdf.u_convert
+  ↓input_filename [variables.StepVariable-1791400000076]: 
+    value: .//outputs/demo_u_fill_office.docx
+  ↓output_filename [variables.StepVariable-1791400000077]: 
+    value: .//outputs/demo_u_fill_office_docx.pdf
+↓powerpoint_markers [steps.JsonToXmlStep-1791400000078]: 
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: powerpoint_markers
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: array
+  output: false
+↓fill_pptx [steps.SequenceStep-1791400000079]: 
+  output: true
+  sourceSequence: lib_fill_odt_pdf.u_fill_odt
+  ↓input_filename [variables.StepVariable-1791400000080]: 
+    value: .//templates/office/template.pptx
+  ↓output_filename [variables.StepVariable-1791400000081]: 
+    value: .//outputs/demo_u_fill_office.pptx
+  ↓markers [variables.StepVariable-1791400000082]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1791400000078
+          - java.lang.String: 
+            - ↑value: .
+  ↓meta_title [variables.StepVariable-1791400000083]: 
+    value: Rapport trimestriel
+↓pptx_to_pdf [steps.SequenceStep-1791400000084]: 
+  output: true
+  sourceSequence: lib_fill_odt_pdf.u_convert
+  ↓input_filename [variables.StepVariable-1791400000085]: 
+    value: .//outputs/demo_u_fill_office.pptx
+  ↓output_filename [variables.StepVariable-1791400000086]: 
+    value: .//outputs/demo_u_fill_office_pptx.pdf
+↓excel_markers [steps.JsonToXmlStep-1791400000087]: 
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: excel_markers
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: array
+  output: false
+↓fill_xlsx [steps.SequenceStep-1791400000088]: 
+  output: true
+  sourceSequence: lib_fill_odt_pdf.u_fill_odt
+  ↓input_filename [variables.StepVariable-1791400000089]: 
+    value: .//templates/office/template.xlsx
+  ↓output_filename [variables.StepVariable-1791400000090]: 
+    value: .//outputs/demo_u_fill_office.xlsx
+  ↓markers [variables.StepVariable-1791400000091]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1791400000087
+          - java.lang.String: 
+            - ↑value: .
+  ↓meta_title [variables.StepVariable-1791400000092]: 
+    value: Ventes T3
+↓xlsx_to_pdf [steps.SequenceStep-1791400000093]: 
+  output: true
+  sourceSequence: lib_fill_odt_pdf.u_convert
+  ↓input_filename [variables.StepVariable-1791400000094]: 
+    value: .//outputs/demo_u_fill_office.xlsx
+  ↓output_filename [variables.StepVariable-1791400000095]: 
+    value: .//outputs/demo_u_fill_office_xlsx.pdf

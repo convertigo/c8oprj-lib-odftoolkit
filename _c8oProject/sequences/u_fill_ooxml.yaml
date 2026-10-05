@@ -1,0 +1,2384 @@
+accessibility: Private
+comment: |
+  'Fills a template designed with Microsoft Office: Word (docx, dotx, docm), PowerPoint (pptx, potx, pptm) or Excel (xlsx, xltx, xlsm).
+  Called by u_fill_odt for these templates, with the same variables and markers: call u_fill_odt.
+  The package is edited in place (direct edit of the Office XML): only the parts holding tags are rewritten, the formatting of the template is kept and LibreOffice is not needed. Tags split by Office across runs (spell check, revisions) are found.
+  It outputs an attachment structure, the tags not found and the marker errors.'
+responseTimeout: 120
+↓inputVars [steps.InputVariablesStep-1791400000001]: 
+↓IfExistThenElse [steps.IfExistThenElseStep-1791400000002]: 
+  sourceDefinition: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+      - com.twinsoft.convertigo.beans.common.XMLVector: 
+        - java.lang.String: 
+          - ↑value: 1791400000001
+        - java.lang.String: 
+          - ↑value: ./markers/*[1]
+  ↓jThen [steps.ThenStep-1791400000003]: 
+    ↓markers [steps.JsonSourceStep-1791400000004]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1791400000001
+            - java.lang.String: 
+              - ↑value: ./markers/*[1]
+      variableName: o_markers
+  ↓jElse [steps.ElseStep-1791400000005]: 
+    ↓markers [steps.JsonSourceStep-1791400000006]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1791400000001
+            - java.lang.String: 
+              - ↑value: ./markers/text()
+      variableName: o_markers
+↓fill_template [steps.SimpleStep-1791400000007]: 
+  expression: |
+    '/* =====================================================================================
+     * u_fill_ooxml / SimpleStep "fill_template"
+     *
+     * Fills a template designed with Microsoft Office: Word (docx, dotx, docm), PowerPoint
+     * (pptx, potx, pptm) or Excel (xlsx, xltx, xlsm), with the markers of u_fill_odt.
+     * The package is edited in place: only the XML parts holding tags are rewritten, so the
+     * formatting of the template is kept, and LibreOffice is not needed.
+     *
+     * Tags may be split across runs by Office (spell check, revisions...): the runs are split
+     * so that the replacement takes the formatting of the first character of the tag.
+     *
+     * Marker types ("slides" first, then "rows" / "list", then the others, in array order):
+     *   string, paragraph, newline, span, array : Word, PowerPoint, Excel.
+     *   image  : picture named after the tag (Alt text title or name), text box holding only
+     *            the tag (PowerPoint), text tag (inline picture in Word, picture anchored on
+     *            the cell in Excel). Options: fit (contain, stretch), width, height.
+     *   table, tableh, tablet : Word builds a table in place of the tag (tablet: styles of
+     *            the 1x3 table of table_template_file, a .docx, found by its Alt text title
+     *            table_template_name). Excel: same as rows. PowerPoint: use rows.
+     *   list   : the paragraph holding the tag is repeated (Excel: one row per value).
+     *   rows   : the table row (Excel: the sheet row) holding the tag is repeated. Excel rows
+     *            below are shifted, formulas, merged cells, tables and charts are updated and
+     *            references to the template row in formulas cover all the generated rows.
+     *   slides : the slide holding the tag is repeated (PowerPoint).
+     * ===================================================================================== */
+    
+    var J = JavaImporter(
+    	java.io.File,
+    	java.io.ByteArrayInputStream,
+    	java.io.ByteArrayOutputStream,
+    	java.io.FileInputStream,
+    	java.io.FileOutputStream,
+    	java.nio.file.Files,
+    	java.util.zip.ZipInputStream,
+    	java.util.zip.ZipOutputStream,
+    	java.util.zip.ZipEntry,
+    	java.util.UUID,
+    	javax.imageio.ImageIO,
+    	javax.xml.parsers.DocumentBuilderFactory,
+    	javax.xml.transform.TransformerFactory,
+    	javax.xml.transform.OutputKeys,
+    	javax.xml.transform.dom.DOMSource,
+    	javax.xml.transform.stream.StreamResult
+    );
+    
+    var _error = false;
+    var _error_code = "-1";
+    var _error_msg = "";
+    var _error_stack = "";
+    var not_found = [];
+    var marker_errors = [];
+    
+    var LOG = "[u_fill_ooxml] ";
+    
+    var NS = {
+    	w: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+    	a: "http://schemas.openxmlformats.org/drawingml/2006/main",
+    	p: "http://schemas.openxmlformats.org/presentationml/2006/main",
+    	x: "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+    	r: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+    	wp: "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
+    	pic: "http://schemas.openxmlformats.org/drawingml/2006/picture",
+    	xdr: "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing",
+    	c: "http://schemas.openxmlformats.org/drawingml/2006/chart",
+    	pr: "http://schemas.openxmlformats.org/package/2006/relationships",
+    	ct: "http://schemas.openxmlformats.org/package/2006/content-types",
+    	cp: "http://schemas.openxmlformats.org/package/2006/metadata/core-properties",
+    	dc: "http://purl.org/dc/elements/1.1/",
+    	dcterms: "http://purl.org/dc/terms/",
+    	xsi: "http://www.w3.org/2001/XMLSchema-instance",
+    	mc: "http://schemas.openxmlformats.org/markup-compatibility/2006",
+    	w14: "http://schemas.microsoft.com/office/word/2010/wordml",
+    	xml: "http://www.w3.org/XML/1998/namespace",
+    	xmlns: "http://www.w3.org/2000/xmlns/"
+    };
+    
+    var REL = {
+    	officeDocument: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+    	image: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+    	header: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header",
+    	footer: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer",
+    	footnotes: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes",
+    	endnotes: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes",
+    	slide: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide",
+    	slideLayout: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout",
+    	slideMaster: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster",
+    	notesSlide: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide",
+    	worksheet: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+    	sharedStrings: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings",
+    	drawing: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing",
+    	table: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/table",
+    	chart: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+    	calcChain: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/calcChain",
+    	coreProperties: "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"
+    };
+    
+    var CONTENT_TYPES = {
+    	wordTemplate: "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml",
+    	wordDocument: "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+    	pptTemplate: "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml",
+    	pptDocument: "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+    	xlTemplate: "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml",
+    	xlDocument: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+    	slide: "application/vnd.openxmlformats-officedocument.presentationml.slide+xml",
+    	notesSlide: "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml",
+    	drawing: "application/vnd.openxmlformats-officedocument.drawing+xml",
+    	core: "application/vnd.openxmlformats-package.core-properties+xml"
+    };
+    
+    var IMAGE_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", bmp: "image/bmp" };
+    
+    var COLORS = {
+    	AQUA: "00ffff", BLACK: "000000", BLUE: "0000ff", FUCHSIA: "ff00ff", GRAY: "808080",
+    	GREEN: "008000", LIME: "00ff00", MAROON: "800000", NAVY: "000080", OLIVE: "808000",
+    	ORANGE: "ffa500", PURPLE: "800080", RED: "ff0000", SILVER: "c0c0c0", TEAL: "008080",
+    	WHITE: "ffffff", YELLOW: "ffff00"
+    };
+    var H_ALIGN = { CENTER: "center", JUSTIFY: "both", FILLED: "both", LEFT: "left", RIGHT: "right" };
+    var V_ALIGN = { TOP: "top", MIDDLE: "center", BOTTOM: "bottom" };
+    var DEFAULT_FONT = { fontName: "Arial", fontStyle: "REGULAR", fontSize: 10, fontColor: "BLACK" };
+    var EMU_PER_PIXEL = 10080; // 0.28 mm per pixel, as the ODF engine
+    var EMU_PER_CM = 360000;
+    
+    // Schema order of the children of the property elements that are created or modified.
+    var ORDER = {
+    	wrPr: ["rStyle", "rFonts", "b", "bCs", "i", "iCs", "caps", "smallCaps", "strike", "dstrike", "outline", "shadow", "emboss", "imprint", "noProof", "snapToGrid", "vanish", "webHidden", "color", "spacing", "w", "kern", "position", "sz", "szCs", "highlight", "u", "effect", "bdr", "shd", "fitText", "vertAlign", "rtl", "cs", "em", "lang", "eastAsianLayout", "specVanish", "oMath"],
+    	arPr: ["ln", "noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill", "effectLst", "effectDag", "highlight", "uLnTx", "uLn", "uFillTx", "uFill", "latin", "ea", "cs", "sym", "hlinkClick", "hlinkMouseOver", "rtl", "extLst"],
+    	ws: ["sheetPr", "dimension", "sheetViews", "sheetFormatPr", "cols", "sheetData", "sheetCalcPr", "sheetProtection", "protectedRanges", "scenarios", "autoFilter", "sortState", "dataConsolidate", "customSheetViews", "mergeCells", "phoneticPr", "conditionalFormatting", "dataValidations", "hyperlinks", "printOptions", "pageMargins", "pageSetup", "headerFooter", "rowBreaks", "colBreaks", "customProperties", "cellWatches", "ignoredErrors", "smartTags", "drawing", "legacyDrawing", "legacyDrawingHF", "drawingHF", "picture", "oleObjects", "controls", "webPublishItems", "tableParts", "extLst"],
+    	wb: ["fileVersion", "fileSharing", "workbookPr", "workbookProtection", "bookViews", "sheets", "functionGroups", "externalReferences", "definedNames", "calcPr", "oleSize", "customWorkbookViews", "pivotCaches", "smartTagPr", "smartTagTypes", "webPublishing", "fileRecoveryPr", "webPublishObjects", "extLst"]
+    };
+    
+    function get_full_path(file_path) {
+    	if (file_path != null && file_path != "") {
+    		file_path = String(file_path);
+    		var project_directory_path = String(context.getProjectDirectory()).replace(/\\/g, "/") + "/";
+    		if (file_path.indexOf(".//") == 0) {
+    			file_path = project_directory_path + file_path.substring(3);
+    		} else if (file_path.indexOf("./") == 0) {
+    			file_path = project_directory_path + "../" + file_path.substring(2);
+    		}
+    	}
+    	return file_path;
+    }
+    
+    function get_file_name(file_path) {
+    	if (file_path != null && file_path != "") {
+    		return String(org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path)));
+    	}
+    	return "";
+    }
+    
+    var template_path = get_full_path(input_filename);
+    var output_path = get_full_path(output_filename);
+    var file_name = get_file_name(output_filename);
+    
+    with (J) {
+    
+    	var pkg = null;
+    	var kind = null;
+    	var uniq = 0;
+    
+    	/* ---------- Generic value helpers ---------- */
+    
+    	function isStr(v) {
+    		return typeof v == "string" || v instanceof String || v instanceof java.lang.String;
+    	}
+    
+    	function isArr(v) {
+    		return Array.isArray ? Array.isArray(v) : Object.prototype.toString.call(v) == "[object Array]";
+    	}
+    
+    	function parseJson(v) {
+    		if (isStr(v)) {
+    			var s = String(v).trim();
+    			var c = s.charAt(0);
+    			if (c == "[" || c == "{") {
+    				try {
+    					return JSON.parse(s);
+    				} catch (e) {
+    					log.warn(LOG + "Value looks like JSON but cannot be parsed: " + e);
+    				}
+    			}
+    			return String(v);
+    		}
+    		return v;
+    	}
+    
+    	function asArray(v) {
+    		v = parseJson(v);
+    		if (v == null) return [];
+    		if (isArr(v)) return v;
+    		if (v instanceof java.util.List) {
+    			var l = [];
+    			for (var i = 0; i < v.size(); i++) l.push(v.get(i));
+    			return l;
+    		}
+    		if (v instanceof java.lang.Object && v.getClass().isArray()) {
+    			var a = [];
+    			for (var j = 0; j < v.length; j++) a.push(v[j]);
+    			return a;
+    		}
+    		if (typeof v == "object" && v.array != null) return asArray(v.array);
+    		return [v];
+    	}
+    
+    	function asObject(v) {
+    		v = parseJson(v);
+    		return v != null && typeof v == "object" && !isArr(v) && !(v instanceof java.lang.Object) ? v : {};
+    	}
+    
+    	function toText(v) {
+    		if (v == null) return "";
+    		if (isStr(v) || typeof v == "number" || typeof v == "boolean" || v instanceof Number || v instanceof Boolean) return String(v);
+    		if (v instanceof java.lang.Object) return String(v.toString());
+    		return JSON.stringify(v);
+    	}
+    
+    	function toInt(v, def) {
+    		var n = parseInt(toText(v), 10);
+    		return isNaN(n) ? def : n;
+    	}
+    
+    	function colorHex(color) {
+    		var s = toText(color).trim();
+    		if (/^#[0-9a-f]{6}$/i.test(s)) return s.substring(1).toLowerCase();
+    		if (/^#[0-9a-f]{3}$/i.test(s)) return (s.charAt(1) + s.charAt(1) + s.charAt(2) + s.charAt(2) + s.charAt(3) + s.charAt(3)).toLowerCase();
+    		if (COLORS[s.toUpperCase()]) return COLORS[s.toUpperCase()];
+    		log.warn(LOG + "Unknown color ''" + s + "'', using WHITE");
+    		return COLORS.WHITE;
+    	}
+    
+    	function fontOf(style, defaults) {
+    		style = asObject(style);
+    		return {
+    			fontName: style.fontName ? style.fontName : defaults.fontName,
+    			fontStyle: style.fontStyle ? style.fontStyle : defaults.fontStyle,
+    			fontSize: style.fontSize ? style.fontSize : defaults.fontSize,
+    			fontColor: style.fontColor ? style.fontColor : defaults.fontColor
+    		};
+    	}
+    
+    	/* ---------- DOM helpers ---------- */
+    
+    	function isEl(n, ns, local) {
+    		return n != null && n.getNodeType() == 1 && String(n.getNamespaceURI()) == ns && String(n.getLocalName()) == local;
+    	}
+    
+    	function attr(el, ns, local) {
+    		if (el == null) return "";
+    		var v = ns == null ? el.getAttribute(local) : el.getAttributeNS(ns, local);
+    		return v == null ? "" : String(v);
+    	}
+    
+    	function descendants(root, ns, local) {
+    		var out = [];
+    		if (isEl(root, ns, local)) out.push(root);
+    		var list = root.getElementsByTagNameNS(ns, local);
+    		for (var i = 0; i < list.getLength(); i++) out.push(list.item(i));
+    		return out;
+    	}
+    
+    	function childElements(node, ns, local) {
+    		var out = [];
+    		for (var c = node.getFirstChild(); c != null; c = c.getNextSibling()) {
+    			if (isEl(c, ns, local)) out.push(c);
+    		}
+    		return out;
+    	}
+    
+    	function firstChild(node, ns, local) {
+    		var l = childElements(node, ns, local);
+    		return l.length > 0 ? l[0] : null;
+    	}
+    
+    	function ancestor(node, ns, local) {
+    		for (var n = node.getParentNode(); n != null && n.getNodeType() == 1; n = n.getParentNode()) {
+    			if (isEl(n, ns, local)) return n;
+    		}
+    		return null;
+    	}
+    
+    	function isAttached(node) {
+    		for (var n = node; n != null; n = n.getParentNode()) {
+    			if (n.getNodeType() == 9) return true;
+    		}
+    		return false;
+    	}
+    
+    	function insertAfter(ref, nodes) {
+    		var parent = ref.getParentNode();
+    		var next = ref.getNextSibling();
+    		for (var i = 0; i < nodes.length; i++) parent.insertBefore(nodes[i], next);
+    	}
+    
+    	function el(doc, ns, qname, attrs, children) {
+    		var e = doc.createElementNS(ns, qname);
+    		for (var k in attrs || {}) {
+    			var p = k.indexOf(":");
+    			if (p == -1) e.setAttribute(k, attrs[k]);
+    			else e.setAttributeNS(NS[k.substring(0, p)], k, String(attrs[k]));
+    		}
+    		for (var i = 0; children && i < children.length; i++) {
+    			if (children[i] != null) e.appendChild(children[i]);
+    		}
+    		return e;
+    	}
+    
+    	function declare(e, prefix) {
+    		if (e.lookupNamespaceURI(prefix) != NS[prefix]) e.setAttributeNS(NS.xmlns, "xmlns:" + prefix, NS[prefix]);
+    	}
+    
+    	/* Inserts (or replaces) the child "local" of parent at its place in the schema order. */
+    	function setOrdered(parent, ns, local, node, order) {
+    		var old = childElements(parent, ns, local);
+    		for (var i = 0; i < old.length; i++) parent.removeChild(old[i]);
+    		var pos = order.indexOf(local);
+    		var ref = null;
+    		for (var c = parent.getFirstChild(); c != null && ref == null; c = c.getNextSibling()) {
+    			if (c.getNodeType() == 1 && String(c.getNamespaceURI()) == ns && order.indexOf(String(c.getLocalName())) > pos) ref = c;
+    		}
+    		parent.insertBefore(node, ref);
+    		return node;
+    	}
+    
+    	/* ---------- Package ---------- */
+    
+    	var documentBuilder = (function () {
+    		var f = DocumentBuilderFactory.newInstance();
+    		f.setNamespaceAware(true);
+    		try { f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); } catch (e) {}
+    		try { f.setFeature("http://xml.org/sax/features/external-general-entities", false); } catch (e) {}
+    		try { f.setFeature("http://xml.org/sax/features/external-parameter-entities", false); } catch (e) {}
+    		f.setExpandEntityReferences(false);
+    		return f.newDocumentBuilder();
+    	})();
+    
+    	function readAll(input) {
+    		var out = new ByteArrayOutputStream();
+    		var buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 8192);
+    		var n;
+    		while ((n = input.read(buffer)) != -1) out.write(buffer, 0, n);
+    		return out.toByteArray();
+    	}
+    
+    	function openPackage(path) {
+    		var p = { entries: {}, order: [], doms: {} };
+    		var zip = new ZipInputStream(new FileInputStream(new File(path)));
+    		try {
+    			var entry;
+    			while ((entry = zip.getNextEntry()) != null) {
+    				if (entry.isDirectory()) continue;
+    				var name = String(entry.getName());
+    				p.entries[name] = readAll(zip);
+    				p.order.push(name);
+    			}
+    		} finally {
+    			zip.close();
+    		}
+    		if (p.entries["[Content_Types].xml"] == null) throw "Not an Office Open XML document: " + path;
+    		return p;
+    	}
+    
+    	function hasPart(name) {
+    		return pkg.entries.hasOwnProperty(name) || pkg.doms.hasOwnProperty(name);
+    	}
+    
+    	function dom(name) {
+    		if (pkg.doms.hasOwnProperty(name)) return pkg.doms[name];
+    		if (!pkg.entries.hasOwnProperty(name)) return null;
+    		var d = documentBuilder.parse(new ByteArrayInputStream(pkg.entries[name]));
+    		pkg.doms[name] = d;
+    		return d;
+    	}
+    
+    	function putDom(name, d) {
+    		if (!hasPart(name)) pkg.order.push(name);
+    		pkg.doms[name] = d;
+    	}
+    
+    	function putBytes(name, bytes) {
+    		if (!hasPart(name)) pkg.order.push(name);
+    		delete pkg.doms[name];
+    		pkg.entries[name] = bytes;
+    	}
+    
+    	function removePart(name) {
+    		delete pkg.entries[name];
+    		delete pkg.doms[name];
+    		pkg.order = pkg.order.filter(function (n) {
+    			return n != name;
+    		});
+    		removeOverride(name);
+    		var rp = relsPart(name);
+    		removeOverride(rp);
+    		if (hasPart(rp)) {
+    			delete pkg.entries[rp];
+    			delete pkg.doms[rp];
+    			pkg.order = pkg.order.filter(function (n) {
+    				return n != rp;
+    			});
+    		}
+    	}
+    
+    	function newDom(xml) {
+    		return documentBuilder.parse(new ByteArrayInputStream(new java.lang.String(xml).getBytes("UTF-8")));
+    	}
+    
+    	function serialize(d) {
+    		var t = TransformerFactory.newInstance().newTransformer();
+    		t.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+    		t.setOutputProperty(OutputKeys.INDENT, "no");
+    		d.setXmlStandalone(true);
+    		var out = new ByteArrayOutputStream();
+    		t.transform(new DOMSource(d), new StreamResult(out));
+    		return out.toByteArray();
+    	}
+    
+    	function savePackage(path) {
+    		var names = ["[Content_Types].xml"].concat(pkg.order.filter(function (n) {
+    			return n != "[Content_Types].xml";
+    		}));
+    		var file = new File(path);
+    		if (file.getAbsoluteFile().getParentFile() != null) file.getAbsoluteFile().getParentFile().mkdirs();
+    		var zip = new ZipOutputStream(new FileOutputStream(file));
+    		try {
+    			for (var i = 0; i < names.length; i++) {
+    				var bytes = pkg.doms.hasOwnProperty(names[i]) ? serialize(pkg.doms[names[i]]) : pkg.entries[names[i]];
+    				if (bytes == null) continue;
+    				zip.putNextEntry(new ZipEntry(names[i]));
+    				zip.write(bytes);
+    				zip.closeEntry();
+    			}
+    		} finally {
+    			zip.close();
+    		}
+    	}
+    
+    	/* ---------- Relationships and content types ---------- */
+    
+    	function relsPart(part) {
+    		var i = part.lastIndexOf("/");
+    		return (i == -1 ? "" : part.substring(0, i + 1)) + "_rels/" + part.substring(i + 1) + ".rels";
+    	}
+    
+    	function dirOf(part) {
+    		var i = part.lastIndexOf("/");
+    		return i == -1 ? "" : part.substring(0, i + 1);
+    	}
+    
+    	function normalize(path) {
+    		var out = [];
+    		var segs = path.split("/");
+    		for (var i = 0; i < segs.length; i++) {
+    			if (segs[i] == "..") out.pop();
+    			else if (segs[i] != "." && segs[i] != "") out.push(segs[i]);
+    		}
+    		return out.join("/");
+    	}
+    
+    	function resolveTarget(part, target) {
+    		target = String(target);
+    		return target.charAt(0) == "/" ? normalize(target.substring(1)) : normalize(dirOf(part) + target);
+    	}
+    
+    	function relativeTarget(part, target) {
+    		var from = dirOf(part).split("/").filter(function (s) { return s != ""; });
+    		var to = target.split("/");
+    		var i = 0;
+    		while (i < from.length && i < to.length - 1 && from[i] == to[i]) i++;
+    		var up = [];
+    		for (var k = i; k < from.length; k++) up.push("..");
+    		return up.concat(to.slice(i)).join("/");
+    	}
+    
+    	function relsDom(part, create) {
+    		var name = relsPart(part);
+    		var d = dom(name);
+    		if (d == null && create) {
+    			d = newDom(''<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="'' + NS.pr + ''"/>'');
+    			putDom(name, d);
+    		}
+    		return d;
+    	}
+    
+    	function relations(part) {
+    		var d = relsDom(part, false);
+    		var out = [];
+    		if (d == null) return out;
+    		var list = d.getElementsByTagNameNS(NS.pr, "Relationship");
+    		for (var i = 0; i < list.getLength(); i++) {
+    			var r = list.item(i);
+    			var external = attr(r, null, "TargetMode") == "External";
+    			out.push({ el: r, id: attr(r, null, "Id"), type: attr(r, null, "Type"), target: external ? attr(r, null, "Target") : resolveTarget(part, attr(r, null, "Target")), external: external });
+    		}
+    		return out;
+    	}
+    
+    	function relTarget(part, id) {
+    		var rels = relations(part);
+    		for (var i = 0; i < rels.length; i++) {
+    			if (rels[i].id == id) return rels[i].target;
+    		}
+    		return null;
+    	}
+    
+    	function addRelation(part, type, target) {
+    		var d = relsDom(part, true);
+    		var used = {};
+    		var rels = relations(part);
+    		for (var i = 0; i < rels.length; i++) used[rels[i].id] = true;
+    		var n = rels.length + 1;
+    		while (used["rId" + n]) n++;
+    		var r = d.createElementNS(NS.pr, "Relationship");
+    		r.setAttribute("Id", "rId" + n);
+    		r.setAttribute("Type", type);
+    		r.setAttribute("Target", relativeTarget(part, target));
+    		d.getDocumentElement().appendChild(r);
+    		return "rId" + n;
+    	}
+    
+    	function removeRelation(part, id) {
+    		var rels = relations(part);
+    		for (var i = 0; i < rels.length; i++) {
+    			if (rels[i].id == id) rels[i].el.getParentNode().removeChild(rels[i].el);
+    		}
+    	}
+    
+    	function ensureDefault(ext, mime) {
+    		var d = dom("[Content_Types].xml");
+    		var list = d.getElementsByTagNameNS(NS.ct, "Default");
+    		for (var i = 0; i < list.getLength(); i++) {
+    			if (attr(list.item(i), null, "Extension").toLowerCase() == ext) return;
+    		}
+    		var e = d.createElementNS(NS.ct, "Default");
+    		e.setAttribute("Extension", ext);
+    		e.setAttribute("ContentType", mime);
+    		d.getDocumentElement().insertBefore(e, d.getDocumentElement().getFirstChild());
+    	}
+    
+    	function overrideOf(part) {
+    		var list = dom("[Content_Types].xml").getElementsByTagNameNS(NS.ct, "Override");
+    		for (var i = 0; i < list.getLength(); i++) {
+    			if (attr(list.item(i), null, "PartName") == "/" + part) return list.item(i);
+    		}
+    		return null;
+    	}
+    
+    	function setOverride(part, type) {
+    		var o = overrideOf(part);
+    		if (o == null) {
+    			var d = dom("[Content_Types].xml");
+    			o = d.createElementNS(NS.ct, "Override");
+    			o.setAttribute("PartName", "/" + part);
+    			d.getDocumentElement().appendChild(o);
+    		}
+    		o.setAttribute("ContentType", type);
+    	}
+    
+    	function removeOverride(part) {
+    		var o = overrideOf(part);
+    		if (o != null) o.getParentNode().removeChild(o);
+    	}
+    
+    	function mainPart() {
+    		var rels = relations("");
+    		for (var i = 0; i < rels.length; i++) {
+    			if (rels[i].type == REL.officeDocument) return rels[i].target;
+    		}
+    		throw "No main document part";
+    	}
+    
+    	function relatedParts(part, type) {
+    		return relations(part).filter(function (r) {
+    			return r.type == type && !r.external && hasPart(r.target);
+    		}).map(function (r) {
+    			return r.target;
+    		});
+    	}
+    
+    	function uniquePartName(prefix, ext) {
+    		var n = 1;
+    		while (hasPart(prefix + n + ext)) n++;
+    		return prefix + n + ext;
+    	}
+    
+    	/* ---------- Dialects (paragraph text model of each format) ---------- */
+    
+    	var DOCX = {
+    		name: "docx", ns: NS.w, p: "p", r: "r", t: "t",
+    		sep: { tab: true, br: true, cr: true, noBreakHyphen: true, softHyphen: true, sym: true, ptab: true },
+    		skip: { drawing: true, pict: true, object: true, instrText: true, delText: true, del: true, txbxContent: true, pPr: true, rPr: true, footnoteReference: true, endnoteReference: true, sectPr: true }
+    	};
+    	var PPTX = { name: "pptx", ns: NS.a, p: "p", r: "r", t: "t", sep: { br: true }, skip: { pPr: true, rPr: true, endParaRPr: true, fld: true } };
+    	var XLSX = { name: "xlsx", ns: NS.x, p: "si", r: "r", t: "t", sep: {}, skip: { rPh: true, phoneticPr: true, rPr: true } };
+    	var D = null;
+    
+    	var SEP = "\u0000";
+    
+    	function isParagraph(n) {
+    		return isEl(n, D.ns, D.p) || (D === XLSX && isEl(n, NS.x, "is"));
+    	}
+    
+    	function collectSegments(node, segs) {
+    		for (var c = node.getFirstChild(); c != null; c = c.getNextSibling()) {
+    			if (c.getNodeType() != 1) continue;
+    			var local = String(c.getLocalName());
+    			var ns = String(c.getNamespaceURI());
+    			if (isParagraph(c) || ns == NS.mc) continue;
+    			if (ns == D.ns && D.skip[local]) continue;
+    			if (ns == D.ns && local == D.t) {
+    				var text = "";
+    				for (var t = c.getFirstChild(); t != null; t = t.getNextSibling()) {
+    					if (t.getNodeType() == 3 || t.getNodeType() == 4) text += String(t.getData());
+    				}
+    				segs.push({ tEl: c, text: text });
+    				continue;
+    			}
+    			if (ns == D.ns && D.sep[local]) {
+    				segs.push({ tEl: null, element: c, text: SEP });
+    				continue;
+    			}
+    			collectSegments(c, segs);
+    		}
+    		return segs;
+    	}
+    
+    	function paragraphText(p) {
+    		var segs = collectSegments(p, []);
+    		var s = "";
+    		for (var i = 0; i < segs.length; i++) s += segs[i].text;
+    		return s;
+    	}
+    
+    	function paragraphsOf(scopes) {
+    		var out = [];
+    		for (var i = 0; i < scopes.length; i++) {
+    			if (isParagraph(scopes[i])) out.push(scopes[i]);
+    			var list = scopes[i].getElementsByTagNameNS(D.ns, "*");
+    			for (var j = 0; j < list.getLength(); j++) {
+    				if (isParagraph(list.item(j))) out.push(list.item(j));
+    			}
+    		}
+    		return out;
+    	}
+    
+    	function containsTag(p, tag) {
+    		return paragraphText(p).indexOf(tag) != -1;
+    	}
+    
+    	function withTag(scopes, tag) {
+    		return paragraphsOf(scopes).filter(function (p) {
+    			return containsTag(p, tag);
+    		});
+    	}
+    
+    	function setText(tEl, text) {
+    		while (tEl.getFirstChild() != null) tEl.removeChild(tEl.getFirstChild());
+    		if (text != "") tEl.appendChild(tEl.getOwnerDocument().createTextNode(text));
+    		// As Office does: xml:space="preserve" only when spaces at the ends must be kept.
+    		if (D !== PPTX) {
+    			if (/^\s|\s$/.test(text)) tEl.setAttributeNS(NS.xml, "xml:space", "preserve");
+    			else tEl.removeAttributeNS(NS.xml, "space");
+    		}
+    	}
+    
+    	function runOf(node) {
+    		for (var n = node.getParentNode(); n != null && n.getNodeType() == 1; n = n.getParentNode()) {
+    			if (isEl(n, D.ns, D.r)) return n;
+    			if (isParagraph(n)) return null;
+    		}
+    		return null;
+    	}
+    
+    	/* Excel plain strings (<si><t>) become a run so that formatting can be applied. */
+    	function ensureRuns(p) {
+    		if (D !== XLSX) return;
+    		var plain = childElements(p, NS.x, "t");
+    		for (var i = 0; i < plain.length; i++) {
+    			var r = p.getOwnerDocument().createElementNS(NS.x, "r");
+    			p.insertBefore(r, plain[i]);
+    			r.appendChild(plain[i]);
+    		}
+    	}
+    
+    	/* Splits the run holding text element tEl at offset: what follows goes in a new run
+    	 * (same properties) inserted after it. */
+    	function splitRun(run, tEl, offset, text) {
+    		var doc = run.getOwnerDocument();
+    		var copy = run.cloneNode(false);
+    		var props = firstChild(run, D.ns, "rPr");
+    		if (props != null) copy.appendChild(props.cloneNode(true));
+    		var t2 = tEl.cloneNode(false);
+    		setText(t2, text.substring(offset));
+    		setText(tEl, text.substring(0, offset));
+    		copy.appendChild(t2);
+    		var next = tEl.getNextSibling();
+    		while (next != null) {
+    			var n2 = next.getNextSibling();
+    			copy.appendChild(next);
+    			next = n2;
+    		}
+    		insertAfter(run, [copy]);
+    		return copy;
+    	}
+    
+    	/* Makes sure a run boundary exists at text position pos of paragraph p. */
+    	function cutAt(p, pos) {
+    		var segs = collectSegments(p, []);
+    		var start = 0;
+    		for (var i = 0; i < segs.length; i++) {
+    			var s = segs[i];
+    			var end = start + s.text.length;
+    			if (s.tEl != null && pos >= start && pos < end) {
+    				var run = runOf(s.tEl);
+    				var offset = pos - start;
+    				if (run == null) return;
+    				if (offset > 0) {
+    					splitRun(run, s.tEl, offset, s.text);
+    				} else {
+    					// Text before tEl in the same run: the boundary goes just before tEl.
+    					var before = false;
+    					for (var c = run.getFirstChild(); c != null && c !== s.tEl; c = c.getNextSibling()) {
+    						if (c.getNodeType() == 1 && !isEl(c, D.ns, "rPr")) before = true;
+    					}
+    					if (before) splitRun(run, s.tEl, 0, s.text);
+    				}
+    				return;
+    			}
+    			start = end;
+    		}
+    	}
+    
+    	function textLength(nodes) {
+    		var n = 0;
+    		for (var i = 0; i < nodes.length; i++) {
+    			var segs = [];
+    			var holder = nodes[i].getOwnerDocument().createElementNS(D.ns, "c8o-holder");
+    			holder.appendChild(nodes[i].cloneNode(true));
+    			collectSegments(holder, segs);
+    			for (var k = 0; k < segs.length; k++) n += segs[k].text.length;
+    		}
+    		return n;
+    	}
+    
+    	/* Replaces the occurrences of tag in paragraph p by builder(doc, templateRun) nodes
+    	 * (runs or paragraph level nodes), at most "max" times. */
+    	function replaceInParagraph(p, tag, builder, max) {
+    		var count = 0;
+    		var from = 0;
+    		ensureRuns(p);
+    		while (max == null || count < max) {
+    			var full = paragraphText(p);
+    			var idx = full.indexOf(tag, from);
+    			if (idx == -1) break;
+    			var end = idx + tag.length;
+    			cutAt(p, end);
+    			cutAt(p, idx);
+    			// The runs now covering exactly [idx, end).
+    			var segs = collectSegments(p, []);
+    			var start = 0;
+    			var tagRuns = [];
+    			for (var i = 0; i < segs.length; i++) {
+    				var sEnd = start + segs[i].text.length;
+    				if (segs[i].tEl != null && start >= idx && sEnd <= end && sEnd > start) {
+    					var run = runOf(segs[i].tEl);
+    					if (run != null && tagRuns.indexOf(run) == -1) tagRuns.push(run);
+    				}
+    				start = sEnd;
+    			}
+    			if (tagRuns.length == 0) break;
+    			var built = builder(p.getOwnerDocument(), tagRuns[0]);
+    			var first = tagRuns[0];
+    			for (var n = 0; n < built.length; n++) first.getParentNode().insertBefore(built[n], first);
+    			for (var r = 0; r < tagRuns.length; r++) tagRuns[r].getParentNode().removeChild(tagRuns[r]);
+    			count++;
+    			from = idx + textLength(built);
+    		}
+    		cleanup(p);
+    		return count;
+    	}
+    
+    	function cleanup(p) {
+    		var runs = descendants(p, D.ns, D.r);
+    		for (var i = 0; i < runs.length; i++) {
+    			var run = runs[i];
+    			var empty = true;
+    			for (var c = run.getFirstChild(); c != null; c = c.getNextSibling()) {
+    				if (c.getNodeType() != 1) continue;
+    				if (isEl(c, D.ns, "rPr")) continue;
+    				if (isEl(c, D.ns, D.t) && String(c.getTextContent()) == "") continue;
+    				empty = false;
+    			}
+    			if (empty && run.getParentNode() != null) run.getParentNode().removeChild(run);
+    		}
+    		if (D === XLSX && childElements(p, NS.x, "r").length == 0 && childElements(p, NS.x, "t").length == 0) {
+    			p.appendChild(p.getOwnerDocument().createElementNS(NS.x, "t"));
+    		}
+    	}
+    
+    	/* ---------- Run builders ---------- */
+    
+    	function propsOf(run) {
+    		var props = run != null ? firstChild(run, D.ns, "rPr") : null;
+    		return props != null ? props.cloneNode(true) : null;
+    	}
+    
+    	function newRun(doc, run, props) {
+    		var r = run != null ? run.cloneNode(false) : doc.createElementNS(D.ns, D === XLSX ? "r" : (D === DOCX ? "w:r" : "a:r"));
+    		if (props != null) r.appendChild(props);
+    		return r;
+    	}
+    
+    	function newT(doc, text) {
+    		var t = doc.createElementNS(D.ns, D === XLSX ? "t" : (D === DOCX ? "w:t" : "a:t"));
+    		setText(t, text);
+    		return t;
+    	}
+    
+    	/* Runs for a text value: "\n" = line break, "\t" = tab. */
+    	function textRuns(doc, run, value, props) {
+    		var lines = toText(value).replace(/\r\n?/g, "\n");
+    		var out = [];
+    		if (D === XLSX) {
+    			var r = newRun(doc, run, props);
+    			r.appendChild(newT(doc, lines));
+    			return [r];
+    		}
+    		var parts = lines.split("\n");
+    		if (D === DOCX) {
+    			var wr = newRun(doc, run, props);
+    			for (var i = 0; i < parts.length; i++) {
+    				if (i > 0) wr.appendChild(doc.createElementNS(NS.w, "w:br"));
+    				var chunks = parts[i].split("\t");
+    				for (var c = 0; c < chunks.length; c++) {
+    					if (c > 0) wr.appendChild(doc.createElementNS(NS.w, "w:tab"));
+    					if (chunks[c] != "") wr.appendChild(newT(doc, chunks[c]));
+    				}
+    			}
+    			return [wr];
+    		}
+    		for (var l = 0; l < parts.length; l++) {
+    			if (l > 0) {
+    				var br = doc.createElementNS(NS.a, "a:br");
+    				if (props != null) br.appendChild(props.cloneNode(true));
+    				out.push(br);
+    			}
+    			if (parts[l] != "") {
+    				var ar = newRun(doc, run, props != null ? props.cloneNode(true) : null);
+    				ar.appendChild(newT(doc, parts[l]));
+    				out.push(ar);
+    			}
+    		}
+    		return out;
+    	}
+    
+    	/* Run properties with the font of a span marker applied. */
+    	function spanProps(doc, run, font) {
+    		var size = parseFloat(toText(font.fontSize));
+    		var fontStyle = toText(font.fontStyle).toUpperCase();
+    		var bold = fontStyle.indexOf("BOLD") != -1;
+    		var italic = fontStyle.indexOf("ITALIC") != -1;
+    		var color = font.fontColor ? colorHex(font.fontColor) : null;
+    		var props = propsOf(run);
+    		if (D === DOCX) {
+    			if (props == null) props = doc.createElementNS(NS.w, "w:rPr");
+    			var name = toText(font.fontName);
+    			if (name != "") setOrdered(props, NS.w, "rFonts", el(doc, NS.w, "w:rFonts", { "w:ascii": name, "w:hAnsi": name, "w:cs": name, "w:eastAsia": name }), ORDER.wrPr);
+    			setOrdered(props, NS.w, "b", el(doc, NS.w, "w:b", bold ? {} : { "w:val": "0" }), ORDER.wrPr);
+    			setOrdered(props, NS.w, "bCs", el(doc, NS.w, "w:bCs", bold ? {} : { "w:val": "0" }), ORDER.wrPr);
+    			setOrdered(props, NS.w, "i", el(doc, NS.w, "w:i", italic ? {} : { "w:val": "0" }), ORDER.wrPr);
+    			setOrdered(props, NS.w, "iCs", el(doc, NS.w, "w:iCs", italic ? {} : { "w:val": "0" }), ORDER.wrPr);
+    			if (color != null) setOrdered(props, NS.w, "color", el(doc, NS.w, "w:color", { "w:val": color.toUpperCase() }), ORDER.wrPr);
+    			if (!isNaN(size) && size > 0) {
+    				setOrdered(props, NS.w, "sz", el(doc, NS.w, "w:sz", { "w:val": String(Math.round(size * 2)) }), ORDER.wrPr);
+    				setOrdered(props, NS.w, "szCs", el(doc, NS.w, "w:szCs", { "w:val": String(Math.round(size * 2)) }), ORDER.wrPr);
+    			}
+    			return props;
+    		}
+    		if (D === PPTX) {
+    			if (props == null) props = doc.createElementNS(NS.a, "a:rPr");
+    			props.setAttribute("b", bold ? "1" : "0");
+    			props.setAttribute("i", italic ? "1" : "0");
+    			if (!isNaN(size) && size > 0) props.setAttribute("sz", String(Math.round(size * 100)));
+    			if (color != null) {
+    				var fills = ["noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill"];
+    				for (var f = 0; f < fills.length; f++) {
+    					var old = childElements(props, NS.a, fills[f]);
+    					for (var k = 0; k < old.length; k++) props.removeChild(old[k]);
+    				}
+    				setOrdered(props, NS.a, "solidFill", el(doc, NS.a, "a:solidFill", {}, [el(doc, NS.a, "a:srgbClr", { val: color })]), ORDER.arPr);
+    			}
+    			var face = toText(font.fontName);
+    			if (face != "") setOrdered(props, NS.a, "latin", el(doc, NS.a, "a:latin", { typeface: face }), ORDER.arPr);
+    			return props;
+    		}
+    		// Excel rich text run properties (free order).
+    		props = doc.createElementNS(NS.x, "rPr");
+    		if (bold) props.appendChild(doc.createElementNS(NS.x, "b"));
+    		if (italic) props.appendChild(doc.createElementNS(NS.x, "i"));
+    		if (!isNaN(size) && size > 0) props.appendChild(el(doc, NS.x, "sz", { val: String(size) }));
+    		if (color != null) props.appendChild(el(doc, NS.x, "color", { rgb: "FF" + color.toUpperCase() }));
+    		if (toText(font.fontName) != "") props.appendChild(el(doc, NS.x, "rFont", { val: toText(font.fontName) }));
+    		return props;
+    	}
+    
+    	/* ---------- Text markers ---------- */
+    
+    	function replaceText(scopes, tag, value) {
+    		var count = 0;
+    		var paragraphs = withTag(scopes, tag);
+    		for (var i = 0; i < paragraphs.length; i++) {
+    			count += replaceInParagraph(paragraphs[i], tag, function (doc, run) {
+    				return textRuns(doc, run, value, propsOf(run));
+    			});
+    		}
+    		return count;
+    	}
+    
+    	function processSpan(scopes, marker) {
+    		var count = 0;
+    		var paragraphs = withTag(scopes, marker.tag);
+    		for (var i = 0; i < paragraphs.length; i++) {
+    			count += replaceInParagraph(paragraphs[i], marker.tag, function (doc, run) {
+    				return textRuns(doc, run, marker.value, spanProps(doc, run, fontOf(marker.style, DEFAULT_FONT)));
+    			});
+    		}
+    		return count;
+    	}
+    
+    	function removeIds(root) {
+    		var all = [root];
+    		var list = root.getElementsByTagName("*");
+    		for (var i = 0; i < list.getLength(); i++) all.push(list.item(i));
+    		for (var j = 0; j < all.length; j++) {
+    			all[j].removeAttributeNS(NS.w14, "paraId");
+    			all[j].removeAttributeNS(NS.w14, "textId");
+    		}
+    		var marks = descendants(root, NS.w, "bookmarkStart").concat(descendants(root, NS.w, "bookmarkEnd"));
+    		for (var m = 0; m < marks.length; m++) marks[m].getParentNode().removeChild(marks[m]);
+    	}
+    
+    	/* ---------- list ---------- */
+    
+    	function processList(scopes, marker) {
+    		if (D === XLSX) return processRows(scopes, { tag: marker.tag, value: asArray(marker.value).map(function (v) { return [v]; }) });
+    		var values = asArray(marker.value);
+    		var count = 0;
+    		var targets = withTag(scopes, marker.tag);
+    		for (var i = 0; i < targets.length; i++) {
+    			var p = targets[i];
+    			if (!isAttached(p)) continue;
+    			for (var v = 0; v < values.length; v++) {
+    				var copy = p.cloneNode(true);
+    				removeIds(copy);
+    				p.getParentNode().insertBefore(copy, p);
+    				replaceText([copy], marker.tag, values[v]);
+    			}
+    			removeParagraph(p);
+    			count++;
+    		}
+    		return count;
+    	}
+    
+    	/* Removes a paragraph, keeping the containers valid (a Word cell and a PowerPoint text
+    	 * body need at least one paragraph). */
+    	function removeParagraph(p) {
+    		var parent = p.getParentNode();
+    		var keep = (D === DOCX && isEl(parent, NS.w, "tc") && childElements(parent, NS.w, "p").length == 1)
+    			|| (D === PPTX && childElements(parent, NS.a, "p").length == 1);
+    		if (keep) {
+    			var runs = descendants(p, D.ns, D.r).concat(descendants(p, NS.a, "br"));
+    			for (var i = 0; i < runs.length; i++) {
+    				if (runs[i].getParentNode() != null) runs[i].getParentNode().removeChild(runs[i]);
+    			}
+    		} else {
+    			parent.removeChild(p);
+    		}
+    	}
+    
+    	/* ---------- image ---------- */
+    
+    	var imageCache = {};
+    	var docPrId = 0;
+    
+    	function loadImage(value, tag) {
+    		var src = toText(value);
+    		if (imageCache[src]) return imageCache[src];
+    		var bytes = null;
+    		var ext = null;
+    		var m = /^data:image\/([a-z0-9.+-]+);base64,(.*)$/i.exec(src);
+    		if (m) {
+    			ext = m[1].toLowerCase().replace("jpeg", "jpg");
+    			bytes = java.util.Base64.getMimeDecoder().decode(m[2]);
+    		} else {
+    			var path = get_full_path(src);
+    			ext = String(path).replace(/^.*\./, "").toLowerCase();
+    			if (!IMAGE_TYPES[ext]) throw "Unsupported image type for tag ''" + tag + "'' (png, jpg, gif, bmp): " + path;
+    			var file = new File(path);
+    			if (!file.isFile()) throw "Image not found for tag ''" + tag + "'': " + path;
+    			bytes = Files.readAllBytes(file.toPath());
+    		}
+    		if (!IMAGE_TYPES[ext]) throw "Unsupported image type for tag ''" + tag + "'' (png, jpg, gif, bmp): " + ext;
+    		var width = 0;
+    		var height = 0;
+    		try {
+    			var img = ImageIO.read(new ByteArrayInputStream(bytes));
+    			if (img != null) {
+    				width = img.getWidth();
+    				height = img.getHeight();
+    			}
+    		} catch (e) {}
+    		var media = { docx: "word/media/", pptx: "ppt/media/", xlsx: "xl/media/" }[kind] + "c8o_" + String(UUID.randomUUID().toString()).replace(/-/g, "") + "." + ext;
+    		putBytes(media, bytes);
+    		ensureDefault(ext, IMAGE_TYPES[ext]);
+    		var info = { media: media, width: width, height: height };
+    		imageCache[src] = info;
+    		return info;
+    	}
+    
+    	function imageRel(part, info) {
+    		var rels = relations(part);
+    		for (var i = 0; i < rels.length; i++) {
+    			if (rels[i].type == REL.image && rels[i].target == info.media) return rels[i].id;
+    		}
+    		return addRelation(part, REL.image, info.media);
+    	}
+    
+    	function parseLength(s) {
+    		var m = /^\s*(-?[0-9]*\.?[0-9]+)\s*([a-z%]*)\s*$/i.exec(toText(s));
+    		return m ? { value: parseFloat(m[1]), unit: m[2].toLowerCase() } : null;
+    	}
+    
+    	function toEmu(s) {
+    		var l = parseLength(s);
+    		if (l == null) return NaN;
+    		var f = { cm: EMU_PER_CM, mm: EMU_PER_CM / 10, "in": 914400, pt: 12700, px: EMU_PER_PIXEL, emu: 1, "": 1 }[l.unit];
+    		return f ? Math.round(l.value * f) : NaN;
+    	}
+    
+    	/* Size of an inline picture: width / height options, else the image size. */
+    	function imageSize(marker, info) {
+    		var ratio = info.width && info.height ? info.width / info.height : 1;
+    		var w = toEmu(marker.width);
+    		var h = toEmu(marker.height);
+    		if (isNaN(w) && isNaN(h)) w = info.width ? info.width * EMU_PER_PIXEL : 4 * EMU_PER_CM;
+    		if (isNaN(h)) h = w / ratio;
+    		if (isNaN(w)) w = h * ratio;
+    		return { cx: Math.round(w), cy: Math.round(h) };
+    	}
+    
+    	/* New size and offset keeping the image ratio inside a box (centered). */
+    	function fitBox(info, x, y, cx, cy, fit) {
+    		if (fit == "stretch" || !info.width || !info.height || !(cx > 0) || !(cy > 0)) return { x: x, y: y, cx: cx, cy: cy };
+    		var ratio = info.width / info.height;
+    		var nw = cx;
+    		var nh = cy;
+    		if (ratio > cx / cy) nh = Math.round(cx / ratio); else nw = Math.round(cy * ratio);
+    		return { x: x + Math.round((cx - nw) / 2), y: y + Math.round((cy - nh) / 2), cx: nw, cy: nh };
+    	}
+    
+    	function setXfrm(xfrm, box) {
+    		var off = firstChild(xfrm, NS.a, "off");
+    		var ext = firstChild(xfrm, NS.a, "ext");
+    		if (off != null) {
+    			off.setAttribute("x", String(box.x));
+    			off.setAttribute("y", String(box.y));
+    		}
+    		if (ext != null) {
+    			ext.setAttribute("cx", String(box.cx));
+    			ext.setAttribute("cy", String(box.cy));
+    		}
+    	}
+    
+    	function nextDocPrId(doc) {
+    		if (docPrId == 0) {
+    			var ids = descendants(doc.getDocumentElement(), NS.wp, "docPr");
+    			for (var i = 0; i < ids.length; i++) docPrId = Math.max(docPrId, toInt(attr(ids[i], null, "id"), 0));
+    		}
+    		return ++docPrId;
+    	}
+    
+    	function picElement(doc, prefix, ns, name, rid, cx, cy, id) {
+    		var nv = prefix == "pic" ? el(doc, NS.pic, "pic:nvPicPr", {}, [el(doc, NS.pic, "pic:cNvPr", { id: "0", name: name }), el(doc, NS.pic, "pic:cNvPicPr")])
+    			: el(doc, ns, prefix + ":nvPicPr", {}, [el(doc, ns, prefix + ":cNvPr", { id: String(id), name: name }), el(doc, ns, prefix + ":cNvPicPr", {}, [el(doc, NS.a, "a:picLocks", { noChangeAspect: "1" })])].concat(prefix == "p" ? [el(doc, NS.p, "p:nvPr")] : []));
+    		var blip = el(doc, NS.a, "a:blip");
+    		blip.setAttributeNS(NS.r, "r:embed", rid);
+    		return el(doc, ns, prefix + ":pic", {}, [
+    			nv,
+    			el(doc, ns, prefix + ":blipFill", {}, [blip, el(doc, NS.a, "a:stretch", {}, [el(doc, NS.a, "a:fillRect")])]),
+    			el(doc, ns, prefix + ":spPr", {}, [
+    				el(doc, NS.a, "a:xfrm", {}, [el(doc, NS.a, "a:off", { x: "0", y: "0" }), el(doc, NS.a, "a:ext", { cx: String(cx), cy: String(cy) })]),
+    				el(doc, NS.a, "a:prstGeom", { prst: "rect" }, [el(doc, NS.a, "a:avLst")])
+    			])
+    		]);
+    	}
+    
+    	function docxInlinePicture(doc, part, run, info, marker) {
+    		var size = imageSize(marker, info);
+    		var rid = imageRel(part, info);
+    		var id = nextDocPrId(doc);
+    		var name = "c8o_image_" + id;
+    		var drawing = el(doc, NS.w, "w:drawing", {}, [
+    			el(doc, NS.wp, "wp:inline", { distT: "0", distB: "0", distL: "0", distR: "0" }, [
+    				el(doc, NS.wp, "wp:extent", { cx: String(size.cx), cy: String(size.cy) }),
+    				el(doc, NS.wp, "wp:effectExtent", { l: "0", t: "0", r: "0", b: "0" }),
+    				el(doc, NS.wp, "wp:docPr", { id: String(id), name: name }),
+    				el(doc, NS.wp, "wp:cNvGraphicFramePr", {}, [el(doc, NS.a, "a:graphicFrameLocks", { noChangeAspect: "1" })]),
+    				el(doc, NS.a, "a:graphic", {}, [el(doc, NS.a, "a:graphicData", { uri: NS.pic }, [picElement(doc, "pic", NS.pic, name, rid, size.cx, size.cy)])])
+    			])
+    		]);
+    		declare(drawing, "wp");
+    		declare(drawing, "a");
+    		declare(drawing, "pic");
+    		declare(drawing, "r");
+    		return [newRun(doc, run, propsOf(run)).appendChild(drawing).getParentNode()];
+    	}
+    
+    	/* Pictures named after the tag (Alt text title / description or name). */
+    	function namedPictures(scope) {
+    		var out = [];
+    		var root = scope.root;
+    		if (kind == "docx") {
+    			var props = descendants(root, NS.wp, "docPr");
+    			for (var i = 0; i < props.length; i++) out.push({ id: props[i], container: props[i].getParentNode() });
+    		} else {
+    			var cnv = descendants(root, kind == "pptx" ? NS.p : NS.xdr, "cNvPr");
+    			for (var j = 0; j < cnv.length; j++) out.push({ id: cnv[j], container: cnv[j].getParentNode().getParentNode() });
+    		}
+    		return out;
+    	}
+    
+    	function processImage(scopes, marker) {
+    		var count = 0;
+    		var fit = marker.fit ? toText(marker.fit) : "contain";
+    		var info = null;
+    		if (kind == "xlsx") {
+    			for (var x = 0; x < scopes.length; x++) {
+    				var sheet = scopes[x].sheet;
+    				if (sheet == null) continue;
+    				var drawings = relatedParts(sheet.part, REL.drawing);
+    				for (var dw = 0; dw < drawings.length; dw++) {
+    					var dscope = { part: drawings[dw], root: dom(drawings[dw]).getDocumentElement() };
+    					var pics = namedPictures(dscope);
+    					for (var pi = 0; pi < pics.length; pi++) {
+    						var pid = pics[pi].id;
+    						if (attr(pid, null, "name") != marker.tag && attr(pid, null, "descr") != marker.tag && attr(pid, null, "title") != marker.tag) continue;
+    						var pblips = descendants(pics[pi].container, NS.a, "blip");
+    						if (pblips.length == 0) continue;
+    						if (info == null) info = loadImage(marker.value, marker.tag);
+    						var prid = attr(pblips[0], NS.r, "embed");
+    						pblips[0].setAttributeNS(NS.r, "r:embed", imageRel(dscope.part, info));
+    						dropUnusedRelation(dscope, prid);
+    						fitNamedPicture(pics[pi].container, info, fit);
+    						count++;
+    					}
+    				}
+    				if (cellsWithTag(sheet, marker.tag).length > 0) {
+    					if (info == null) info = loadImage(marker.value, marker.tag);
+    					count += xlsxCellPicture(scopes[x], null, marker, info);
+    				}
+    			}
+    			return count;
+    		}
+    		for (var s = 0; s < scopes.length; s++) {
+    			var scope = scopes[s].scope;
+    			if (scope == null) continue;
+    			// 1. Pictures named after the tag.
+    			var named = namedPictures(scope);
+    			for (var n = 0; n < named.length; n++) {
+    				var idEl = named[n].id;
+    				if (attr(idEl, null, "name") != marker.tag && attr(idEl, null, "descr") != marker.tag && attr(idEl, null, "title") != marker.tag) continue;
+    				var blips = descendants(named[n].container, NS.a, "blip");
+    				if (blips.length == 0) continue;
+    				if (info == null) info = loadImage(marker.value, marker.tag);
+    				var oldRid = attr(blips[0], NS.r, "embed");
+    				blips[0].setAttributeNS(NS.r, "r:embed", imageRel(scope.part, info));
+    				dropUnusedRelation(scope, oldRid);
+    				fitNamedPicture(named[n].container, info, fit);
+    				count++;
+    			}
+    			// 2. Text tags.
+    			var targets = withTag([scopes[s].root], marker.tag);
+    			for (var i = 0; i < targets.length; i++) {
+    				var p = targets[i];
+    				if (!isAttached(p)) continue;
+    				if (info == null) info = loadImage(marker.value, marker.tag);
+    				if (kind == "docx") {
+    					count += replaceInParagraph(p, marker.tag, function (doc, run) {
+    						return docxInlinePicture(doc, scope.part, run, info, marker);
+    					});
+    				} else {
+    					count += pptxShapeToPicture(scope, p, marker, info, fit);
+    				}
+    			}
+    		}
+    		return count;
+    	}
+    
+    	function dropUnusedRelation(scope, rid) {
+    		if (rid == "") return;
+    		var list = scope.root.getOwnerDocument().getElementsByTagName("*");
+    		for (var i = 0; i < list.getLength(); i++) {
+    			var attrs = list.item(i).getAttributes();
+    			for (var k = 0; k < attrs.getLength(); k++) {
+    				if (String(attrs.item(k).getNamespaceURI()) == NS.r && String(attrs.item(k).getValue()) == rid) return;
+    			}
+    		}
+    		removeRelation(scope.part, rid);
+    	}
+    
+    	function fitNamedPicture(container, info, fit) {
+    		if (kind == "docx") {
+    			var extent = firstChild(container, NS.wp, "extent");
+    			if (extent == null) return;
+    			var box = fitBox(info, 0, 0, toInt(attr(extent, null, "cx"), 0), toInt(attr(extent, null, "cy"), 0), fit);
+    			extent.setAttribute("cx", String(box.cx));
+    			extent.setAttribute("cy", String(box.cy));
+    			var exts = descendants(container, NS.a, "ext").filter(function (e) {
+    				return isEl(e.getParentNode(), NS.a, "xfrm");
+    			});
+    			for (var i = 0; i < exts.length; i++) {
+    				exts[i].setAttribute("cx", String(box.cx));
+    				exts[i].setAttribute("cy", String(box.cy));
+    			}
+    			return;
+    		}
+    		var xfrms = descendants(container, NS.a, "xfrm");
+    		if (xfrms.length == 0) return;
+    		var off = firstChild(xfrms[0], NS.a, "off");
+    		var ext = firstChild(xfrms[0], NS.a, "ext");
+    		if (off == null || ext == null) return;
+    		setXfrm(xfrms[0], fitBox(info, toInt(attr(off, null, "x"), 0), toInt(attr(off, null, "y"), 0), toInt(attr(ext, null, "cx"), 0), toInt(attr(ext, null, "cy"), 0), fit));
+    	}
+    
+    	/* PowerPoint: a text box holding only the tag becomes the picture. */
+    	function pptxShapeToPicture(scope, p, marker, info, fit) {
+    		var sp = ancestor(p, NS.p, "sp");
+    		var body = sp != null ? firstChild(sp, NS.p, "txBody") : null;
+    		var text = "";
+    		if (body != null) {
+    			var ps = childElements(body, NS.a, "p");
+    			for (var i = 0; i < ps.length; i++) text += paragraphText(ps[i]);
+    		}
+    		if (sp == null || text.trim() != marker.tag) {
+    			log.warn(LOG + "image tag ''" + marker.tag + "'' must be alone in its text box (or be a picture name), tag removed");
+    			return replaceInParagraph(p, marker.tag, function () { return []; }) * 0;
+    		}
+    		var xfrm = descendants(sp, NS.a, "xfrm")[0];
+    		if (xfrm == null || firstChild(xfrm, NS.a, "off") == null) throw "The text box of image tag ''" + marker.tag + "'' has no position of its own (layout placeholder): give it a position or use a named picture";
+    		var doc = sp.getOwnerDocument();
+    		var off = firstChild(xfrm, NS.a, "off");
+    		var ext = firstChild(xfrm, NS.a, "ext");
+    		var box = fitBox(info, toInt(attr(off, null, "x"), 0), toInt(attr(off, null, "y"), 0), toInt(attr(ext, null, "cx"), 0), toInt(attr(ext, null, "cy"), 0), fit);
+    		var cnv = descendants(sp, NS.p, "cNvPr")[0];
+    		var pic = picElement(doc, "p", NS.p, attr(cnv, null, "name") || marker.tag, imageRel(scope.part, info), box.cx, box.cy, attr(cnv, null, "id") || "1");
+    		setXfrm(descendants(pic, NS.a, "xfrm")[0], box);
+    		sp.getParentNode().replaceChild(pic, sp);
+    		return 1;
+    	}
+    
+    	/* ---------- Word tables (table, tableh, tablet) ---------- */
+    
+    	function textWidthTwips(doc) {
+    		var sects = doc.getElementsByTagNameNS(NS.w, "sectPr");
+    		if (sects.getLength() == 0) return 9638;
+    		var sect = sects.item(sects.getLength() - 1);
+    		var size = firstChild(sect, NS.w, "pgSz");
+    		var margin = firstChild(sect, NS.w, "pgMar");
+    		var w = toInt(attr(size, NS.w, "w"), 11906) - toInt(attr(margin, NS.w, "left"), 1134) - toInt(attr(margin, NS.w, "right"), 1134);
+    		return w > 0 ? w : 9638;
+    	}
+    
+    	function wRunProps(doc, font) {
+    		var props = doc.createElementNS(NS.w, "w:rPr");
+    		var name = toText(font.fontName);
+    		var fontStyle = toText(font.fontStyle).toUpperCase();
+    		if (name != "") props.appendChild(el(doc, NS.w, "w:rFonts", { "w:ascii": name, "w:hAnsi": name, "w:cs": name, "w:eastAsia": name }));
+    		if (fontStyle.indexOf("BOLD") != -1) {
+    			props.appendChild(el(doc, NS.w, "w:b"));
+    			props.appendChild(el(doc, NS.w, "w:bCs"));
+    		}
+    		if (fontStyle.indexOf("ITALIC") != -1) {
+    			props.appendChild(el(doc, NS.w, "w:i"));
+    			props.appendChild(el(doc, NS.w, "w:iCs"));
+    		}
+    		if (font.fontColor) props.appendChild(el(doc, NS.w, "w:color", { "w:val": colorHex(font.fontColor).toUpperCase() }));
+    		var size = parseFloat(toText(font.fontSize));
+    		if (!isNaN(size) && size > 0) {
+    			props.appendChild(el(doc, NS.w, "w:sz", { "w:val": String(Math.round(size * 2)) }));
+    			props.appendChild(el(doc, NS.w, "w:szCs", { "w:val": String(Math.round(size * 2)) }));
+    		}
+    		return props;
+    	}
+    
+    	/* Cell look of the table / tableh types (same rules as u_fill_odt). */
+    	function cellLook(style, r, c, isHeader) {
+    		if (isHeader) {
+    			var head = asObject(style.header);
+    			return {
+    				align: H_ALIGN[toText(head.cellHAlign)] || "center",
+    				valign: V_ALIGN[toText(head.cellVAlign)] || "center",
+    				bg: head.cellBGColor ? colorHex(head.cellBGColor) : "e5e5e5",
+    				font: { fontName: head.fontName || "Arial", fontStyle: head.fontStyle || "BOLD", fontSize: head.fontSize || 10, fontColor: head.fontColor || "BLACK" }
+    			};
+    		}
+    		var cells = asObject(style.cells);
+    		var cellStyle = cells[r + "-" + c] ? asObject(cells[r + "-" + c]) : null;
+    		var defaults = style.defaults ? asObject(style.defaults) : null;
+    		var pick = function (property, map) {
+    			if (cellStyle != null && map[toText(cellStyle[property])]) return map[toText(cellStyle[property])];
+    			if (defaults != null && map[toText(defaults[property])]) return map[toText(defaults[property])];
+    			return null;
+    		};
+    		var bg = cellStyle != null && cellStyle.cellBGColor ? cellStyle.cellBGColor : (defaults != null && defaults.cellBGColor ? defaults.cellBGColor : null);
+    		return {
+    			align: pick("cellHAlign", H_ALIGN),
+    			valign: pick("cellVAlign", V_ALIGN),
+    			bg: bg != null ? colorHex(bg) : null,
+    			font: fontOf(cellStyle != null ? cellStyle : (defaults != null ? defaults : {}), DEFAULT_FONT)
+    		};
+    	}
+    
+    	/* Styles of the 1x3 template table (header, even, odd rows) of a .docx file. */
+    	function loadTableTemplate() {
+    		var path = get_full_path(typeof table_template_file != "undefined" ? table_template_file : null);
+    		var name = typeof table_template_name != "undefined" && table_template_name != null ? String(table_template_name) : "";
+    		if (path == null || path == "") throw "tablet needs the table_template_file variable";
+    		if (!/\.(docx|dotx|docm)$/i.test(String(path))) throw "tablet in a Word template needs a .docx table_template_file: " + path;
+    		if (!new File(path).isFile()) throw "Table template file not found: " + path;
+    		var saved = pkg;
+    		var savedKind = kind;
+    		try {
+    			pkg = openPackage(path);
+    			kind = "docx";
+    			var doc = dom(mainPart());
+    			var tables = descendants(doc.getDocumentElement(), NS.w, "tbl");
+    			var table = null;
+    			for (var i = 0; i < tables.length; i++) {
+    				var caption = firstChild(firstChild(tables[i], NS.w, "tblPr") || doc.createElement("x"), NS.w, "tblCaption");
+    				if (caption != null && attr(caption, NS.w, "val") == name) table = tables[i];
+    			}
+    			if (table == null && tables.length == 1) table = tables[0];
+    			if (table == null) throw "Table with the Alt text title ''" + name + "'' not found in " + path;
+    			var rows = childElements(table, NS.w, "tr");
+    			if (rows.length != 3 || childElements(rows[0], NS.w, "tc").length != 1) throw "Template table must be a 1*3 table";
+    			return rows.map(function (row) {
+    				var tc = childElements(row, NS.w, "tc")[0];
+    				var tcPr = firstChild(tc, NS.w, "tcPr");
+    				var shd = tcPr != null ? firstChild(tcPr, NS.w, "shd") : null;
+    				var p = firstChild(tc, NS.w, "p");
+    				var pPr = p != null ? firstChild(p, NS.w, "pPr") : null;
+    				var jc = pPr != null ? firstChild(pPr, NS.w, "jc") : null;
+    				var run = p != null ? descendants(p, NS.w, "r")[0] : null;
+    				var rPr = run != null ? firstChild(run, NS.w, "rPr") : (pPr != null ? firstChild(pPr, NS.w, "rPr") : null);
+    				var fill = shd != null ? attr(shd, NS.w, "fill") : "";
+    				return { bg: fill != "" && fill != "auto" ? fill : null, align: jc != null ? attr(jc, NS.w, "val") : null, rPr: rPr != null ? rPr.cloneNode(true) : null };
+    			});
+    		} finally {
+    			pkg = saved;
+    			kind = savedKind;
+    		}
+    	}
+    
+    	function buildWordTable(doc, marker, kindOfTable, template) {
+    		var values = asArray(marker.value).map(function (row) {
+    			return asArray(row);
+    		});
+    		var rows = values.length;
+    		var cols = 0;
+    		for (var i = 0; i < rows; i++) cols = Math.max(cols, values[i].length);
+    		if (rows == 0 || cols == 0) {
+    			log.warn(LOG + "table tag ''" + marker.tag + "'' has no data, tag removed");
+    			return null;
+    		}
+    		var style = asObject(marker.style);
+    		var width = textWidthTwips(doc);
+    		var colWidth = Math.floor(width / cols);
+    		var anchors = {};
+    		var covered = {};
+    		var merges = asArray(marker.merges);
+    		for (var m = 0; m < merges.length; m++) {
+    			var mg = asObject(merges[m]);
+    			var mr = toInt(mg.row, -1), mc = toInt(mg.col, -1);
+    			var rs = Math.max(1, toInt(mg.rowspan, 1)), cs = Math.max(1, toInt(mg.colspan, 1));
+    			if (mr < 0 || mc < 0 || mr + rs > rows || mc + cs > cols || (rs == 1 && cs == 1) || covered[mr + "-" + mc]) {
+    				log.error(LOG + "Merge ignored row=" + mg.row + " col=" + mg.col);
+    				continue;
+    			}
+    			anchors[mr + "-" + mc] = { rs: rs, cs: cs };
+    			for (var rr = mr; rr < mr + rs; rr++) {
+    				for (var cc = mc; cc < mc + cs; cc++) {
+    					if (rr != mr || cc != mc) covered[rr + "-" + cc] = { anchorRow: mr, anchorCol: mc, cs: cs };
+    				}
+    			}
+    		}
+    		var border = function (n) {
+    			return el(doc, NS.w, "w:" + n, { "w:val": "single", "w:sz": "4", "w:space": "0", "w:color": "000000" });
+    		};
+    		var table = el(doc, NS.w, "w:tbl", {}, [
+    			el(doc, NS.w, "w:tblPr", {}, [
+    				el(doc, NS.w, "w:tblW", { "w:w": String(width), "w:type": "dxa" }),
+    				el(doc, NS.w, "w:tblBorders", {}, [border("top"), border("left"), border("bottom"), border("right"), border("insideH"), border("insideV")]),
+    				el(doc, NS.w, "w:tblLayout", { "w:type": "fixed" })
+    			])
+    		]);
+    		var grid = el(doc, NS.w, "w:tblGrid");
+    		for (var g = 0; g < cols; g++) grid.appendChild(el(doc, NS.w, "w:gridCol", { "w:w": String(colWidth) }));
+    		table.appendChild(grid);
+    		for (var r = 0; r < rows; r++) {
+    			var tr = el(doc, NS.w, "w:tr");
+    			if (kindOfTable == "tableh" && r == 0) tr.appendChild(el(doc, NS.w, "w:trPr", {}, [el(doc, NS.w, "w:tblHeader")]));
+    			for (var c = 0; c < cols; c++) {
+    				var key = r + "-" + c;
+    				var cover = covered[key];
+    				if (cover && cover.anchorRow == r) continue; // horizontally merged: part of the anchor gridSpan
+    				if (cover && cover.anchorCol != c) continue; // covered by a cell of an upper row, not its first column
+    				var look;
+    				if (kindOfTable == "tablet") {
+    					var t = template[r == 0 ? 0 : (r % 2 === 0 ? 1 : 2)];
+    					look = { align: t.align, valign: null, bg: t.bg, rPr: t.rPr };
+    				} else {
+    					look = cellLook(style, r, c, kindOfTable == "tableh" && r == 0);
+    				}
+    				var anchor = anchors[key];
+    				var span = anchor ? anchor.cs : (cover ? cover.cs : 1);
+    				var tcPr = el(doc, NS.w, "w:tcPr", {}, [el(doc, NS.w, "w:tcW", { "w:w": String(colWidth * span), "w:type": "dxa" })]);
+    				if (span > 1) tcPr.appendChild(el(doc, NS.w, "w:gridSpan", { "w:val": String(span) }));
+    				if (anchor && anchor.rs > 1) tcPr.appendChild(el(doc, NS.w, "w:vMerge", { "w:val": "restart" }));
+    				if (cover) tcPr.appendChild(el(doc, NS.w, "w:vMerge"));
+    				if (look.bg) tcPr.appendChild(el(doc, NS.w, "w:shd", { "w:val": "clear", "w:color": "auto", "w:fill": look.bg.toUpperCase() }));
+    				if (look.valign) tcPr.appendChild(el(doc, NS.w, "w:vAlign", { "w:val": look.valign }));
+    				var p = el(doc, NS.w, "w:p");
+    				if (look.align) p.appendChild(el(doc, NS.w, "w:pPr", {}, [el(doc, NS.w, "w:jc", { "w:val": look.align })]));
+    				var props = look.rPr ? doc.importNode(look.rPr, true) : wRunProps(doc, look.font);
+    				if (!cover) {
+    					var v = c < values[r].length ? values[r][c] : "";
+    					var runs = textRuns(doc, null, v, props);
+    					for (var k = 0; k < runs.length; k++) p.appendChild(runs[k]);
+    				}
+    				tr.appendChild(el(doc, NS.w, "w:tc", {}, [tcPr, p]));
+    			}
+    			table.appendChild(tr);
+    		}
+    		return table;
+    	}
+    
+    	/* Splits paragraph p at marker (a temporary element): p keeps what precedes it, the
+    	 * returned copy (inserted after p, or null when empty) what follows. */
+    	function splitParagraph(p, marker) {
+    		marker.setAttribute("c8o-split", "1");
+    		var copy = p.cloneNode(true);
+    		var copyMarker = null;
+    		var list = copy.getElementsByTagName("*");
+    		for (var i = 0; i < list.getLength(); i++) {
+    			if (list.item(i).getAttribute("c8o-split") == "1") copyMarker = list.item(i);
+    		}
+    		for (var n = marker; n !== p; n = n.getParentNode()) {
+    			while (n.getNextSibling() != null) n.getParentNode().removeChild(n.getNextSibling());
+    		}
+    		marker.getParentNode().removeChild(marker);
+    		for (var m = copyMarker; m !== copy; m = m.getParentNode()) {
+    			while (m.getPreviousSibling() != null && !isEl(m.getPreviousSibling(), NS.w, "pPr")) m.getParentNode().removeChild(m.getPreviousSibling());
+    		}
+    		copyMarker.getParentNode().removeChild(copyMarker);
+    		removeIds(copy);
+    		var keep = paragraphText(copy).trim() != "" || descendants(copy, NS.w, "drawing").length > 0;
+    		var pPr = firstChild(p, NS.w, "pPr");
+    		var sect = pPr != null ? firstChild(pPr, NS.w, "sectPr") : null;
+    		if (!keep) return null;
+    		if (sect != null) pPr.removeChild(sect); // the section break goes with the last part
+    		insertAfter(p, [copy]);
+    		return copy;
+    	}
+    
+    	function processWordTable(scopes, marker, kindOfTable) {
+    		var count = 0;
+    		var template = null;
+    		var breakBefore = toText(typeof break_before != "undefined" ? break_before : "");
+    		if (breakBefore != "auto" && breakBefore != "column" && breakBefore != "page") breakBefore = "page";
+    		var targets = withTag(scopes, marker.tag);
+    		for (var i = 0; i < targets.length; i++) {
+    			var p = targets[i];
+    			while (p != null && isAttached(p) && containsTag(p, marker.tag)) {
+    				if (kindOfTable == "tablet" && template == null) template = loadTableTemplate();
+    				var doc = p.getOwnerDocument();
+    				var marker2 = null;
+    				replaceInParagraph(p, marker.tag, function (d) {
+    					// A non run element: the cleanup of empty runs keeps it.
+    					marker2 = el(d, NS.w, "w:bookmarkStart", { "w:id": "0", "w:name": "c8o_split" });
+    					return [marker2];
+    				}, 1);
+    				var rest = splitParagraph(p, marker2);
+    				var table = buildWordTable(doc, marker, kindOfTable, template);
+    				if (table != null) {
+    					if (breakBefore != "auto") p.appendChild(el(doc, NS.w, "w:r", {}, [el(doc, NS.w, "w:br", { "w:type": breakBefore })]));
+    					insertAfter(p, [table]);
+    					// A cell, the body and a header must not end with a table.
+    					var next = table.getNextSibling();
+    					while (next != null && next.getNodeType() != 1) next = next.getNextSibling();
+    					if (next == null || !isEl(next, NS.w, "p")) {
+    						var pPr = firstChild(p, NS.w, "pPr");
+    						var after = el(doc, NS.w, "w:p");
+    						if (pPr != null) {
+    							var pp = pPr.cloneNode(true);
+    							var sect = firstChild(pp, NS.w, "sectPr");
+    							if (sect != null) pp.removeChild(sect);
+    							after.appendChild(pp);
+    						}
+    						insertAfter(table, [after]);
+    					}
+    				}
+    				count++;
+    				p = rest;
+    			}
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- rows (Word and PowerPoint tables) ---------- */
+    
+    	function setCellParagraph(cell, value, modelParagraph) {
+    		var bodyNs = D.ns;
+    		var holder = D === PPTX ? firstChild(cell, NS.a, "txBody") : cell;
+    		if (holder == null) return;
+    		var paragraphs = childElements(holder, bodyNs, "p");
+    		var p;
+    		if (paragraphs.length == 0) {
+    			p = modelParagraph.cloneNode(true);
+    			holder.appendChild(p);
+    		} else {
+    			p = paragraphs[0];
+    			for (var i = 1; i < paragraphs.length; i++) holder.removeChild(paragraphs[i]);
+    		}
+    		var runs = descendants(p, D.ns, D.r);
+    		var model = runs.length > 0 ? runs[0] : (descendants(modelParagraph, D.ns, D.r)[0] || null);
+    		var props = propsOf(model);
+    		for (var r = 0; r < runs.length; r++) runs[r].getParentNode().removeChild(runs[r]);
+    		var brs = descendants(p, NS.a, "br");
+    		for (var b = 0; b < brs.length; b++) brs[b].getParentNode().removeChild(brs[b]);
+    		var built = textRuns(p.getOwnerDocument(), model, value, props);
+    		var end = D === PPTX ? firstChild(p, NS.a, "endParaRPr") : null;
+    		for (var n = 0; n < built.length; n++) p.insertBefore(built[n], end);
+    	}
+    
+    	function processTableRows(scopes, marker) {
+    		var rows = asArray(marker.value);
+    		var count = 0;
+    		var rowNs = D === DOCX ? NS.w : NS.a;
+    		var targets = withTag(scopes, marker.tag);
+    		for (var i = 0; i < targets.length; i++) {
+    			var p = targets[i];
+    			if (!isAttached(p)) continue;
+    			var row = ancestor(p, rowNs, "tr");
+    			if (row == null) {
+    				log.warn(LOG + "rows tag ''" + marker.tag + "'' is not inside a table row, tag removed");
+    				replaceText([p], marker.tag, "");
+    				continue;
+    			}
+    			var parent = row.getParentNode();
+    			for (var r = 0; r < rows.length; r++) {
+    				var values = asArray(rows[r]);
+    				var copy = row.cloneNode(true);
+    				removeIds(copy);
+    				parent.insertBefore(copy, row);
+    				var cells = childElements(copy, rowNs, "tc");
+    				for (var c = 0; c < cells.length && c < values.length; c++) setCellParagraph(cells[c], values[c], p);
+    				replaceText([copy], marker.tag, "");
+    			}
+    			parent.removeChild(row);
+    			if (D === PPTX) {
+    				// The graphic frame grows with the rows.
+    				var frame = ancestor(parent, NS.p, "graphicFrame");
+    				var ext = frame != null ? descendants(firstChild(frame, NS.p, "xfrm") || frame, NS.a, "ext")[0] : null;
+    				var h = toInt(attr(row, null, "h"), 0);
+    				if (ext != null && h > 0) ext.setAttribute("cy", String(toInt(attr(ext, null, "cy"), 0) + (rows.length - 1) * h));
+    			}
+    			count++;
+    		}
+    		return count;
+    	}
+    
+    	function processRows(scopes, marker) {
+    		if (D === XLSX) return processSheetRows(scopes, marker);
+    		return processTableRows(scopes.map(function (s) { return s.root; }), marker);
+    	}
+    
+    	/* ---------- Excel ---------- */
+    
+    	var sharedStrings = null; // { part, dom, items: [si] }
+    
+    	function loadSharedStrings(workbookPart) {
+    		var parts = relatedParts(workbookPart, REL.sharedStrings);
+    		if (parts.length == 0) return null;
+    		var d = dom(parts[0]);
+    		return { part: parts[0], dom: d, items: childElements(d.getDocumentElement(), NS.x, "si") };
+    	}
+    
+    	function colIndex(letters) {
+    		var n = 0;
+    		for (var i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64);
+    		return n - 1;
+    	}
+    
+    	function colLetters(index) {
+    		var s = "";
+    		index++;
+    		while (index > 0) {
+    			var m = (index - 1) % 26;
+    			s = String.fromCharCode(65 + m) + s;
+    			index = Math.floor((index - 1) / 26);
+    		}
+    		return s;
+    	}
+    
+    	function cellRef(c) {
+    		var m = /^([A-Z]+)([0-9]+)$/.exec(attr(c, null, "r"));
+    		return m ? { col: colIndex(m[1]), row: parseInt(m[2], 10) } : null;
+    	}
+    
+    	/* Text paragraph (si or is) of a cell, or null. */
+    	function cellParagraph(c) {
+    		var t = attr(c, null, "t");
+    		if (t == "s" && sharedStrings != null) {
+    			var v = firstChild(c, NS.x, "v");
+    			var idx = v != null ? toInt(v.getTextContent(), -1) : -1;
+    			return idx >= 0 && idx < sharedStrings.items.length ? sharedStrings.items[idx] : null;
+    		}
+    		if (t == "inlineStr") return firstChild(c, NS.x, "is");
+    		return null;
+    	}
+    
+    	function cellsWithTag(sheet, tag) {
+    		var out = [];
+    		var cells = descendants(sheet.root, NS.x, "c");
+    		for (var i = 0; i < cells.length; i++) {
+    			var p = cellParagraph(cells[i]);
+    			if (p != null && containsTag(p, tag)) out.push(cells[i]);
+    		}
+    		return out;
+    	}
+    
+    	function setCellValue(c, value) {
+    		var doc = c.getOwnerDocument();
+    		var fs = childElements(c, NS.x, "f").concat(childElements(c, NS.x, "v")).concat(childElements(c, NS.x, "is"));
+    		for (var i = 0; i < fs.length; i++) c.removeChild(fs[i]);
+    		var numeric = typeof value == "number" || value instanceof Number || (isStr(value) && /^-?[0-9]+([.][0-9]+)?$/.test(String(value)));
+    		if (typeof value == "boolean" || value instanceof Boolean) {
+    			c.setAttribute("t", "b");
+    			c.appendChild(el(doc, NS.x, "v", {}, [doc.createTextNode(value == true ? "1" : "0")]));
+    		} else if (numeric) {
+    			c.removeAttribute("t");
+    			c.appendChild(el(doc, NS.x, "v", {}, [doc.createTextNode(String(value))]));
+    		} else if (value == null || toText(value) == "") {
+    			c.removeAttribute("t");
+    		} else {
+    			c.setAttribute("t", "inlineStr");
+    			c.appendChild(el(doc, NS.x, "is", {}, [newT(doc, toText(value))]));
+    		}
+    	}
+    
+    	/* Shifts the A1 references of a formula: rows after "row" move by "delta"; when
+    	 * "expand" is true, references ending on "row" grow to cover the generated rows. */
+    	function shiftFormula(text, row, delta, expand, sameRowTo) {
+    		var out = "";
+    		var parts = String(text).split("\"");
+    		for (var i = 0; i < parts.length; i++) {
+    			if (i % 2 == 1) {
+    				out += "\"" + parts[i] + "\"";
+    				continue;
+    			}
+    			out += parts[i].replace(/(^|[^A-Za-z0-9_.!''$])(\$?)([A-Z]{1,3})(\$?)([0-9]+)(?::(\$?)([A-Z]{1,3})(\$?)([0-9]+))?(?![A-Za-z0-9_(!])/g,
+    				function (all, pre, d1, c1, d2, r1, d3, c2, d4, r2) {
+    					var a = parseInt(r1, 10);
+    					var b = r2 != null && r2 !== undefined && r2 !== "" ? parseInt(r2, 10) : null;
+    					if (sameRowTo != null) {
+    						// Copy of the template row: relative references to it follow the copy.
+    						if (a == row && d2 == "") a = sameRowTo;
+    						if (b != null && b == row && d4 == "") b = sameRowTo;
+    					} else {
+    						if (b == null) {
+    							if (a > row) a += delta;
+    							else if (a == row && expand && delta > 0) b = a + delta;
+    						} else {
+    							if (a > row) a += delta;
+    							if (b > row) b += delta;
+    							else if (b == row && expand) b += delta;
+    						}
+    					}
+    					var ref = d1 + c1 + d2 + a;
+    					if (b != null) ref += ":" + (c2 ? (d3 || "") + c2 + (d4 || "") : d1 + c1 + d2) + b;
+    					return pre + ref;
+    				});
+    		}
+    		return out;
+    	}
+    
+    	function shiftRange(ref, row, delta, expand) {
+    		return String(ref).split(" ").map(function (part) {
+    			return shiftFormula(part, row, delta, expand);
+    		}).join(" ");
+    	}
+    
+    	function sheetName(sheet) {
+    		return sheet.name;
+    	}
+    
+    	function quoteSheet(name) {
+    		return /^[A-Za-z_][A-Za-z0-9_.]*$/.test(name) ? name : "''" + name.replace(/''/g, "''''") + "''";
+    	}
+    
+    	/* Updates references to the sheet in other parts (defined names, charts, tables). */
+    	function shiftExternalReferences(sheet, row, delta) {
+    		var prefixes = [sheet.name + "!"];
+    		if (quoteSheet(sheet.name) != sheet.name) prefixes.push(quoteSheet(sheet.name) + "!");
+    		var shiftQualified = function (text) {
+    			var s = String(text);
+    			for (var p = 0; p < prefixes.length; p++) {
+    				var pre = prefixes[p];
+    				var idx = 0;
+    				while ((idx = s.indexOf(pre, idx)) != -1) {
+    					var start = idx + pre.length;
+    					var m = /^(\$?[A-Z]{1,3}\$?[0-9]+(?::\$?[A-Z]{1,3}\$?[0-9]+)?)/.exec(s.substring(start));
+    					if (m) {
+    						var shifted = shiftFormula(m[1], row, delta, true);
+    						s = s.substring(0, start) + shifted + s.substring(start + m[1].length);
+    						idx = start + shifted.length;
+    					} else {
+    						idx = start;
+    					}
+    				}
+    			}
+    			return s;
+    		};
+    		var wb = dom(sheet.workbook);
+    		var names = wb.getElementsByTagNameNS(NS.x, "definedName");
+    		for (var i = 0; i < names.getLength(); i++) names.item(i).setTextContent(shiftQualified(names.item(i).getTextContent()));
+    		// Charts of every drawing of the workbook.
+    		for (var n = 0; n < pkg.order.length; n++) {
+    			if (!/^xl\/charts\/chart[0-9]+\.xml$/.test(pkg.order[n])) continue;
+    			var chart = dom(pkg.order[n]);
+    			var fs = chart.getElementsByTagNameNS(NS.c, "f");
+    			for (var k = 0; k < fs.getLength(); k++) fs.item(k).setTextContent(shiftQualified(fs.item(k).getTextContent()));
+    		}
+    		// Tables (list objects) of the sheet.
+    		var tables = relatedParts(sheet.part, REL.table);
+    		for (var t = 0; t < tables.length; t++) {
+    			var tdom = dom(tables[t]);
+    			var root = tdom.getDocumentElement();
+    			root.setAttribute("ref", shiftRange(attr(root, null, "ref"), row, delta, true));
+    			var af = firstChild(root, NS.x, "autoFilter");
+    			if (af != null) af.setAttribute("ref", shiftRange(attr(af, null, "ref"), row, delta, true));
+    		}
+    	}
+    
+    	function processSheetRows(scopes, marker) {
+    		var rows = asArray(marker.value).map(function (r) {
+    			return asArray(r);
+    		});
+    		// No data: the template row is kept empty, so formulas referencing it stay valid.
+    		if (rows.length == 0) rows = [[]];
+    		var count = 0;
+    		for (var s = 0; s < scopes.length; s++) {
+    			var sheet = scopes[s].sheet;
+    			if (sheet == null) continue;
+    			var cells;
+    			while ((cells = cellsWithTag(sheet, marker.tag)).length > 0) {
+    				var c0 = cells[0];
+    				var row = c0.getParentNode();
+    				var ref = cellRef(c0);
+    				var rowNumber = toInt(attr(row, null, "r"), ref.row);
+    				var delta = rows.length - 1;
+    				var doc = row.getOwnerDocument();
+    				var sheetData = row.getParentNode();
+    				// 1. Shift what is below the template row, and the formulas of the sheet.
+    				var allRows = childElements(sheetData, NS.x, "row");
+    				for (var r = allRows.length - 1; r >= 0; r--) {
+    					var rr = toInt(attr(allRows[r], null, "r"), 0);
+    					if (rr > rowNumber) {
+    						allRows[r].setAttribute("r", String(rr + delta));
+    						var rc = childElements(allRows[r], NS.x, "c");
+    						for (var k = 0; k < rc.length; k++) {
+    							var cr = cellRef(rc[k]);
+    							if (cr != null) rc[k].setAttribute("r", colLetters(cr.col) + (cr.row + delta));
+    						}
+    					}
+    				}
+    				var formulas = descendants(sheet.root, NS.x, "f");
+    				for (var f = 0; f < formulas.length; f++) {
+    					if (formulas[f].getParentNode().getParentNode() === row) continue;
+    					formulas[f].setTextContent(shiftFormula(formulas[f].getTextContent(), rowNumber, delta, true));
+    					if (formulas[f].hasAttribute("ref")) formulas[f].setAttribute("ref", shiftRange(attr(formulas[f], null, "ref"), rowNumber, delta, false));
+    					var cached = firstChild(formulas[f].getParentNode(), NS.x, "v");
+    					if (cached != null) formulas[f].getParentNode().removeChild(cached);
+    				}
+    				var refs = [["mergeCell", "ref"], ["conditionalFormatting", "sqref"], ["dataValidation", "sqref"], ["hyperlink", "ref"], ["autoFilter", "ref"], ["dimension", "ref"]];
+    				for (var q = 0; q < refs.length; q++) {
+    					var list = descendants(sheet.root, NS.x, refs[q][0]);
+    					for (var e = 0; e < list.length; e++) list[e].setAttribute(refs[q][1], shiftRange(attr(list[e], null, refs[q][1]), rowNumber, delta, refs[q][0] != "mergeCell" && refs[q][0] != "hyperlink"));
+    				}
+    				shiftDrawings(sheet, rowNumber, delta);
+    				shiftExternalReferences(sheet, rowNumber, delta);
+    				// 2. One copy of the template row per data row.
+    				for (var i = 0; i < rows.length; i++) {
+    					var copy = row.cloneNode(true);
+    					var target = rowNumber + i;
+    					copy.setAttribute("r", String(target));
+    					var cc = childElements(copy, NS.x, "c");
+    					for (var k2 = 0; k2 < cc.length; k2++) {
+    						var ref2 = cellRef(cc[k2]);
+    						if (ref2 != null) cc[k2].setAttribute("r", colLetters(ref2.col) + target);
+    						var f2 = firstChild(cc[k2], NS.x, "f");
+    						if (f2 != null) {
+    							f2.setTextContent(shiftFormula(f2.getTextContent(), rowNumber, 0, false, target));
+    							if (f2.hasAttribute("t") && attr(f2, null, "t") == "shared") {
+    								f2.removeAttribute("t");
+    								f2.removeAttribute("si");
+    								f2.removeAttribute("ref");
+    							}
+    							var v2 = firstChild(cc[k2], NS.x, "v");
+    							if (v2 != null) cc[k2].removeChild(v2);
+    						}
+    					}
+    					// Values from the tag cell column, to the right.
+    					for (var v = 0; v < rows[i].length; v++) {
+    						var col = ref.col + v;
+    						var cell = null;
+    						for (var k3 = 0; k3 < cc.length; k3++) {
+    							if (cellRef(cc[k3]) != null && cellRef(cc[k3]).col == col) cell = cc[k3];
+    						}
+    						if (cell == null) {
+    							cell = el(doc, NS.x, "c", { r: colLetters(col) + target });
+    							var ref3 = null;
+    							var all = childElements(copy, NS.x, "c");
+    							for (var k4 = 0; k4 < all.length && ref3 == null; k4++) {
+    								if (cellRef(all[k4]).col > col) ref3 = all[k4];
+    							}
+    							copy.insertBefore(cell, ref3);
+    							if (attr(c0, null, "s") != "") cell.setAttribute("s", attr(c0, null, "s"));
+    						}
+    						setCellValue(cell, rows[i][v]);
+    					}
+    					// The tag itself, if still in a cell of the copy, is removed.
+    					var left = childElements(copy, NS.x, "c");
+    					for (var k5 = 0; k5 < left.length; k5++) {
+    						var lp = cellParagraph(left[k5]);
+    						if (lp != null && containsTag(lp, marker.tag)) setCellValue(left[k5], paragraphText(lp).replace(marker.tag, ""));
+    					}
+    					sheetData.insertBefore(copy, row);
+    				}
+    				sheetData.removeChild(row);
+    				count++;
+    			}
+    		}
+    		if (count > 0) forceRecalculation();
+    		return count;
+    	}
+    
+    	function shiftDrawings(sheet, row, delta) {
+    		var drawings = relatedParts(sheet.part, REL.drawing);
+    		for (var i = 0; i < drawings.length; i++) {
+    			var d = dom(drawings[i]);
+    			var markers = descendants(d.getDocumentElement(), NS.xdr, "row");
+    			for (var m = 0; m < markers.length; m++) {
+    				var r0 = toInt(markers[m].getTextContent(), 0); // 0 based
+    				if (r0 + 1 > row) markers[m].setTextContent(String(r0 + delta));
+    			}
+    		}
+    	}
+    
+    	/* Excel recomputes the formulas when the file is opened. */
+    	function forceRecalculation() {
+    		var wbPart = mainPart();
+    		var wb = dom(wbPart);
+    		var root = wb.getDocumentElement();
+    		var calc = firstChild(root, NS.x, "calcPr");
+    		if (calc == null) calc = setOrdered(root, NS.x, "calcPr", wb.createElementNS(NS.x, "calcPr"), ORDER.wb);
+    		calc.setAttribute("fullCalcOnLoad", "1");
+    		var chains = relatedParts(wbPart, REL.calcChain);
+    		for (var i = 0; i < chains.length; i++) {
+    			var rels = relations(wbPart);
+    			for (var k = 0; k < rels.length; k++) {
+    				if (rels[k].type == REL.calcChain) removeRelation(wbPart, rels[k].id);
+    			}
+    			removePart(chains[i]);
+    		}
+    	}
+    
+    	/* Excel: picture anchored on the tag cell. */
+    	function xlsxCellPicture(scope, p, marker, info) {
+    		var sheet = scope.sheet;
+    		var cells = cellsWithTag(sheet, marker.tag);
+    		var count = 0;
+    		for (var i = 0; i < cells.length; i++) {
+    			var ref = cellRef(cells[i]);
+    			var drawingPart = relatedParts(sheet.part, REL.drawing)[0];
+    			if (drawingPart == null) {
+    				drawingPart = uniquePartName("xl/drawings/drawing", ".xml");
+    				putDom(drawingPart, newDom(''<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="'' + NS.xdr + ''" xmlns:a="'' + NS.a + ''" xmlns:r="'' + NS.r + ''"/>''));
+    				setOverride(drawingPart, CONTENT_TYPES.drawing);
+    				var rid = addRelation(sheet.part, REL.drawing, drawingPart);
+    				var drawingEl = sheet.root.getOwnerDocument().createElementNS(NS.x, "drawing");
+    				drawingEl.setAttributeNS(NS.r, "r:id", rid);
+    				declare(drawingEl, "r");
+    				setOrdered(sheet.root, NS.x, "drawing", drawingEl, ORDER.ws);
+    			}
+    			var d = dom(drawingPart);
+    			var size = imageSize(marker, info);
+    			var ids = descendants(d.getDocumentElement(), NS.xdr, "cNvPr");
+    			var id = ids.length + 2;
+    			var anchor = el(d, NS.xdr, "xdr:oneCellAnchor", {}, [
+    				el(d, NS.xdr, "xdr:from", {}, [
+    					el(d, NS.xdr, "xdr:col", {}, [d.createTextNode(String(ref.col))]),
+    					el(d, NS.xdr, "xdr:colOff", {}, [d.createTextNode("0")]),
+    					el(d, NS.xdr, "xdr:row", {}, [d.createTextNode(String(ref.row - 1))]),
+    					el(d, NS.xdr, "xdr:rowOff", {}, [d.createTextNode("0")])
+    				]),
+    				el(d, NS.xdr, "xdr:ext", { cx: String(size.cx), cy: String(size.cy) }),
+    				picElement(d, "xdr", NS.xdr, "c8o_image_" + id, imageRel(drawingPart, info), size.cx, size.cy, id),
+    				el(d, NS.xdr, "xdr:clientData")
+    			]);
+    			declare(anchor, "a");
+    			declare(anchor, "r");
+    			d.getDocumentElement().appendChild(anchor);
+    			var cp = cellParagraph(cells[i]);
+    			setCellValue(cells[i], paragraphText(cp).replace(marker.tag, ""));
+    			count++;
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- PowerPoint slides ---------- */
+    
+    	var presentation = null; // { part, dom }
+    
+    	function slideIdList() {
+    		return firstChild(presentation.dom.getDocumentElement(), NS.p, "sldIdLst");
+    	}
+    
+    	function copyPart(source, target) {
+    		putDom(target, dom(source).cloneNode(true));
+    		var rels = relsDom(source, false);
+    		if (rels != null) {
+    			var copy = rels.cloneNode(true);
+    			putDom(relsPart(target), copy);
+    			// Targets are relative: same folder, nothing to change.
+    		}
+    	}
+    
+    	function processSlides(scopes, marker) {
+    		if (kind != "pptx") throw "slides is only available in PowerPoint templates";
+    		var items = asArray(marker.value);
+    		var count = 0;
+    		var slides = liveScopes(scopes).filter(function (s) {
+    			return s.slide && withTag([s.root], marker.tag).length > 0;
+    		});
+    		for (var i = 0; i < slides.length; i++) {
+    			var scope = slides[i];
+    			var list = slideIdList();
+    			var sldIds = childElements(list, NS.p, "sldId");
+    			var current = null;
+    			var maxId = 255;
+    			for (var k = 0; k < sldIds.length; k++) {
+    				maxId = Math.max(maxId, toInt(attr(sldIds[k], null, "id"), 0));
+    				if (relTarget(presentation.part, attr(sldIds[k], NS.r, "id")) == scope.part) current = sldIds[k];
+    			}
+    			for (var it = 0; it < items.length; it++) {
+    				var item = parseJson(items[it]);
+    				var itemMarkers = item != null && !isArr(item) && item.markers != null ? item.markers : item;
+    				var slidePart = uniquePartName("ppt/slides/slide", ".xml");
+    				copyPart(scope.part, slidePart);
+    				setOverride(slidePart, CONTENT_TYPES.slide);
+    				var copyScopes = [{ part: slidePart, root: dom(slidePart).getDocumentElement(), scope: { part: slidePart, root: dom(slidePart).getDocumentElement() }, slide: true }];
+    				// Notes of the slide are copied too.
+    				var noteRels = relations(slidePart).filter(function (r) { return r.type == REL.notesSlide; });
+    				for (var nr = 0; nr < noteRels.length; nr++) {
+    					var notesPart = uniquePartName("ppt/notesSlides/notesSlide", ".xml");
+    					copyPart(noteRels[nr].target, notesPart);
+    					setOverride(notesPart, CONTENT_TYPES.notesSlide);
+    					noteRels[nr].el.setAttribute("Target", relativeTarget(slidePart, notesPart));
+    					var back = relations(notesPart).filter(function (r) { return r.type == REL.slide; });
+    					for (var b = 0; b < back.length; b++) back[b].el.setAttribute("Target", relativeTarget(notesPart, slidePart));
+    					copyScopes.push({ part: notesPart, root: dom(notesPart).getDocumentElement(), scope: { part: notesPart, root: dom(notesPart).getDocumentElement() } });
+    				}
+    				var rid = addRelation(presentation.part, REL.slide, slidePart);
+    				var sldId = presentation.dom.createElementNS(NS.p, "p:sldId");
+    				sldId.setAttribute("id", String(++maxId));
+    				sldId.setAttributeNS(NS.r, "r:id", rid);
+    				list.insertBefore(sldId, current);
+    				replaceText(copyScopes.map(function (s) { return s.root; }), marker.tag, "");
+    				processMarkers(copyScopes, asArray(itemMarkers), false);
+    				for (var cs = 0; cs < copyScopes.length; cs++) {
+    					if (!copyScopes[cs].removed) scopes.push(copyScopes[cs]);
+    				}
+    			}
+    			// The template slide (and its notes) is removed.
+    			var notes = relatedParts(scope.part, REL.notesSlide);
+    			if (current != null) {
+    				removeRelation(presentation.part, attr(current, NS.r, "id"));
+    				list.removeChild(current);
+    			}
+    			for (var n = 0; n < notes.length; n++) removePart(notes[n]);
+    			removePart(scope.part);
+    			scope.removed = true;
+    			for (var sc = 0; sc < scopes.length; sc++) {
+    				if (notes.indexOf(scopes[sc].part) != -1) scopes[sc].removed = true;
+    			}
+    			count++;
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- array ---------- */
+    
+    	function processArray(scopes, marker) {
+    		var items = asArray(marker.value);
+    		var count = 0;
+    		var roots = scopes.map(function (s) { return s.root; });
+    		var targets;
+    		while ((targets = withTag(roots, marker.tag)).length > 0 && count < 1000) {
+    			var temps = [];
+    			for (var j = 0; j < items.length; j++) temps.push("##C8O_ARRAY_" + (++uniq) + "##");
+    			replaceInParagraph(targets[0], marker.tag, function (doc, run) {
+    				return textRuns(doc, run, temps.join(""), propsOf(run));
+    			}, 1);
+    			for (var k = 0; k < items.length; k++) {
+    				var it = asObject(items[k]);
+    				processOne(scopes, { tag: temps[k], type: toText(it.type || "string"), value: it.value, style: it.style, merges: it.merges, fit: it.fit, width: it.width, height: it.height });
+    			}
+    			count++;
+    		}
+    		return count;
+    	}
+    
+    	/* ---------- Dispatcher ---------- */
+    
+    	function markerRank(m) {
+    		var t = toText(m.type || "string");
+    		if (t == "slides") return 0;
+    		if (t == "rows" || t == "list") return 1;
+    		return 2;
+    	}
+    
+    	function liveScopes(scopes) {
+    		return scopes.filter(function (s) {
+    			return !s.removed;
+    		});
+    	}
+    
+    	function processOne(allScopes, marker) {
+    		var scopes = liveScopes(allScopes);
+    		var roots = scopes.map(function (s) { return s.root; });
+    		switch (marker.type) {
+    			case "slides":
+    				return processSlides(allScopes, marker);
+    			case "rows":
+    				return processRows(scopes, marker);
+    			case "list":
+    				return processList(D === XLSX ? scopes : roots, marker);
+    			case "image":
+    				return processImage(scopes, marker);
+    			case "table":
+    			case "tableh":
+    			case "tablet":
+    				if (D === XLSX) return processSheetRows(scopes, marker);
+    				if (D === PPTX) throw "tables can not be built in PowerPoint templates, use a table with a rows tag";
+    				return processWordTable(roots, marker, marker.type);
+    			case "array":
+    				return processArray(scopes, marker);
+    			case "span":
+    				return processSpan(roots, marker);
+    			case "newline":
+    				return replaceText(roots, marker.tag, "\n");
+    			default:
+    				return replaceText(roots, marker.tag, marker.value);
+    		}
+    	}
+    
+    	function processMarkers(scopes, markers, topLevel) {
+    		var ordered = [];
+    		for (var i = 0; i < markers.length; i++) {
+    			var m = asObject(markers[i]);
+    			if (m.tag == null || toText(m.tag) == "") {
+    				log.warn(LOG + "Marker #" + i + " ignored: missing ''tag''");
+    				continue;
+    			}
+    			ordered.push({ marker: m, index: i });
+    		}
+    		ordered.sort(function (x, y) {
+    			return markerRank(x.marker) - markerRank(y.marker) || x.index - y.index;
+    		});
+    		for (var o = 0; o < ordered.length; o++) {
+    			var src = ordered[o].marker;
+    			var marker = { tag: toText(src.tag), type: toText(src.type || "string"), value: src.value, style: src.style, merges: src.merges, fit: src.fit, width: src.width, height: src.height };
+    			var count = 0;
+    			try {
+    				count = processOne(scopes, marker);
+    			} catch (e) {
+    				count = -1;
+    				marker_errors.push(marker.tag + ": " + e);
+    				log.error(LOG + "tag ''" + marker.tag + "'' (" + marker.type + ") failed: " + e + (e != null && e.lineNumber ? " (line " + e.lineNumber + ")" : ""));
+    				try {
+    					replaceText(liveScopes(scopes).map(function (s) { return s.root; }), marker.tag, "");
+    				} catch (ignore) {}
+    			}
+    			log.debug(LOG + "tag ''" + marker.tag + "'' (" + marker.type + "): " + count + " replacement(s)");
+    			if (topLevel && count == 0) not_found.push(marker.tag);
+    		}
+    	}
+    
+    	/* ---------- Scopes of each format ---------- */
+    
+    	function scopesOf(main) {
+    		var out = [];
+    		var add = function (part, extra) {
+    			var d = dom(part);
+    			if (d == null) return null;
+    			var s = { part: part, root: d.getDocumentElement() };
+    			s.scope = { part: part, root: s.root };
+    			for (var k in extra || {}) s[k] = extra[k];
+    			out.push(s);
+    			return s;
+    		};
+    		if (kind == "docx") {
+    			add(main);
+    			var types = [REL.header, REL.footer, REL.footnotes, REL.endnotes];
+    			for (var t = 0; t < types.length; t++) {
+    				var parts = relatedParts(main, types[t]);
+    				for (var i = 0; i < parts.length; i++) add(parts[i]);
+    			}
+    		} else if (kind == "pptx") {
+    			presentation = { part: main, dom: dom(main) };
+    			var ids = childElements(slideIdList() || presentation.dom.createElement("x"), NS.p, "sldId");
+    			for (var s = 0; s < ids.length; s++) {
+    				var slide = relTarget(main, attr(ids[s], NS.r, "id"));
+    				if (slide == null || !hasPart(slide)) continue;
+    				add(slide, { slide: true });
+    				var notes = relatedParts(slide, REL.notesSlide);
+    				for (var n = 0; n < notes.length; n++) add(notes[n]);
+    			}
+    			var masters = relatedParts(main, REL.slideMaster);
+    			for (var m = 0; m < masters.length; m++) {
+    				add(masters[m]);
+    				var layouts = relatedParts(masters[m], REL.slideLayout);
+    				for (var l = 0; l < layouts.length; l++) add(layouts[l]);
+    			}
+    		} else {
+    			sharedStrings = loadSharedStrings(main);
+    			if (sharedStrings != null) out.push({ part: sharedStrings.part, root: sharedStrings.dom.getDocumentElement() });
+    			var wb = dom(main);
+    			var sheets = wb.getElementsByTagNameNS(NS.x, "sheet");
+    			for (var w = 0; w < sheets.getLength(); w++) {
+    				var part = relTarget(main, attr(sheets.item(w), NS.r, "id"));
+    				if (part == null || !hasPart(part)) continue;
+    				var sc = add(part);
+    				sc.sheet = { part: part, root: sc.root, name: attr(sheets.item(w), null, "name"), workbook: main };
+    			}
+    		}
+    		return out;
+    	}
+    
+    	/* ---------- Metadata (docProps/core.xml) ---------- */
+    
+    	function applyMetadata() {
+    		var corePart = null;
+    		var rels = relations("");
+    		for (var i = 0; i < rels.length; i++) {
+    			if (rels[i].type == REL.coreProperties) corePart = rels[i].target;
+    		}
+    		var wanted = meta_title != null || meta_subject != null || meta_description != null || meta_initial_creator != null || meta_keywords != null || (meta_creation_date != null && meta_creation_date != "");
+    		if (corePart == null) {
+    			if (!wanted) return;
+    			corePart = "docProps/core.xml";
+    			putDom(corePart, newDom(''<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="'' + NS.cp + ''" xmlns:dc="'' + NS.dc + ''" xmlns:dcterms="'' + NS.dcterms + ''" xmlns:xsi="'' + NS.xsi + ''"/>''));
+    			setOverride(corePart, CONTENT_TYPES.core);
+    			addRelation("", REL.coreProperties, corePart);
+    		}
+    		var d = dom(corePart);
+    		var root = d.getDocumentElement();
+    		var set = function (ns, qname, value, w3cdtf) {
+    			var local = qname.split(":")[1];
+    			var e = firstChild(root, ns, local);
+    			if (e == null) {
+    				e = d.createElementNS(ns, qname);
+    				root.appendChild(e);
+    			}
+    			e.setTextContent(String(value));
+    			if (w3cdtf) e.setAttributeNS(NS.xsi, "xsi:type", "dcterms:W3CDTF");
+    		};
+    		var iso = function (date) {
+    			var f = new java.text.SimpleDateFormat("yyyy-MM-dd''T''HH:mm:ss''Z''");
+    			f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+    			return String(f.format(date));
+    		};
+    		if (meta_title != null) set(NS.dc, "dc:title", meta_title);
+    		if (meta_subject != null) set(NS.dc, "dc:subject", meta_subject);
+    		if (meta_description != null) set(NS.dc, "dc:description", meta_description);
+    		if (meta_initial_creator != null) set(NS.dc, "dc:creator", meta_initial_creator);
+    		if (meta_keywords != null) set(NS.cp, "cp:keywords", asArray(meta_keywords).map(toText).join(", "));
+    		if (meta_creation_date != null && meta_creation_date != "") {
+    			try {
+    				var date = new java.util.Date();
+    				if (String(meta_creation_date) != "now") date = new java.text.SimpleDateFormat("yyyy-MM-dd''T''HH:mm:ss").parse(String(meta_creation_date));
+    				set(NS.dcterms, "dcterms:created", iso(date), true);
+    			} catch (e) {
+    				log.error(LOG + "Can not parse meta_creation_date ''" + meta_creation_date + "'': " + e);
+    			}
+    		}
+    		set(NS.dcterms, "dcterms:modified", iso(new java.util.Date()), true);
+    	}
+    
+    	/* Templates (dotx, potx, xltx) saved as documents get the document content type. */
+    	function fixMainContentType(main) {
+    		var o = overrideOf(main);
+    		if (o == null) return;
+    		var type = attr(o, null, "ContentType");
+    		var ext = file_name.replace(/^.*\./, "").toLowerCase();
+    		var map = { docx: [CONTENT_TYPES.wordTemplate, CONTENT_TYPES.wordDocument], pptx: [CONTENT_TYPES.pptTemplate, CONTENT_TYPES.pptDocument], xlsx: [CONTENT_TYPES.xlTemplate, CONTENT_TYPES.xlDocument] }[ext];
+    		if (map != null && type == map[0]) o.setAttribute("ContentType", map[1]);
+    	}
+    
+    	/* ---------- Main ---------- */
+    
+    	try {
+    		var templateFile = new File(template_path);
+    		if (!templateFile.isFile()) throw "Template file not found: " + template_path;
+    		pkg = openPackage(template_path);
+    		var main = mainPart();
+    		kind = /^word\//.test(main) ? "docx" : (/^ppt\//.test(main) ? "pptx" : (/^xl\//.test(main) ? "xlsx" : null));
+    		if (kind == null) throw "Unsupported Office document (main part " + main + ")";
+    		D = { docx: DOCX, pptx: PPTX, xlsx: XLSX }[kind];
+    		var markers = asArray(typeof o_markers != "undefined" ? o_markers : null);
+    		var scopes = scopesOf(main);
+    		processMarkers(scopes, markers, true);
+    		if (kind == "xlsx" && sharedStrings != null) {
+    			var sst = sharedStrings.dom.getDocumentElement();
+    			sst.removeAttribute("count");
+    			sst.setAttribute("uniqueCount", String(childElements(sst, NS.x, "si").length));
+    		}
+    		applyMetadata();
+    		fixMainContentType(main);
+    		savePackage(output_path);
+    		if (String(delete_at_end_of_session) != "false") context.addFileToDeleteAtEndOfSession(new File(output_path));
+    		if (not_found.length > 0) log.warn(LOG + "Tags not found in template: " + not_found.join(", "));
+    	} catch (e) {
+    		log.error(LOG + "Error filling ''" + template_path + "'': " + e);
+    		_error = true;
+    		_error_msg = "ERROR: filling template ''" + template_path + "''";
+    		_error_stack = "" + e;
+    	}
+    }'
+↓jIfError [steps.IfStep-1791400000008]: 
+  condition: _error == true
+  ↓Error_structure [steps.XMLErrorStep-1791400000009]: 
+    code: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_code
+    details: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_stack
+    message: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+        - SmartType: 
+          - ↑mode: JS
+          - →→: _error_msg
+  ↓Return [steps.ReturnStep-1791400000010]: 
+↓Element [steps.XMLElementStep-1791400000011]: 
+  nodeName: attachment
+  ↓jAttribute [steps.AttributeStep-1791400000012]: 
+    expression: '"attachment"'
+    nodeName: type
+  ↓jAttribute1 [steps.AttributeStep-1791400000013]: 
+    expression: file_name
+    nodeName: name
+  ↓jAttribute11 [steps.AttributeStep-1791400000014]: 
+    expression: output_path
+    nodeName: local-url
+  ↓jAttribute2 [steps.AttributeStep-1791400000015]: 
+    expression: '"application/octet-stream"'
+    nodeName: content-type
+↓not_found [steps.ElementStep-1791400000016]: 
+  expression: not_found.join(",")
+  nodeName: not_found
+↓marker_errors [steps.ElementStep-1791400000017]: 
+  expression: marker_errors.join("\n")
+  nodeName: marker_errors
+↓output_filename [variables.RequestableVariable-1791400000018]: 
+  comment: |
+    'Output file path, in the format of the template (a dotx, potx or xltx template can be saved as docx, pptx or xlsx). 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓input_filename [variables.RequestableVariable-1791400000019]: 
+  comment: |
+    'Template file to fill, designed with Word, PowerPoint or Excel: docx, pptx, xlsx, or the dotx, potx, xltx, docm, pptm, xlsm variants. 
+    Can be an absolute path or a relative Convertigo path: 
+    ".//" is relative to the project''s path. 
+    "./" is relative to the workspace path.'
+  required: true
+↓markers [variables.RequestableVariable-1791400000020]: 
+  comment: |
+    'Array of markers, as a JSON string or a structured variable: 
+    [ { "tag": "{name}", "type": "string", "value": "...", "style": {...} }, ... ] 
+    Types: 
+    - string / paragraph (default): text, \n = line break, \t = tab. 
+    - newline: line break. 
+    - span: text with style { fontName, fontStyle (REGULAR, BOLD, ITALIC, BOLDITALIC), fontSize, fontColor }. 
+    - image: value = image path or data URI. Tag = frame or picture name (Office: Alt text title or name), text frame holding only the tag, or text tag (inline picture; Excel: picture anchored on the cell). Options: fit (contain, stretch), width, height. 
+    - table / tableh (first row is a header) / tablet (styles from table_template_file): value = 2D array, style { header, defaults, cells: { "row-col": {...} } } with fontName, fontStyle, fontSize, fontColor, cellHAlign, cellVAlign, cellBGColor, merges [ { row, col, rowspan, colspan } ]. Excel: same as rows. PowerPoint: use rows. 
+    - array: value = array of markers without tag, inserted one after the other. 
+    - list: value = array of strings, the paragraph or list item holding the tag is repeated (Excel: one row per value). 
+    - rows: value = 2D array, the table row holding the tag is repeated. Excel: the sheet row holding the tag is repeated, the rows below are shifted and formulas, merged cells, tables and charts are updated. 
+    - slides: value = array of items (array of markers, or object with a markers array), the slide holding the tag is repeated (ODP, PPTX). 
+    Look at demo_u_fill_odt, demo_u_fill_table_odt, demo_u_fill_odp and demo_u_fill_office for examples.'
+↓table_template_file [variables.RequestableVariable-1791400000021]: 
+  comment: 'Path of the file containing a table to use as a template for the tablet markers: an ODT file for an OpenDocument template, a DOCX file for a Word template.'
+↓table_template_name [variables.RequestableVariable-1791400000022]: 
+  comment: 'Name of the template table (Word: Alt text title of the table). Defaults to the only table of the file.'
+↓break_before [variables.RequestableVariable-1791400000023]: 
+  comment: 'Break before the tables of the table, tableh and tablet markers (Word): ''auto'', ''column'' or ''page''. Default is ''page''.'
+  value: page
+↓meta_title [variables.RequestableVariable-1791400000024]: 
+  comment: Defines the Title metadata of the document. If null, does not change it. If empty, removes it.
+↓meta_subject [variables.RequestableVariable-1791400000025]: 
+  comment: Defines the Subject metadata of the document. If null, does not change it. If empty, removes it.
+↓meta_keywords [variables.RequestableMultiValuedVariable-1791400000026]: 
+  comment: Defines the Keywords metadata of the document. Multi-valued variable. Each entry is a keyword. If null, does not change it. If empty, removes it.
+↓meta_initial_creator [variables.RequestableVariable-1791400000027]: 
+  comment: Defines the Creator metadata of the document. If null, does not change it. If empty, removes it.
+↓meta_description [variables.RequestableVariable-1791400000028]: 
+  comment: Defines the Description metadata of the document. If null, does not change it. If empty, removes it.
+↓meta_creation_date [variables.RequestableVariable-1791400000029]: 
+  comment: 'Defines the Creation Date metadata of the document. ISO 8601 date format: yyyy-MM-dd''T''HH:mm:ss, or ''now''. If null or empty, does not change it.'
+↓delete_at_end_of_session [variables.RequestableVariable-1791400000030]: 
+  comment: Set to 'false' to keep the generated file when the HTTP session ends. Default is 'true'.
+  value: true

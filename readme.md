@@ -3,7 +3,7 @@
 
 # lib_fill_odt_pdf
 
-ODFToolkit and PDF library
+Document generation library: fills OpenDocument (ODT, ODS, ODP) and Office (Word, PowerPoint, Excel) templates, converts documents with LibreOffice and handles PDF files.
 
 
 For more technical informations : [documentation](./project.md)
@@ -16,6 +16,7 @@ For more technical informations : [documentation](./project.md)
     - [demo_export_data_to_sheet](#demo_export_data_to_sheet)
     - [demo_u_fill_odp](#demo_u_fill_odp)
     - [demo_u_fill_odt](#demo_u_fill_odt)
+    - [demo_u_fill_office](#demo_u_fill_office)
     - [demo_u_fill_pdf](#demo_u_fill_pdf)
     - [demo_u_fill_table_odt](#demo_u_fill_table_odt)
     - [demo_u_fill_table_template_odt](#demo_u_fill_table_template_odt)
@@ -33,6 +34,7 @@ For more technical informations : [documentation](./project.md)
     - [u_create_odt](#u_create_odt)
     - [u_export_data_to_sheet](#u_export_data_to_sheet)
     - [u_fill_odt](#u_fill_odt)
+    - [u_fill_ooxml](#u_fill_ooxml)
     - [u_fill_pdf](#u_fill_pdf)
     - [u_read_odt](#u_read_odt)
     - [u_read_pdf](#u_read_pdf)
@@ -114,6 +116,10 @@ Demo sequence: fills .//templates/odp/template.odp with u_fill_odt, then convert
 ### demo_u_fill_odt
 
 Demo sequence to fill an ODT template file.
+
+### demo_u_fill_office
+
+Demo sequence: fills the Word, PowerPoint and Excel templates of .//templates/office with u_fill_odt, then converts the results to PDF with u_convert.
 
 ### demo_u_fill_pdf
 
@@ -202,7 +208,7 @@ Get installed Fonts
 
 ### init_config
 
-Auto start sequence to install some required fonts for Docker Linux Platform.
+Auto start sequence to install LibreOffice and the fonts on the Docker Linux Platform. Not needed with an image built from docker/Dockerfile. While it runs, u_fill_odt and u_create_odt answer the -4 error.
 
 ### init_config_loop
 
@@ -583,9 +589,9 @@ Can be an absolute path or a relative Convertigo path:
 
 ### u_fill_odt
 
-Fills an ODT, ODS or ODP template (Universal): body, headers and footers, master pages, notes and tables.
-Place your template files in .//templates/odf (or .//templates/odp) folder.
-Built on odfdom-java 0.13 (no Simple API). See the markers variable for the marker types.
+Fills a document template (Universal): OpenDocument (ODT, ODS, ODP) or designed with Word, PowerPoint or Excel (docx, pptx, xlsx and their dotx, potx, xltx, docm, pptm, xlsm variants).
+Body, headers and footers, master pages, notes and tables are filled. Place your template files in .//templates/odf, .//templates/odp or .//templates/office folder.
+OpenDocument templates are filled with odfdom-java 0.13 (no Simple API), Office templates by u_fill_ooxml (direct edit of the Office XML, the formatting of the template is kept). See the markers variable for the marker types.
 It outputs an attachment structure, the tags not found and the marker errors. If you call it with .bin requester it will trigger a download in the client Browser.
 
 **variables**
@@ -595,13 +601,13 @@ It outputs an attachment structure, the tags not found and the marker errors. If
 <th>name</th><th>comment</th>
 </tr>
 <tr>
-<td>break_before</td><td>Define the BreakBefore table style property. Can be 'auto', 'column' or 'page'. Default is set to 'page'.</td>
+<td>break_before</td><td>Define the BreakBefore table style property of the table, tableh and tablet markers. Can be 'auto', 'column' or 'page'. Default is set to 'page'.</td>
 </tr>
 <tr>
 <td>delete_at_end_of_session</td><td>Set to 'false' to keep the generated file when the HTTP session ends. Default is 'true'.</td>
 </tr>
 <tr>
-<td>input_filename</td><td>ODT input template file name to fill. 
+<td>input_filename</td><td>Template file to fill: OpenDocument (odt, ods, odp) or designed with Word, PowerPoint or Excel (docx, pptx, xlsx, and the dotx, potx, xltx, docm, pptm, xlsm variants). 
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 
 "./" is relative to the workspace path.</td>
@@ -613,43 +619,115 @@ Types:
 - string / paragraph (default): text, \n = line break, \t = tab. 
 - newline: line break. 
 - span: text with style { fontName, fontStyle (REGULAR, BOLD, ITALIC, BOLDITALIC), fontSize, fontColor }. 
-- image: value = image path or data URI. Tag = frame name, text frame holding only the tag, or text tag (inline picture). Options: fit (contain, stretch), width, height. 
-- table / tableh (first row is a header) / tablet (styles from table_template_file): value = 2D array, style { header, defaults, cells: { "row-col": {...} } } with fontName, fontStyle, fontSize, fontColor, cellHAlign, cellVAlign, cellBGColor, merges [ { row, col, rowspan, colspan } ]. 
+- image: value = image path or data URI. Tag = frame or picture name (Office: Alt text title or name), text frame holding only the tag, or text tag (inline picture; Excel: picture anchored on the cell). Options: fit (contain, stretch), width, height. 
+- table / tableh (first row is a header) / tablet (styles from table_template_file): value = 2D array, style { header, defaults, cells: { "row-col": {...} } } with fontName, fontStyle, fontSize, fontColor, cellHAlign, cellVAlign, cellBGColor, merges [ { row, col, rowspan, colspan } ]. Excel: same as rows. PowerPoint: use rows. 
 - array: value = array of markers without tag, inserted one after the other. 
-- list: value = array of strings, the paragraph or list item holding the tag is repeated. 
-- rows: value = 2D array, the table row holding the tag is repeated. 
-- slides: value = array of items (array of markers, or object with a markers array), the slide holding the tag is repeated. 
-Look at demo_u_fill_odt, demo_u_fill_table_odt and demo_u_fill_odp for examples.</td>
+- list: value = array of strings, the paragraph or list item holding the tag is repeated (Excel: one row per value). 
+- rows: value = 2D array, the table row holding the tag is repeated. Excel: the sheet row holding the tag is repeated, the rows below are shifted and formulas, merged cells, tables and charts are updated. 
+- slides: value = array of items (array of markers, or object with a markers array), the slide holding the tag is repeated (ODP, PPTX). 
+Look at demo_u_fill_odt, demo_u_fill_table_odt, demo_u_fill_odp and demo_u_fill_office for examples.</td>
 </tr>
 <tr>
-<td>meta_creation_date</td><td>Defines the Creation Date metadata in the ODT Document. ISO 8601 date format: yyy-MM-dd'T'HH:mm:ss. If null or empty, does not change it.</td>
+<td>meta_creation_date</td><td>Defines the Creation Date metadata of the document. ISO 8601 date format: yyyy-MM-dd'T'HH:mm:ss, or 'now'. If null or empty, does not change it.</td>
 </tr>
 <tr>
-<td>meta_description</td><td>Defines the Description metadata in the ODT Document. If null, does not change it. If empty, removes it.</td>
+<td>meta_description</td><td>Defines the Description metadata of the document. If null, does not change it. If empty, removes it.</td>
 </tr>
 <tr>
-<td>meta_initial_creator</td><td>Defines the Creator metadata in the ODT Document. If null, does not change it. If empty, removes it.</td>
+<td>meta_initial_creator</td><td>Defines the Creator metadata of the document. If null, does not change it. If empty, removes it.</td>
 </tr>
 <tr>
-<td>meta_keywords</td><td>Defines the Keywords metadata in the ODT Document. Multi-valued variable. Each entry is a keyword. If null, does not change it. If empty, removes it.</td>
+<td>meta_keywords</td><td>Defines the Keywords metadata of the document. Multi-valued variable. Each entry is a keyword. If null, does not change it. If empty, removes it.</td>
 </tr>
 <tr>
-<td>meta_subject</td><td>Defines the Subject metadata in the ODT Document. If null, does not change it. If empty, removes it.</td>
+<td>meta_subject</td><td>Defines the Subject metadata of the document. If null, does not change it. If empty, removes it.</td>
 </tr>
 <tr>
-<td>meta_title</td><td>Defines the Title metadata in the ODT Document. If null, does not change it. If empty, removes it.</td>
+<td>meta_title</td><td>Defines the Title metadata of the document. If null, does not change it. If empty, removes it.</td>
 </tr>
 <tr>
-<td>output_filename</td><td>ODT output file path. 
+<td>output_filename</td><td>Output file path, in the format of the template (a dotx, potx or xltx template can be saved as docx, pptx or xlsx). 
 Can be an absolute path or a relative Convertigo path: 
 ".//" is relative to the project's path. 
 "./" is relative to the workspace path.</td>
 </tr>
 <tr>
-<td>table_template_file</td><td>Path of the ODT file containing a table to use as a template.</td>
+<td>table_template_file</td><td>Path of the file containing a table to use as a template for the tablet markers: an ODT file for an OpenDocument template, a DOCX file for a Word template.</td>
 </tr>
 <tr>
-<td>table_template_name</td><td>Name of the template table.</td>
+<td>table_template_name</td><td>Name of the template table (Word: Alt text title of the table). Defaults to the only table of the file.</td>
+</tr>
+</table>
+
+### u_fill_ooxml
+
+Fills a template designed with Microsoft Office: Word (docx, dotx, docm), PowerPoint (pptx, potx, pptm) or Excel (xlsx, xltx, xlsm).
+Called by u_fill_odt for these templates, with the same variables and markers: call u_fill_odt.
+The package is edited in place (direct edit of the Office XML): only the parts holding tags are rewritten, the formatting of the template is kept and LibreOffice is not needed. Tags split by Office across runs (spell check, revisions) are found.
+It outputs an attachment structure, the tags not found and the marker errors.
+
+**variables**
+
+<table>
+<tr>
+<th>name</th><th>comment</th>
+</tr>
+<tr>
+<td>break_before</td><td>Break before the tables of the table, tableh and tablet markers (Word): 'auto', 'column' or 'page'. Default is 'page'.</td>
+</tr>
+<tr>
+<td>delete_at_end_of_session</td><td>Set to 'false' to keep the generated file when the HTTP session ends. Default is 'true'.</td>
+</tr>
+<tr>
+<td>input_filename</td><td>Template file to fill, designed with Word, PowerPoint or Excel: docx, pptx, xlsx, or the dotx, potx, xltx, docm, pptm, xlsm variants. 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>markers</td><td>Array of markers, as a JSON string or a structured variable: 
+[ { "tag": "{name}", "type": "string", "value": "...", "style": {...} }, ... ] 
+Types: 
+- string / paragraph (default): text, \n = line break, \t = tab. 
+- newline: line break. 
+- span: text with style { fontName, fontStyle (REGULAR, BOLD, ITALIC, BOLDITALIC), fontSize, fontColor }. 
+- image: value = image path or data URI. Tag = frame or picture name (Office: Alt text title or name), text frame holding only the tag, or text tag (inline picture; Excel: picture anchored on the cell). Options: fit (contain, stretch), width, height. 
+- table / tableh (first row is a header) / tablet (styles from table_template_file): value = 2D array, style { header, defaults, cells: { "row-col": {...} } } with fontName, fontStyle, fontSize, fontColor, cellHAlign, cellVAlign, cellBGColor, merges [ { row, col, rowspan, colspan } ]. Excel: same as rows. PowerPoint: use rows. 
+- array: value = array of markers without tag, inserted one after the other. 
+- list: value = array of strings, the paragraph or list item holding the tag is repeated (Excel: one row per value). 
+- rows: value = 2D array, the table row holding the tag is repeated. Excel: the sheet row holding the tag is repeated, the rows below are shifted and formulas, merged cells, tables and charts are updated. 
+- slides: value = array of items (array of markers, or object with a markers array), the slide holding the tag is repeated (ODP, PPTX). 
+Look at demo_u_fill_odt, demo_u_fill_table_odt, demo_u_fill_odp and demo_u_fill_office for examples.</td>
+</tr>
+<tr>
+<td>meta_creation_date</td><td>Defines the Creation Date metadata of the document. ISO 8601 date format: yyyy-MM-dd'T'HH:mm:ss, or 'now'. If null or empty, does not change it.</td>
+</tr>
+<tr>
+<td>meta_description</td><td>Defines the Description metadata of the document. If null, does not change it. If empty, removes it.</td>
+</tr>
+<tr>
+<td>meta_initial_creator</td><td>Defines the Creator metadata of the document. If null, does not change it. If empty, removes it.</td>
+</tr>
+<tr>
+<td>meta_keywords</td><td>Defines the Keywords metadata of the document. Multi-valued variable. Each entry is a keyword. If null, does not change it. If empty, removes it.</td>
+</tr>
+<tr>
+<td>meta_subject</td><td>Defines the Subject metadata of the document. If null, does not change it. If empty, removes it.</td>
+</tr>
+<tr>
+<td>meta_title</td><td>Defines the Title metadata of the document. If null, does not change it. If empty, removes it.</td>
+</tr>
+<tr>
+<td>output_filename</td><td>Output file path, in the format of the template (a dotx, potx or xltx template can be saved as docx, pptx or xlsx). 
+Can be an absolute path or a relative Convertigo path: 
+".//" is relative to the project's path. 
+"./" is relative to the workspace path.</td>
+</tr>
+<tr>
+<td>table_template_file</td><td>Path of the file containing a table to use as a template for the tablet markers: an ODT file for an OpenDocument template, a DOCX file for a Word template.</td>
+</tr>
+<tr>
+<td>table_template_name</td><td>Name of the template table (Word: Alt text title of the table). Defaults to the only table of the file.</td>
 </tr>
 </table>
 

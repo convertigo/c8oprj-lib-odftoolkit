@@ -1,5 +1,4 @@
 accessibility: Hidden
-authenticatedContextRequired: false
 comment: 'Demo sequence: fills .//templates/odp/template.odp with u_fill_odt, then converts the result to PPTX and PDF with u_convert.'
 responseTimeout: 300
 ↓build_markers [steps.SimpleStep-1791100000052]: 

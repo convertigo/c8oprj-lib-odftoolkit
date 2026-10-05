@@ -1,6 +1,6 @@
 ↑convertigo: 8.0.0.m006
 ↓lib_fill_odt_pdf [core.Project]: 
-  comment: ODFToolkit and PDF library
+  comment: 'Document generation library: fills OpenDocument (ODT, ODS, ODP) and Office (Word, PowerPoint, Excel) templates, converts documents with LibreOffice and handles PDF files.'
   contextTimeout: 1800
   httpSessionTimeout: 3600
   version: 2.0.0
@@ -11,6 +11,7 @@
   ↓demo_export_data_to_sheet [sequences.GenericSequence]: 🗏 sequences/demo_export_data_to_sheet.yaml
   ↓demo_u_fill_odp [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_odp.yaml
   ↓demo_u_fill_odt [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_odt.yaml
+  ↓demo_u_fill_office [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_office.yaml
   ↓demo_u_fill_pdf [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_pdf.yaml
   ↓demo_u_fill_table_odt [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_table_odt.yaml
   ↓demo_u_fill_table_template_odt [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_table_template_odt.yaml
@@ -28,6 +29,7 @@
   ↓u_create_odt [sequences.GenericSequence]: 🗏 sequences/u_create_odt.yaml
   ↓u_export_data_to_sheet [sequences.GenericSequence]: 🗏 sequences/u_export_data_to_sheet.yaml
   ↓u_fill_odt [sequences.GenericSequence]: 🗏 sequences/u_fill_odt.yaml
+  ↓u_fill_ooxml [sequences.GenericSequence]: 🗏 sequences/u_fill_ooxml.yaml
   ↓u_fill_pdf [sequences.GenericSequence]: 🗏 sequences/u_fill_pdf.yaml
   ↓u_read_odt [sequences.GenericSequence]: 🗏 sequences/u_read_odt.yaml
   ↓u_read_pdf [sequences.GenericSequence]: 🗏 sequences/u_read_pdf.yaml
