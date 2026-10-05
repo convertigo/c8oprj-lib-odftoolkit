@@ -19,7 +19,7 @@ responseTimeout: 1200
           ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 apt-get -o DPkg::Lock::Timeout=60 install -y software-properties-common"],
           ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 add-apt-repository -y universe"],
           ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 300 apt-get -o DPkg::Lock::Timeout=60 update"],
-          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 600 apt-get -o DPkg::Lock::Timeout=60 install -y libreoffice-writer libreoffice-core libreoffice-common"],
+          ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 600 apt-get -o DPkg::Lock::Timeout=60 install -y libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-core libreoffice-common"],
           ["bash", "-lc", "echo ''ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true'' | sudo debconf-set-selections"],
           ["bash", "-lc", "sudo env DEBIAN_FRONTEND=noninteractive timeout 600 apt-get -o DPkg::Lock::Timeout=60 install -y ttf-mscorefonts-installer fonts-dejavu fonts-liberation"],
           ["sudo", "mkdir", "-p", "/usr/share/fonts/truetype/custom"],

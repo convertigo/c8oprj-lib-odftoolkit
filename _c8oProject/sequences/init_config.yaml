@@ -43,7 +43,7 @@ responseTimeout: 1200
     commandLine: '["sudo", "apt-get", "update"]'
     output: true
   ↓Process_execute5 [steps.ProcessExecStep-1768383757703]: 
-    commandLine: '["sudo", "apt-get", "install", "-y", "libreoffice-writer", "libreoffice-core", "libreoffice-common"]'
+    commandLine: '["sudo", "apt-get", "install", "-y", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress", "libreoffice-core", "libreoffice-common"]'
     output: true
   ↓Process_execute6 [steps.ProcessExecStep-1768383892881]: 
     commandLine: '["sudo", "apt-get", "install", "-y", "ttf-mscorefonts-installer", "fonts-dejavu", "fonts-liberation"]'

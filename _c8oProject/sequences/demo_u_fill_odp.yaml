@@ -1,0 +1,80 @@
+accessibility: Hidden
+authenticatedContextRequired: false
+comment: 'Demo sequence: fills .//templates/odp/template.odp with u_fill_odp, then converts the result to PPTX and PDF with u_convert.'
+responseTimeout: 300
+↓build_markers [steps.SimpleStep-1791100000052]: 
+  expression: |
+    '// Markers for .//templates/odp/template.odp (one entry per tag of the template).
+    var markers = [
+    	{ tag: "{titre}", value: "Rapport trimestriel" },
+    	{ tag: "{sous_titre}", value: "T3 2026\nDirection commerciale" },
+    	{ tag: "logo", type: "image", value: ".//templates/odp/sample_logo.png" },
+    	{ tag: "{note_orateur}", value: "Insister sur la croissance du trimestre." },
+    	{ tag: "{points}", type: "list", value: ["Chiffre d''affaires +12 %", "Trois nouveaux clients", "Lancement de l''offre Cloud"] },
+    	{ tag: "{date}", value: String(new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.util.Date())) },
+    	{ tag: "{titre_tableau}", value: "Ventes par produit" },
+    	{ tag: "{lignes}", type: "rows", value: [
+    		["Convertigo Low Code", "12", "24 000 EUR"],
+    		["C8oForms", "30", "18 500 EUR"],
+    		["Support", "-", "6 000 EUR"]
+    	] },
+    	{ tag: "{produits}", type: "slides", value: [
+    		[
+    			{ tag: "{produit_nom}", value: "Convertigo Low Code" },
+    			{ tag: "{produit_description}", value: "Plateforme de developpement d''applications mobiles et web." },
+    			{ tag: "{produit_photo}", type: "image", value: ".//templates/odp/sample_photo_1.png" }
+    		],
+    		[
+    			{ tag: "{produit_nom}", value: "C8oForms" },
+    			{ tag: "{produit_description}", value: "Formulaires no code connectes a vos donnees." },
+    			{ tag: "{produit_photo}", type: "image", value: ".//templates/odp/sample_photo_2.png" }
+    		]
+    	] },
+    	{ tag: "{pied_de_page}", value: "Convertigo - Demo lib_fill_odt_pdf" }
+    ];'
+↓markers [steps.JsonToXmlStep-1791100000053]: 
+  jsonObject: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: JS
+        - →→: markers
+  key: 
+    - xmlizable: 
+      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+      - SmartType: 
+        - ↑mode: PLAIN
+        - →→: array
+  output: false
+↓fill_odp [steps.SequenceStep-1791100000054]: 
+  output: true
+  sourceSequence: lib_fill_odt_pdf.u_fill_odp
+  ↓input_filename [variables.StepVariable-1791100000055]: 
+    value: .//templates/odp/template.odp
+  ↓output_filename [variables.StepVariable-1791100000056]: 
+    value: .//outputs/demo_u_fill_odp.odp
+  ↓markers [variables.StepVariable-1791100000057]: 
+    sourceDefinition: 
+      - xmlizable: 
+        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+        - com.twinsoft.convertigo.beans.common.XMLVector: 
+          - java.lang.String: 
+            - ↑value: 1791100000053
+          - java.lang.String: 
+            - ↑value: .
+  ↓meta_title [variables.StepVariable-1791100000058]: 
+    value: Rapport trimestriel
+↓to_pptx [steps.SequenceStep-1791100000059]: 
+  output: true
+  sourceSequence: lib_fill_odt_pdf.u_convert
+  ↓input_filename [variables.StepVariable-1791100000060]: 
+    value: .//outputs/demo_u_fill_odp.odp
+  ↓output_filename [variables.StepVariable-1791100000061]: 
+    value: .//outputs/demo_u_fill_odp.pptx
+↓to_pdf [steps.SequenceStep-1791100000062]: 
+  output: true
+  sourceSequence: lib_fill_odt_pdf.u_convert
+  ↓input_filename [variables.StepVariable-1791100000063]: 
+    value: .//outputs/demo_u_fill_odp.odp
+  ↓output_filename [variables.StepVariable-1791100000064]: 
+    value: .//outputs/demo_u_fill_odp.pdf

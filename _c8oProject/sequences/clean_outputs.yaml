@@ -44,7 +44,7 @@ comment: 'Clean the generated files. Can be used in a Convertigo scheduled job t
       if (lowerFileName == ".gitkeep") {
       	isFileRemovable = false;
       } else {
-      	if (!/\.(xlsx|xlsm|xlsb|xls|numbers|ods|odt|pdf|fods|wk3|csv|txt|sylk|html|dif|dbf|wk1|rtf|prn|eth)$/i.test(fileName)) {
+      	if (!/\.(xlsx|xlsm|xlsb|xls|numbers|ods|odt|odp|odg|pdf|fods|fodt|fodp|docx|doc|pptx|ppt|wk3|csv|txt|sylk|html|xhtml|epub|png|jpg|svg|dif|dbf|wk1|rtf|prn|eth)$/i.test(fileName)) {
       		isFileRemovable = false;
       	}
       }
