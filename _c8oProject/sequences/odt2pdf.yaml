@@ -1,14 +1,20 @@
-comment: Convert an ODT file to a PDF file with LibreOffice (u_convert). Fonts from fonts_folder or font_paths are embedded for the conversion.
+comment: 'Convert an ODT file to a PDF file: with LibreOffice (u_convert) when it is installed, the fonts from fonts_folder or font_paths being embedded for the conversion, otherwise with the converter of the previous versions (XDocReport + iText 2.1.7, jars in libs/legacy_pdf). The global symbol lib_fill_odt_pdf.odt2pdf_converter forces the converter: auto (default), libreoffice or legacy.'
 ↓inputVars [steps.InputVariablesStep-1791200000024]: 
 ↓prepare [steps.SimpleStep-1743693982367]: 
   expression: |
     '/* =====================================================================================
      * odt2pdf / SimpleStep "prepare"
      *
-     * The conversion is done by u_convert with LibreOffice (the XDocReport / iText 2.1.7
-     * converter is removed). Fonts given with fonts_folder or font_paths / font_aliases are
-     * embedded in the document for the conversion. The multi-valued variables are passed
-     * to u_convert as JSON arrays.
+     * Chooses the converter:
+     * - LibreOffice (u_convert) when it is installed. Fonts given with fonts_folder or
+     *   font_paths / font_aliases are embedded in the document for the conversion, the
+     *   multi-valued variables are passed to u_convert as JSON arrays.
+     * - otherwise the converter of the previous versions (XDocReport + iText 2.1.7, step
+     *   "export"), so that a server without LibreOffice works as before.
+     * The global symbol lib_fill_odt_pdf.odt2pdf_converter (or the environment variable
+     * LIB_FILL_ODT_PDF_ODT2PDF_CONVERTER) forces the choice: auto (default), libreoffice or legacy.
+     * LibreOffice is looked up as u_convert does: global symbol lib_fill_odt_pdf.soffice_path,
+     * SOFFICE_PATH environment variable, default install paths, then soffice in the PATH.
      * ===================================================================================== */
     
     function values(v) {
@@ -24,76 +30,706 @@ comment: Convert an ODT file to a PDF file with LibreOffice (u_convert). Fonts f
     	return out;
     }
     
+    function setting(symbol, env) {
+    	try {
+    		var v = com.twinsoft.convertigo.engine.Engine.theApp.databaseObjectsManager.symbolsGetValue(symbol);
+    		if (v != null && String(v).trim() != "") return String(v).trim();
+    	} catch (e) {}
+    	var e2 = java.lang.System.getenv(env);
+    	return e2 != null ? String(e2).trim() : "";
+    }
+    
+    function get_full_path(file_path) {
+    	if (file_path != null && file_path != "") {
+    		file_path = String(file_path);
+    		var project_directory_path = String(context.getProjectDirectory()).replace(/\\/g, "/") + "/";
+    		if (file_path.indexOf(".//") == 0) {
+    			file_path = project_directory_path + file_path.substring(3);
+    		} else if (file_path.indexOf("./") == 0) {
+    			file_path = project_directory_path + "../" + file_path.substring(2);
+    		}
+    	}
+    	return file_path;
+    }
+    
+    function get_file_name(file_path) {
+    	if (file_path != null && file_path != "") {
+    		return String(org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path)));
+    	}
+    	return "";
+    }
+    
+    var windows = String(java.lang.System.getProperty("os.name")).toLowerCase().indexOf("win") != -1;
+    
+    function inPath(name) {
+    	var path = java.lang.System.getenv("PATH");
+    	if (path == null) return null;
+    	var dirs = String(path).split(String(java.io.File.pathSeparator));
+    	var suffixes = windows && !/\.exe$/i.test(name) ? [".exe", ""] : [""];
+    	for (var i = 0; i < dirs.length; i++) {
+    		for (var j = 0; j < suffixes.length; j++) {
+    			if (dirs[i] == "") continue;
+    			var f = new java.io.File(dirs[i], name + suffixes[j]);
+    			if (f.isFile() && f.canExecute()) return String(f.getPath());
+    		}
+    	}
+    	return null;
+    }
+    
+    /* Path of the LibreOffice executable, or null when it is not installed. */
+    function sofficePath() {
+    	var configured = [];
+    	var symbol = setting("lib_fill_odt_pdf.soffice_path", "SOFFICE_PATH");
+    	if (symbol != "") configured.push(symbol);
+    	var env = java.lang.System.getenv("SOFFICE_PATH");
+    	if (env != null && String(env).trim() != "" && String(env).trim() != symbol) configured.push(String(env).trim());
+    	for (var i = 0; i < configured.length; i++) {
+    		if (!/[\/\\]/.test(configured[i])) {
+    			var found = inPath(configured[i]);
+    			if (found != null) return found;
+    		} else if (new java.io.File(configured[i]).isFile()) {
+    			return configured[i];
+    		}
+    	}
+    	var os = String(java.lang.System.getProperty("os.name")).toLowerCase();
+    	var defaults = [];
+    	if (os.indexOf("mac") != -1) {
+    		defaults = ["/Applications/LibreOffice.app/Contents/MacOS/soffice"];
+    	} else if (windows) {
+    		defaults = ["C:/Program Files/LibreOffice/program/soffice.exe", "C:/Program Files (x86)/LibreOffice/program/soffice.exe"];
+    	} else {
+    		defaults = ["/usr/bin/soffice", "/usr/lib/libreoffice/program/soffice", "/opt/libreoffice/program/soffice", "/snap/bin/libreoffice"];
+    	}
+    	for (var d = 0; d < defaults.length; d++) {
+    		if (new java.io.File(defaults[d]).isFile()) return defaults[d];
+    	}
+    	return inPath("soffice");
+    }
+    
+    var converter = setting("lib_fill_odt_pdf.odt2pdf_converter", "LIB_FILL_ODT_PDF_ODT2PDF_CONVERTER").toLowerCase();
+    if (converter != "libreoffice" && converter != "legacy") converter = "auto";
+    var use_office = converter == "libreoffice" || (converter == "auto" && sofficePath() != null);
+    log.debug("[odt2pdf] converter: " + (use_office ? "LibreOffice (u_convert)" : "previous Java converter (XDocReport + iText 2.1.7)"));
+    
+    var output_path = get_full_path(output_filename);
+    var file_name = get_file_name(output_filename);
     var font_paths_json = JSON.stringify(values(font_paths));
     var font_aliases_json = JSON.stringify(values(font_aliases));'
-↓font_paths_json [steps.ElementStep-1791200000025]: 
-  expression: font_paths_json
-  nodeName: font_paths
-  output: false
-↓font_aliases_json [steps.ElementStep-1791200000026]: 
-  expression: font_aliases_json
-  nodeName: font_aliases
-  output: false
-↓convert [steps.SequenceStep-1791200000027]: 
-  sourceSequence: lib_fill_odt_pdf.u_convert
-  ↓input_filename [variables.StepVariable-1791200000028]: 
-    sourceDefinition: 
-      - xmlizable: 
-        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
-        - com.twinsoft.convertigo.beans.common.XMLVector: 
-          - java.lang.String: 
-            - ↑value: 1791200000024
-          - java.lang.String: 
-            - ↑value: ./input_filename/text()
-  ↓output_filename [variables.StepVariable-1791200000029]: 
-    sourceDefinition: 
-      - xmlizable: 
-        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
-        - com.twinsoft.convertigo.beans.common.XMLVector: 
-          - java.lang.String: 
-            - ↑value: 1791200000024
-          - java.lang.String: 
-            - ↑value: ./output_filename/text()
-  ↓target_format [variables.StepVariable-1791200000030]: 
-    value: pdf
-  ↓fonts_folder [variables.StepVariable-1791200000031]: 
-    sourceDefinition: 
-      - xmlizable: 
-        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
-        - com.twinsoft.convertigo.beans.common.XMLVector: 
-          - java.lang.String: 
-            - ↑value: 1791200000024
-          - java.lang.String: 
-            - ↑value: ./fonts_folder/text()
-  ↓font_paths [variables.StepVariable-1791200000032]: 
-    sourceDefinition: 
-      - xmlizable: 
-        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
-        - com.twinsoft.convertigo.beans.common.XMLVector: 
-          - java.lang.String: 
-            - ↑value: 1791200000025
-          - java.lang.String: 
-            - ↑value: ./text()
-  ↓font_aliases [variables.StepVariable-1791200000033]: 
-    sourceDefinition: 
-      - xmlizable: 
-        - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
-        - com.twinsoft.convertigo.beans.common.XMLVector: 
-          - java.lang.String: 
-            - ↑value: 1791200000026
-          - java.lang.String: 
-            - ↑value: ./text()
-  ↓delete_at_end_of_session [variables.StepVariable-1791200000034]: 
-    value: false
-↓Copy [steps.XMLCopyStep-1791200000035]: 
-  sourceDefinition: 
-    - xmlizable: 
-      - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
-      - com.twinsoft.convertigo.beans.common.XMLVector: 
-        - java.lang.String: 
-          - ↑value: 1791200000027
-        - java.lang.String: 
-          - ↑value: ./document/*
+↓jIfThenElse [steps.IfThenElseStep-1791400000096]: 
+  comment: LibreOffice when it is installed (or forced by the global symbol lib_fill_odt_pdf.odt2pdf_converter), otherwise the converter of the previous versions.
+  condition: use_office
+  ↓jThen [steps.ThenStep-1791400000097]: 
+    ↓font_paths_json [steps.ElementStep-1791200000025]: 
+      expression: font_paths_json
+      nodeName: font_paths
+      output: false
+    ↓font_aliases_json [steps.ElementStep-1791200000026]: 
+      expression: font_aliases_json
+      nodeName: font_aliases
+      output: false
+    ↓convert [steps.SequenceStep-1791200000027]: 
+      sourceSequence: lib_fill_odt_pdf.u_convert
+      ↓input_filename [variables.StepVariable-1791200000028]: 
+        sourceDefinition: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+            - com.twinsoft.convertigo.beans.common.XMLVector: 
+              - java.lang.String: 
+                - ↑value: 1791200000024
+              - java.lang.String: 
+                - ↑value: ./input_filename/text()
+      ↓output_filename [variables.StepVariable-1791200000029]: 
+        sourceDefinition: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+            - com.twinsoft.convertigo.beans.common.XMLVector: 
+              - java.lang.String: 
+                - ↑value: 1791200000024
+              - java.lang.String: 
+                - ↑value: ./output_filename/text()
+      ↓target_format [variables.StepVariable-1791200000030]: 
+        value: pdf
+      ↓fonts_folder [variables.StepVariable-1791200000031]: 
+        sourceDefinition: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+            - com.twinsoft.convertigo.beans.common.XMLVector: 
+              - java.lang.String: 
+                - ↑value: 1791200000024
+              - java.lang.String: 
+                - ↑value: ./fonts_folder/text()
+      ↓font_paths [variables.StepVariable-1791200000032]: 
+        sourceDefinition: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+            - com.twinsoft.convertigo.beans.common.XMLVector: 
+              - java.lang.String: 
+                - ↑value: 1791200000025
+              - java.lang.String: 
+                - ↑value: ./text()
+      ↓font_aliases [variables.StepVariable-1791200000033]: 
+        sourceDefinition: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+            - com.twinsoft.convertigo.beans.common.XMLVector: 
+              - java.lang.String: 
+                - ↑value: 1791200000026
+              - java.lang.String: 
+                - ↑value: ./text()
+      ↓delete_at_end_of_session [variables.StepVariable-1791200000034]: 
+        value: false
+    ↓jIfExist [steps.IfExistStep-1791400000098]: 
+      sourceDefinition: 
+        - xmlizable: 
+          - ↑classname: com.twinsoft.convertigo.beans.common.XMLVector
+          - com.twinsoft.convertigo.beans.common.XMLVector: 
+            - java.lang.String: 
+              - ↑value: 1791200000027
+            - java.lang.String: 
+              - ↑value: ./document/error
+      ↓Error_structure [steps.XMLErrorStep-1791400000102]: 
+        code: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: SOURCE
+              - com.twinsoft.convertigo.beans.common.XMLVector: 
+                - java.lang.String: 
+                  - ↑value: 1791200000027
+                - java.lang.String: 
+                  - ↑value: ./document/error/code
+        details: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: SOURCE
+              - com.twinsoft.convertigo.beans.common.XMLVector: 
+                - java.lang.String: 
+                  - ↑value: 1791200000027
+                - java.lang.String: 
+                  - ↑value: ./document/error/details
+        message: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: SOURCE
+              - com.twinsoft.convertigo.beans.common.XMLVector: 
+                - java.lang.String: 
+                  - ↑value: 1791200000027
+                - java.lang.String: 
+                  - ↑value: ./document/error/message
+      ↓Return [steps.ReturnStep-1791400000099]: 
+  ↓jElse [steps.ElseStep-1791400000100]: 
+    ↓export [steps.SimpleStep-1791400000101]: 
+      expression: |
+        '/* =====================================================================================
+         * odt2pdf / SimpleStep "export"
+         *
+         * Previous converter of odt2pdf (XDocReport 1.0 ODFDOM converter + iText 2.1.7), used when
+         * LibreOffice is not installed (see the "prepare" step). Its jars are built on odfdom 0.8/0.9,
+         * which can not be loaded next to odfdom 0.13 (same packages): they are kept in
+         * libs/legacy_pdf (not loaded by the project) and loaded by a separate class loader whose
+         * parent is the platform class loader, created once and shared through context.server.
+         * PdfConverter, PdfOptions, FontFactory and OdfTextDocument below give the code of the
+         * previous version access to these classes.
+         * ===================================================================================== */
+        
+        var LEGACY_PDF_DIR = "libs/legacy_pdf";
+        
+        function legacyPdfLoader() {
+        	var dir = new java.io.File(String(context.getProjectDirectory()), LEGACY_PDF_DIR).getCanonicalFile();
+        	var key = "lib_fill_odt_pdf.legacy_pdf_loader:" + dir.getPath();
+        	var server = context.server;
+        	var locked = new Packages.org.mozilla.javascript.Synchronizer(function () {
+        		var loader = server.get(key);
+        		if (loader != null) return loader;
+        		var files = dir.listFiles();
+        		var jars = [];
+        		for (var i = 0; files != null && i < files.length; i++) {
+        			if (/\.jar$/i.test(String(files[i].getName()))) jars.push(files[i]);
+        		}
+        		if (jars.length == 0) throw "The previous PDF converter is missing: no jar in " + dir.getPath();
+        		jars.sort(function (a, b) { return String(a.getName()) < String(b.getName()) ? -1 : 1; });
+        		var urls = java.lang.reflect.Array.newInstance(java.net.URL, jars.length);
+        		for (var j = 0; j < jars.length; j++) urls[j] = jars[j].toURI().toURL();
+        		loader = new java.net.URLClassLoader(urls, java.lang.ClassLoader.getPlatformClassLoader());
+        		server.set(key, loader);
+        		return loader;
+        	}, server);
+        	return locked();
+        }
+        
+        var legacy_pdf_loader = legacyPdfLoader();
+        
+        function legacyStatic(className, methodName, types, values) {
+        	var classes = java.lang.reflect.Array.newInstance(java.lang.Class, types.length);
+        	var args = java.lang.reflect.Array.newInstance(java.lang.Object, values.length);
+        	for (var i = 0; i < types.length; i++) classes[i] = types[i];
+        	for (var j = 0; j < values.length; j++) args[j] = values[j] == null ? null : String(values[j]);
+        	var method = java.lang.Class.forName(className, true, legacy_pdf_loader).getMethod(methodName, classes);
+        	var thread = java.lang.Thread.currentThread();
+        	var previous = thread.getContextClassLoader();
+        	thread.setContextClassLoader(legacy_pdf_loader);
+        	try {
+        		return method.invoke(null, args);
+        	} catch (e) {
+        		var cause = e.javaException != null ? e.javaException.getCause() : null;
+        		throw cause != null ? cause : e;
+        	} finally {
+        		thread.setContextClassLoader(previous);
+        	}
+        }
+        
+        var PdfConverter = {
+        	getInstance: function () {
+        		var converter = legacyStatic("org.odftoolkit.odfdom.converter.pdf.PdfConverter", "getInstance", [], []);
+        		return {
+        			convert: function (document, out, options) {
+        				var thread = java.lang.Thread.currentThread();
+        				var previous = thread.getContextClassLoader();
+        				thread.setContextClassLoader(legacy_pdf_loader);
+        				try {
+        					converter.convert(document, out, options);
+        				} finally {
+        					thread.setContextClassLoader(previous);
+        				}
+        			}
+        		};
+        	}
+        };
+        var PdfOptions = {
+        	create: function () { return legacyStatic("org.odftoolkit.odfdom.converter.pdf.PdfOptions", "create", [], []); }
+        };
+        var FontFactory = {
+        	register: function (path, alias) { return legacyStatic("com.lowagie.text.FontFactory", "register", [java.lang.String, java.lang.String], [path, alias]); }
+        };
+        var OdfTextDocument = {
+        	loadDocument: function (path) { return legacyStatic("org.odftoolkit.odfdom.doc.OdfTextDocument", "loadDocument", [java.lang.String], [path]); }
+        };
+        
+        var odf_api = JavaImporter(
+        	java.io.File,
+        	java.io.FileOutputStream,
+        	java.io.FileInputStream,
+        	java.io.ByteArrayInputStream,
+        	java.io.ByteArrayOutputStream,
+        	java.util.ArrayList,
+        	java.util.HashMap,
+        	java.util.HashSet,
+        	java.util.zip.ZipInputStream,
+        	java.util.zip.ZipOutputStream,
+        	java.util.zip.ZipEntry,
+        	java.util.zip.CRC32,
+        	javax.xml.parsers.DocumentBuilderFactory,
+        	javax.xml.transform.TransformerFactory,
+        	javax.xml.transform.OutputKeys,
+        	javax.xml.transform.dom.DOMSource,
+        	javax.xml.transform.stream.StreamResult,
+        	org.w3c.dom.Node/*,
+        	org.apache.fontbox.ttf.TTFParser,
+        	org.apache.pdfbox.io.RandomAccessReadBuffer,
+        	java.nio.file.Paths,
+        	java.nio.file.Files,
+        	java.util.Arrays*/
+        );
+        
+        var _error = false;
+        var _error_code = "-1";
+        var _error_msg = "";
+        var _error_stack = "";
+        
+        function get_file_name(file_path){
+        	if(file_path != ""){
+        		return org.apache.commons.io.FilenameUtils.getName(get_full_path(file_path));
+        	}
+        }
+        
+        function get_full_path(file_path){
+        	if(file_path != ""){
+        		project_directory_path = context.getProjectDirectory().replace("\\", "/") + "/";
+         		if(file_path.indexOf(".//") != -1){
+          			file_path = project_directory_path + file_path.substring(3);
+        		}
+         		else if(file_path.indexOf("./") != -1){
+          			file_path = project_directory_path + "../" + file_path.substring(2);
+        		}
+        	}
+        	return file_path;
+        }
+        
+        var input_path = get_full_path(input_filename);
+        var output_path = get_full_path(output_filename);
+        var file_name = get_file_name(output_filename);
+        
+        with(odf_api){
+        	var output = null;
+        	var odt = null;
+        	var normalized_input_file = null;
+        	var STYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        	var first_page_master_names = null;
+        	var normalized_first_page_headers = false;
+        	
+        	function registerAllFontsInFolder(folderPath){
+        	    var fontDir = new File(get_full_path(folderPath));
+        	    if (!fontDir.exists() || !fontDir.isDirectory()) {
+        	        log.warn("⚠️ Folder does not exist or is invalid: " + get_full_path(folderPath));
+        	        return;
+        	    }
+        	
+        	    var files = fontDir.listFiles();
+        	    for (var i = 0; i < files.length; i++) {
+        	        var f = files[i];
+        	        if (f.isFile()) {
+        	            var name = f.getName().toLowerCase();
+        	            if (name.endsWith(".ttf") || name.endsWith(".otf")) {
+        					// Aliases based on TTFParser:
+                    		/*var ttf = null;
+                    		try {
+        		                var path = Paths.get(f.getAbsolutePath());
+        		                var bytes = Files.readAllBytes(path);
+        		                var buffer = new RandomAccessReadBuffer(bytes);
+        		                var parser = new TTFParser();
+        		                var ttf = parser.parse(buffer);
+        		                var nameTable = ttf.getNameTable();
+        		                var records = nameTable.getNameRecords();
+        		                var alias = null;
+        		
+        		                // Parcours des enregistrements pour trouver "Full font name" (Name ID = 4)
+        		                for (var j = 0; j < records.length; j++) {
+        		                    var rec = records[j];
+        		                    if (rec.getNameId() == 4) {
+        		                        alias = rec.getString();
+        		                        break;
+        		                    }
+        		                }
+        		
+        		                // Fallback si non trouvé
+        		                if (!alias) alias = ttf.getName();
+        		
+        		                FontFactory.register(f.getAbsolutePath(), alias);
+        		                log.debug("✅ Registered Font: ''" + alias + "'' from: " + f.getName());
+        		            } catch (e) {
+        		                log.warn("⚠️ Erreur lors de l’analyse de ''" + f.getName() + "'' → " + e);
+        		            } finally {
+        		                if (ttf) ttf.close();
+        		            }*/
+        		            //aliases based on file name:
+        		            var fontAlias = (""+f.getName()).replace(".ttf", "").replace(/[_\-]/g, " ");
+                    		FontFactory.register(f.getAbsolutePath(), fontAlias);
+                    		log.debug("✅ Registered Font: ''" + fontAlias + "'' from: " + f.getAbsolutePath());
+        	            }
+        	        }
+        	    }
+        	    /*var allFonts = FontFactory.getRegisteredFonts().toArray();
+        		Arrays.sort(allFonts);
+        		for (var i = 0; i < allFonts.length; i++) {
+        		    log.warn("📚 Registered Font : " + allFonts[i]);
+        	    }*/
+        	}
+        	
+        	function readAllBytes(input){
+        	    var out = new ByteArrayOutputStream();
+        	    var buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 8192);
+        	    var count = 0;
+        	    while ((count = input.read(buffer)) != -1) {
+        	        out.write(buffer, 0, count);
+        	    }
+        	    return out.toByteArray();
+        	}
+        	
+        	function readZipEntry(filePath, entryName){
+        	    var zip = null;
+        	    try {
+        	        zip = new ZipInputStream(new FileInputStream(new File(filePath)));
+        	        var entry = null;
+        	        while ((entry = zip.getNextEntry()) != null) {
+        	            if (String(entry.getName()) == entryName) {
+        	                return readAllBytes(zip);
+        	            }
+        	            readAllBytes(zip);
+        	        }
+        	    } finally {
+        	        if (zip) zip.close();
+        	    }
+        	    return null;
+        	}
+        	
+        	function newDocumentBuilderFactory(){
+        	    var factory = DocumentBuilderFactory.newInstance();
+        	    factory.setNamespaceAware(true);
+        	    try { factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); } catch (ignore) {}
+        	    try { factory.setFeature("http://xml.org/sax/features/external-general-entities", false); } catch (ignore) {}
+        	    try { factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false); } catch (ignore) {}
+        	    return factory;
+        	}
+        	
+        	function xmlToBytes(doc){
+        	    var transformer = TransformerFactory.newInstance().newTransformer();
+        	    transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+        	    transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+        	    var out = new ByteArrayOutputStream();
+        	    transformer.transform(new DOMSource(doc), new StreamResult(out));
+        	    return out.toByteArray();
+        	}
+        	
+        	function getDirectChild(parent, namespaceUri, localName){
+        	    var node = parent.getFirstChild();
+        	    while (node != null) {
+        	        if (node.getNodeType() == Node.ELEMENT_NODE
+        	            && node.getNamespaceURI() != null
+        	            && node.getLocalName() != null
+        	            && String(node.getNamespaceURI()) == namespaceUri
+        	            && String(node.getLocalName()) == localName) {
+        	            return node;
+        	        }
+        	        node = node.getNextSibling();
+        	    }
+        	    return null;
+        	}
+        	
+        	function removeDirectChildren(parent, namespaceUri, localName){
+        	    var child = null;
+        	    while ((child = getDirectChild(parent, namespaceUri, localName)) != null) {
+        	        parent.removeChild(child);
+        	    }
+        	}
+        	
+        	function updateMasterPageReferences(doc){
+        	    if (first_page_master_names == null || first_page_master_names.isEmpty()) {
+        	        return false;
+        	    }
+        	
+        	    var changed = false;
+        	    var nodes = doc.getElementsByTagName("*");
+        	    for (var i = 0; i < nodes.getLength(); i++) {
+        	        var node = nodes.item(i);
+        	        if (node.hasAttributeNS(STYLE_NS, "master-page-name")) {
+        	            var oldName = String(node.getAttributeNS(STYLE_NS, "master-page-name"));
+        	            if (first_page_master_names.containsKey(oldName)) {
+        	                node.setAttributeNS(STYLE_NS, "style:master-page-name", String(first_page_master_names.get(oldName)));
+        	                changed = true;
+        	            }
+        	        }
+        	    }
+        	    return changed;
+        	}
+        	
+        	function normalizeMasterPageReferencesXml(bytes){
+        	    if (first_page_master_names == null || first_page_master_names.isEmpty()) {
+        	        return bytes;
+        	    }
+        	
+        	    var doc = newDocumentBuilderFactory().newDocumentBuilder().parse(new ByteArrayInputStream(bytes));
+        	    return updateMasterPageReferences(doc) ? xmlToBytes(doc) : bytes;
+        	}
+        	
+        	function normalizeStylesXml(bytes){
+        	    var doc = newDocumentBuilderFactory().newDocumentBuilder().parse(new ByteArrayInputStream(bytes));
+        	    var masterPages = doc.getElementsByTagNameNS(STYLE_NS, "master-page");
+        	    var masterPageCopy = new ArrayList();
+        	    var masterPageNames = new HashSet();
+        	    var changed = false;
+        	
+        	    for (var i = 0; i < masterPages.getLength(); i++) {
+        	        var masterPage = masterPages.item(i);
+        	        masterPageCopy.add(masterPage);
+        	        masterPageNames.add(String(masterPage.getAttributeNS(STYLE_NS, "name")));
+        	    }
+        	
+        	    for (var j = 0; j < masterPageCopy.size(); j++) {
+        	        var originalMasterPage = masterPageCopy.get(j);
+        	        var headerFirst = getDirectChild(originalMasterPage, STYLE_NS, "header-first");
+        	        var footerFirst = getDirectChild(originalMasterPage, STYLE_NS, "footer-first");
+        	        if (headerFirst == null && footerFirst == null) {
+        	            continue;
+        	        }
+        	
+        	        var originalName = String(originalMasterPage.getAttributeNS(STYLE_NS, "name"));
+        	        if (originalName == "") {
+        	            continue;
+        	        }
+        	
+        	        var firstPageName = originalName + "_c8o_first";
+        	        var nameIndex = 1;
+        	        while (masterPageNames.contains(firstPageName)) {
+        	            firstPageName = originalName + "_c8o_first" + (nameIndex++);
+        	        }
+        	        masterPageNames.add(firstPageName);
+        	        first_page_master_names.put(originalName, firstPageName);
+        	
+        	        var firstPageMasterPage = originalMasterPage.cloneNode(true);
+        	        firstPageMasterPage.setAttributeNS(STYLE_NS, "style:name", firstPageName);
+        	        firstPageMasterPage.setAttributeNS(STYLE_NS, "style:next-style-name", originalName);
+        	
+        	        var firstPageHeader = getDirectChild(firstPageMasterPage, STYLE_NS, "header-first");
+        	        if (firstPageHeader != null) {
+        	            removeDirectChildren(firstPageMasterPage, STYLE_NS, "header");
+        	            doc.renameNode(firstPageHeader, STYLE_NS, "style:header");
+        	        }
+        	
+        	        var firstPageFooter = getDirectChild(firstPageMasterPage, STYLE_NS, "footer-first");
+        	        if (firstPageFooter != null) {
+        	            removeDirectChildren(firstPageMasterPage, STYLE_NS, "footer");
+        	            doc.renameNode(firstPageFooter, STYLE_NS, "style:footer");
+        	        }
+        	
+        	        removeDirectChildren(firstPageMasterPage, STYLE_NS, "header-first");
+        	        removeDirectChildren(firstPageMasterPage, STYLE_NS, "footer-first");
+        	        removeDirectChildren(originalMasterPage, STYLE_NS, "header-first");
+        	        removeDirectChildren(originalMasterPage, STYLE_NS, "footer-first");
+        	
+        	        originalMasterPage.getParentNode().insertBefore(firstPageMasterPage, originalMasterPage);
+        	        changed = true;
+        	    }
+        	
+        	    if (changed) {
+        	        normalized_first_page_headers = true;
+        	        updateMasterPageReferences(doc);
+        	    }
+        	    return changed ? xmlToBytes(doc) : bytes;
+        	}
+        	
+        	function writeZipEntry(zip, sourceEntry, bytes){
+        	    var newEntry = new ZipEntry(sourceEntry.getName());
+        	    if (sourceEntry.getTime() >= 0) {
+        	        newEntry.setTime(sourceEntry.getTime());
+        	    }
+        	    if (sourceEntry.getMethod() == ZipEntry.STORED) {
+        	        var crc = new CRC32();
+        	        crc.update(bytes);
+        	        newEntry.setMethod(ZipEntry.STORED);
+        	        newEntry.setSize(bytes.length);
+        	        newEntry.setCompressedSize(bytes.length);
+        	        newEntry.setCrc(crc.getValue());
+        	    }
+        	    zip.putNextEntry(newEntry);
+        	    zip.write(bytes);
+        	    zip.closeEntry();
+        	}
+        	
+        	function createNormalizedOdtForFirstPageHeaders(filePath){
+        	    first_page_master_names = new HashMap();
+        	    normalized_first_page_headers = false;
+        	
+        	    var stylesBytes = readZipEntry(filePath, "styles.xml");
+        	    if (stylesBytes == null) {
+        	        return null;
+        	    }
+        	
+        	    var normalizedStylesBytes = normalizeStylesXml(stylesBytes);
+        	    if (!normalized_first_page_headers) {
+        	        return null;
+        	    }
+        	
+        	    var tempFile = File.createTempFile("c8o-odt2pdf-", ".odt");
+        	    var inputZip = null;
+        	    var outputZip = null;
+        	    try {
+        	        inputZip = new ZipInputStream(new FileInputStream(new File(filePath)));
+        	        outputZip = new ZipOutputStream(new FileOutputStream(tempFile));
+        	
+        	        var entry = null;
+        	        while ((entry = inputZip.getNextEntry()) != null) {
+        	            var entryName = String(entry.getName());
+        	            var entryBytes = readAllBytes(inputZip);
+        	
+        	            if (entryName == "styles.xml") {
+        	                entryBytes = normalizedStylesBytes;
+        	            } else if (entryName == "content.xml") {
+        	                entryBytes = normalizeMasterPageReferencesXml(entryBytes);
+        	            }
+        	
+        	            writeZipEntry(outputZip, entry, entryBytes);
+        	        }
+        	    } catch (e) {
+        	        try { tempFile["delete"](); } catch (ignore) {}
+        	        throw e;
+        	    } finally {
+        	        if (inputZip) inputZip.close();
+        	        if (outputZip) outputZip.close();
+        	    }
+        	
+        	    log.warn("ODT normalized for first-page headers/footers before PDF conversion: " + tempFile.getAbsolutePath());
+        	    return tempFile;
+        	}
+        	
+        	try {
+        		normalized_input_file = createNormalizedOdtForFirstPageHeaders(input_path);
+        		var conversion_input_path = normalized_input_file == null ? input_path : normalized_input_file.getAbsolutePath();
+        	
+        		// Charger le fichier .odt
+        		odt = OdfTextDocument.loadDocument(conversion_input_path);
+        
+        		// Options pour la conversion PDF
+        		var options = PdfOptions.create();
+        
+        		// Enregistre la font depuis son fichier .ttf
+        		if(fonts_folder != null && fonts_folder != ""){
+        			registerAllFontsInFolder(fonts_folder);
+        		} else if(font_paths != null && font_paths != "" && font_aliases != null && font_aliases != ""){
+        			if (font_paths.length !== font_aliases.length) {
+        		        log.warn("⚠️ Font arrays length mismatch!");
+        		    } else {
+        			    for (var i = 0; i < font_paths.length; i++) {
+        			        FontFactory.register(get_full_path(font_paths[i]), font_aliases[i]);
+        			        log.debug("✅ Registered Font: ''" + font_aliases[i] + "'' from: " + font_paths[i]);
+        			    }
+        		    }
+        		}
+        		
+        		output = new FileOutputStream(new File(output_path));
+        		
+        		// Convertir en PDF
+        		PdfConverter.getInstance().convert(odt, output, options);
+        		log.debug("Conversion terminée !");
+        	} catch (e) {
+        		log.error("Erreur lors de la conversion : " + e);
+        		_error = true;
+        		_error_code = "-1";
+        		_error_msg = "ERROR: converting file ''" + input_path + "''";
+        		_error_stack = "" + e;
+        	} finally {
+        		if(output) output.close();
+        		if(odt) odt.close();
+        		if(normalized_input_file != null && normalized_input_file.exists()) normalized_input_file["delete"]();
+        	}
+        }'
+    ↓jIf [steps.IfStep-1743757560930]: 
+      condition: _error == true
+      ↓Error_structure [steps.XMLErrorStep-1743757560933]: 
+        code: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: _error_code
+        details: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: _error_stack
+        message: 
+          - xmlizable: 
+            - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
+            - SmartType: 
+              - ↑mode: JS
+              - →→: _error_msg
+      ↓Return [steps.ReturnStep-1743757560936]: 
+↓Element [steps.XMLElementStep-1743757603703]: 
+  nodeName: attachment
+  ↓jAttribute [steps.AttributeStep-1743757603706]: 
+    expression: '"attachment"'
+    nodeName: type
+  ↓jAttribute1 [steps.AttributeStep-1743757603709]: 
+    expression: file_name
+    nodeName: name
+  ↓jAttribute11 [steps.AttributeStep-1743757603712]: 
+    expression: output_path
+    nodeName: local-url
+  ↓jAttribute2 [steps.AttributeStep-1743757603715]: 
+    expression: '"application/octet-stream"'
+    nodeName: content-type
 ↓input_filename [variables.RequestableVariable-1743695655398]: 
   comment: |
     'ODT input file name to convert. 

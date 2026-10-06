@@ -609,12 +609,12 @@ Password of the protected PDF file.
 
 </p></blockquote></details>
 
-<details><summary><b>odt2pdf</b> : Convert an ODT file to a PDF file with LibreOffice (u_convert)</summary><blockquote><p>
+<details><summary><b>odt2pdf</b> : Convert an ODT file to a PDF file: with LibreOffice (u_convert) when it is installed, the fonts from fonts_folder or font_paths being embedded for the conversion, otherwise with the converter of the previous versions (XDocReport + iText 2</summary><blockquote><p>
 
 
 ## ![](https://github.com/convertigo/convertigo/blob/develop/engine/src/com/twinsoft/convertigo/beans/sequences/images/genericsequence_color_16x16.png?raw=true "GenericSequence") odt2pdf
 
-Convert an ODT file to a PDF file with LibreOffice (u_convert). Fonts from fonts_folder or font_paths are embedded for the conversion.
+Convert an ODT file to a PDF file: with LibreOffice (u_convert) when it is installed, the fonts from fonts_folder or font_paths being embedded for the conversion, otherwise with the converter of the previous versions (XDocReport + iText 2.1.7, jars in libs/legacy_pdf). The global symbol lib_fill_odt_pdf.odt2pdf_converter forces the converter: auto (default), libreoffice or legacy.
 
 <span style="color:DarkGoldenRod">Variables</span>
 

@@ -327,7 +327,7 @@ Can be an absolute path or a relative Convertigo path:
 
 ### odt2pdf
 
-Convert an ODT file to a PDF file with LibreOffice (u_convert). Fonts from fonts_folder or font_paths are embedded for the conversion.
+Convert an ODT file to a PDF file: with LibreOffice (u_convert) when it is installed, the fonts from fonts_folder or font_paths being embedded for the conversion, otherwise with the converter of the previous versions (XDocReport + iText 2.1.7, jars in libs/legacy_pdf). The global symbol lib_fill_odt_pdf.odt2pdf_converter forces the converter: auto (default), libreoffice or legacy.
 
 **variables**
 
