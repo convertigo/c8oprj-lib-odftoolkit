@@ -3,7 +3,7 @@
   comment: 'Document generation library: fills OpenDocument (ODT, ODS, ODP) and Office (Word, PowerPoint, Excel) templates, converts documents with LibreOffice and handles PDF files.'
   contextTimeout: 1800
   httpSessionTimeout: 3600
-  version: 2.0.0
+  version: 8.0.0.0
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓autoRemoveFolder [sequences.GenericSequence]: 🗏 sequences/autoRemoveFolder.yaml
   ↓clean_outputs [sequences.GenericSequence]: 🗏 sequences/clean_outputs.yaml

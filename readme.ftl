@@ -257,7 +257,7 @@ Error codes: `-1` generation or conversion error, `-2` LibreOffice can not be st
 </#noparse>
 <@header toc=toc anchors=anchors heading="##" text="Upgrading from version 1" />
 <#noparse>
-Version 2.0 is built on odfdom-java 0.13 instead of simple-odf 0.9. The existing sequences and their variables are unchanged, so the projects that use the library keep working. Only optional variables were added (`delete_at_end_of_session` in `u_fill_odt`, `table_name` in `u_read_odt`). Points to check:
+From version 8.0.0.0, the library is built on odfdom-java 0.13 instead of simple-odf 0.9. The existing sequences and their variables are unchanged, so the projects that use the library keep working. Only optional variables were added (`delete_at_end_of_session` in `u_fill_odt`, `table_name` in `u_read_odt`). Points to check:
 
 - **Jars**: simple-odf 0.9, iText 2.1.7 and XDocReport are no longer in `libs` (the copy kept in `libs/legacy_pdf` is only loaded by `odt2pdf`). A project that references this library sees its jars: if its own code uses `com.lowagie` (iText) classes, add iText 2.1.7 to its `libs`. Code using `org.odftoolkit.simple` or the odfdom 0.9 API must be ported to odfdom 0.13 or replaced by calls to the sequences of the library: odfdom 0.9 can not be loaded next to odfdom 0.13.
 - **`odt2pdf`**: converts with LibreOffice when it is installed, otherwise with the converter of the previous versions. Its result is unchanged.
