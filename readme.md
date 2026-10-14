@@ -9,6 +9,10 @@ Document generation library: fills OpenDocument (ODT, ODS, ODP) and Office (Word
 For more technical informations : [documentation](./project.md)
 
 - [Installation](#installation)
+- [Overview](#overview)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Upgrading from version 1](#upgrading-from-version-1)
 - [Sequences](#sequences)
     - [autoRemoveFolder](#autoremovefolder)
     - [clean_outputs](#clean_outputs)
@@ -61,6 +65,76 @@ For more technical informations : [documentation](./project.md)
     </table>
 3. Click the `Finish` button. This will automatically import the __lib_fill_odt_pdf__ project
 
+
+## Overview
+
+| Need | Sequence | LibreOffice |
+|------|----------|-------------|
+| Fill an OpenDocument template: text (odt), spreadsheet (ods), presentation (odp) | `u_fill_odt` | not needed |
+| Fill a template designed with Word, PowerPoint or Excel (docx, pptx, xlsx and the dotx, potx, xltx, docm, pptm, xlsm variants) | `u_fill_odt` (delegates to `u_fill_ooxml`) | not needed |
+| Create a text document or a spreadsheet from data | `u_create_odt`, `u_create_ods` | not needed |
+| Convert a document to another format (pdf, docx, xlsx, pptx, odt, html...) | `u_convert` (Private: call it from a sequence) | required |
+| Convert an ODT file to PDF | `odt2pdf` | used when installed, otherwise the converter of the previous versions |
+| Convert an ODT file to PDF with LibreOffice | `soffice_odt2pdf` | required |
+| Read or change PDF metadata and protection, fill or read PDF forms | `metadata_pdf`, `u_fill_pdf`, `u_read_pdf` | not needed |
+| Delete the generated files of `.//outputs` | `clean_outputs` (Private), `autoRemoveFolder` (auto start) | not needed |
+
+Office templates are filled by editing their XML in place: the formatting of the template is kept, and the tags that Word, PowerPoint or Excel split in several pieces (spell check, revisions) are found. Sample templates are in `templates/odf`, `templates/odp` and `templates/office`.
+
+## Quick start
+
+1. Put a tag in your template, for example `{customer}` in a Word document, then save it in the project, for example as `.//templates/office/letter.docx`.
+2. From your sequence, add a **Call Sequence** step on `lib_fill_odt_pdf.u_fill_odt` with these variables:
+   - `input_filename`: `.//templates/office/letter.docx`
+   - `output_filename`: `.//outputs/letter.docx` (same format as the template)
+   - `markers`: a JSON array, or a structured variable built with JSON steps:
+     ```json
+     [
+       { "tag": "{customer}", "value": "ACME" },
+       { "tag": "{date}", "type": "span", "value": "14/10/2026", "style": { "fontStyle": "BOLD", "fontColor": "RED" } },
+       { "tag": "{lines}", "type": "rows", "value": [["Low Code", "12"], ["Forms", "30"]] },
+       { "tag": "logo", "type": "image", "value": ".//templates/odp/sample_logo.png" }
+     ]
+     ```
+3. The sequence returns an `attachment` element (the generated file), `not_found` (tags absent from the template) and `marker_errors`. Called with the `.bin` requester, it downloads the file.
+4. To get a PDF, call `lib_fill_odt_pdf.u_convert` with `input_filename` = the generated file and `output_filename` = `.//outputs/letter.pdf`.
+
+Marker types: `string` (default), `paragraph`, `newline`, `span`, `image`, `table`, `tableh`, `tablet`, `array`, `list`, `rows` and `slides`. Their options and the differences between formats are described with the `markers` variable of `u_fill_odt` below. The demo sequences `demo_u_fill_odt`, `demo_u_fill_table_odt`, `demo_u_fill_odp` and `demo_u_fill_office` show the marker types at work.
+
+## Configuration
+
+The library is configured with global symbols (administration console > Global symbols). Each one can also come from an environment variable, handy with Docker.
+
+| Global symbol | Environment variable | Default | Use |
+|---------------|----------------------|---------|-----|
+| `lib_fill_odt_pdf.soffice_path` | `SOFFICE_PATH` | default install paths, then `soffice` in the PATH | Path of the LibreOffice executable |
+| `lib_fill_odt_pdf.office_pool_size` | `LIB_FILL_ODT_PDF_OFFICE_POOL_SIZE` | `0` | Number of LibreOffice processes kept running between conversions (about 50 ms per conversion instead of 2 s). `0` starts one process per conversion |
+| `lib_fill_odt_pdf.office_pool_port` | `LIB_FILL_ODT_PDF_OFFICE_POOL_PORT` | `2002` | First port used by the pool |
+| `lib_fill_odt_pdf.odt2pdf_converter` | `LIB_FILL_ODT_PDF_ODT2PDF_CONVERTER` | `auto` | Converter of `odt2pdf`: `auto` (LibreOffice when installed), `libreoffice` or `legacy` (converter of the previous versions) |
+| `auto_start.init_config` | | `false` | Docker only: installs LibreOffice and the fonts when the server starts |
+| `auto_start.init_config_loop` | | `true` | Docker only: same installation, one command after the other |
+
+The default install paths are `C:/Program Files/LibreOffice/program/soffice.exe` on Windows, `/Applications/LibreOffice.app/Contents/MacOS/soffice` on macOS and `/usr/bin/soffice`, `/usr/lib/libreoffice/program/soffice`, `/opt/libreoffice/program/soffice` on Linux.
+
+On Docker, `docker/Dockerfile` builds a Convertigo image with LibreOffice and the fonts of the project already installed: set `auto_start.init_config` and `auto_start.init_config_loop` to `false` with this image.
+
+```
+docker build -f docker/Dockerfile --build-arg CONVERTIGO_TAG=8.4.1 -t convertigo-odf:8.4.1 .
+docker run -d -p 28080:28080 convertigo-odf:8.4.1
+```
+
+Error codes: `-1` generation or conversion error, `-2` LibreOffice can not be started, `-3` conversion timeout, `-4` the fonts and LibreOffice are being installed by `init_config` (retry later).
+
+## Upgrading from version 1
+
+Version 2.0 is built on odfdom-java 0.13 instead of simple-odf 0.9. The existing sequences and their variables are unchanged, so the projects that use the library keep working. Only optional variables were added (`delete_at_end_of_session` in `u_fill_odt`, `table_name` in `u_read_odt`). Points to check:
+
+- **Jars**: simple-odf 0.9, iText 2.1.7 and XDocReport are no longer in `libs` (the copy kept in `libs/legacy_pdf` is only loaded by `odt2pdf`). A project that references this library sees its jars: if its own code uses `com.lowagie` (iText) classes, add iText 2.1.7 to its `libs`. Code using `org.odftoolkit.simple` or the odfdom 0.9 API must be ported to odfdom 0.13 or replaced by calls to the sequences of the library: odfdom 0.9 can not be loaded next to odfdom 0.13.
+- **`odt2pdf`**: converts with LibreOffice when it is installed, otherwise with the converter of the previous versions. Its result is unchanged.
+- **`soffice_odt2pdf`**: the `soffice_path` variable is ignored for security reasons. When LibreOffice is not in a default install path, set the `lib_fill_odt_pdf.soffice_path` global symbol or the `SOFFICE_PATH` environment variable.
+- **`u_fill_odt`, `u_create_odt`, `fill_odt`**: the result also contains `not_found` and `marker_errors`. The items of an `array` marker no longer take the formatting of the previous `span` item.
+- **`u_create_ods`**: returns an `attachment` element and prints all the sheets.
+- **`clean_outputs`**: can only be called from a sequence (Private) and only deletes the generated file types of `.//outputs`. Files older than `max_time` are deleted (24 h by default). At startup, `autoRemoveFolder` deletes the files older than 10 minutes.
 
 ## Sequences
 
