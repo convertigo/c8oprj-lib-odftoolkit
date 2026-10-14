@@ -53,13 +53,13 @@ For more technical informations : [documentation](./project.md)
      <tr><td>To contribute</td><td>
 
      ```
-     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit.git:branch=master
+     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit.git:branch=8.0.0
      ```
      </td></tr>
      <tr><td>To simply use</td><td>
 
      ```
-     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit/archive/master.zip
+     lib_fill_odt_pdf=https://github.com/convertigo/c8oprj-lib-odftoolkit/archive/8.0.0.zip
      ```
      </td></tr>
     </table>

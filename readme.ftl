@@ -80,6 +80,16 @@
   <#return key>
 </#function>
 
+<#-- toHttpsRemoteUrl: rewrites git SSH GitHub remote URLs to HTTPS -->
+<#function toHttpsRemoteUrl url>
+  <#assign value = (url!"")?trim>
+  <#assign value = value?replace("=ssh://git@github.com/", "=https://github.com/")>
+  <#assign value = value?replace("=git@github.com:", "=https://github.com/")>
+  <#assign value = value?replace("ssh://git@github.com/", "https://github.com/")>
+  <#assign value = value?replace("git@github.com:", "https://github.com/")>
+  <#return value>
+</#function>
+
 <#-- MACROS -->
 <#-- header: generates a header with given text as heading and add it to TOC with its anchor link -->
 <#macro header toc anchors heading text>
@@ -123,12 +133,12 @@ ${title}${lineBreak}
      <tr><td>Usage</td><td>Click the copy button</td></tr>
      <tr><td>To contribute</td><td>${lineBreak}
      ```
-     ${project.contributeUrl}
+     ${toHttpsRemoteUrl(project.contributeUrl)}
      ```
      </td></tr>
      <tr><td>To simply use</td><td>${lineBreak}
      ```
-     ${project.usageUrl}
+     ${toHttpsRemoteUrl(project.usageUrl)}
      ```
      </td></tr>
     </table>
@@ -141,12 +151,12 @@ ${title}${lineBreak}
      <tr><td>Usage</td><td>Cliquez sur le bouton de copie</td></tr>
      <tr><td>Pour contribuer</td><td>${lineBreak}
      ```
-     ${lineBreak}${project.contributeUrl}
+     ${lineBreak}${toHttpsRemoteUrl(project.contributeUrl)}
      ```
      </td></tr>
      <tr><td>Pour simplement utiliser</td><td>${lineBreak}
      ```
-     ${lineBreak}${project.usageUrl}
+     ${lineBreak}${toHttpsRemoteUrl(project.usageUrl)}
      ```
      </td></tr>
     </table>
