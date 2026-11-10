@@ -3,7 +3,7 @@
   comment: ODFToolkit and PDF library
   contextTimeout: 1800
   httpSessionTimeout: 3600
-  version: 1.11.6
+  version: 1.11.7
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓autoRemoveFolder [sequences.GenericSequence]: 🗏 sequences/autoRemoveFolder.yaml
   ↓clean_outputs [sequences.GenericSequence]: 🗏 sequences/clean_outputs.yaml
