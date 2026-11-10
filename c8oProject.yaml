@@ -1,7 +1,7 @@
 ↑convertigo: 8.0.0.m006
 ↓lib_fill_odt_pdf [core.Project]: 
   comment: ODFToolkit and PDF library
-  version: 1.6
+  version: 1.6.1
   ↓void [connectors.SqlConnector]: 🗏 connectors/void.yaml
   ↓clean_outputs [sequences.GenericSequence]: 🗏 sequences/clean_outputs.yaml
   ↓demo_u_fill_odt [sequences.GenericSequence]: 🗏 sequences/demo_u_fill_odt.yaml
