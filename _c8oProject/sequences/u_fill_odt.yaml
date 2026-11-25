@@ -521,7 +521,11 @@ responseTimeout: 120
     			case "paragraph":
     			case "string":
     			default:
-    				item.replaceWith(tag.value);
+    				// A null or missing value is written empty, as an empty field of the template
+    				if (tag.value == null) {
+    					log.debug("tag " + tag.tag + " has no value, written empty");
+    				}
+    				item.replaceWith(tag.value == null ? "" : tag.value);
     		}
     	}
     
