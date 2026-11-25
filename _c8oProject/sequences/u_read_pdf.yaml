@@ -6,16 +6,6 @@ responseTimeout: 120
 ↓inputVars [steps.InputVariablesStep-1740076932981]: 
 ↓Form_PDF [steps.PdfFormStep-1740076933008]: 
   action: getFields
-  fieldsList: 
-    - xmlizable: 
-      - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
-      - SmartType: 
-        - ↑mode: SOURCE
-        - com.twinsoft.convertigo.beans.common.XMLVector: 
-          - java.lang.String: 
-            - ↑value: 1740057614974
-          - java.lang.String: 
-            - ↑value: .
   filePath: 
     - xmlizable: 
       - ↑classname: com.twinsoft.convertigo.beans.steps.SmartType
